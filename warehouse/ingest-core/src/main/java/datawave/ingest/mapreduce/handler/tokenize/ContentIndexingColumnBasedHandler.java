@@ -105,7 +105,7 @@ public abstract class ContentIndexingColumnBasedHandler<KEYIN> extends AbstractC
     
     private boolean tokenizerTimeWarned = false;
     
-    private int termPosition = 0;
+    protected int termPosition = 0;
     
     @Override
     public void setup(TaskAttemptContext context) {
