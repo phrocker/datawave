@@ -1,0 +1,3 @@
+[submodule "nifi-accumulo"]
+	path = nifi-accumulo
+	url = https://github.com/phrocker/nifi-accumulo.git
