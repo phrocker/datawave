@@ -69,6 +69,7 @@ public class TokenizationHelper {
     
     private CharArraySet stopWords;
     
+    private Class<?> analyzerClass = null;
     public static final String ANALYZER_CLASS = ".analyzer.class";
     private String analyzerClassName = "datawave.ingest.data.tokenize.StandardAnalyzer";
     
@@ -188,7 +189,9 @@ public class TokenizationHelper {
     public Analyzer getAnalyzer() {
         String analyzerClassName = getAnalyzerClassName();
         try {
-            Class<?> analyzerClass = Class.forName(analyzerClassName);
+            if (analyzerClass == null) {
+                analyzerClass = Class.forName(analyzerClassName);
+            }
             if (StandardAnalyzer.class.isAssignableFrom(analyzerClass)) {
                 // it is a bit of a stretch to insist that subclasses have
                 // the same constructor, but this works here.

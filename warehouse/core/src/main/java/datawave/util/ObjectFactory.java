@@ -16,6 +16,8 @@ import org.apache.log4j.Logger;
 public class ObjectFactory {
     private static final Logger logger = Logger.getLogger(ObjectFactory.class);
     
+    private static Map<String,Class<?>> classMap = new HashMap<>();
+    
     /**
      * Take away the public constructor
      */
@@ -35,8 +37,15 @@ public class ObjectFactory {
             logger.debug("ObjectFactory.create1(" + className + "," + Arrays.toString(args) + ")");
         }
         try {
-            Class<?> clazz = Class.forName(className);
             List<Class<?>> types = new ArrayList<>();
+            Class<?> clazz = null;
+            synchronized (classMap) {
+                clazz = classMap.get(className);
+                if (clazz == null) {
+                    clazz = Class.forName(className);
+                    classMap.put(className, clazz);
+                }
+            }
             for (Object o : args) {
                 if (o == null) {
                     types.add(null);
