@@ -729,6 +729,13 @@ public class EventMapper<K1,V1 extends RawRecordContainer,K2,V2> extends StatsDE
         }
     }
     
+    public void addDataType(String dataTypeName, DataTypeHandler<K1> handler) {
+        if (!typeMap.containsKey(dataTypeName)) {
+            typeMap.put(dataTypeName, new ArrayList<>());
+        }
+        typeMap.get(dataTypeName).add(handler);
+    }
+    
     private static class FieldNormalizationError extends Exception {
         private static final long serialVersionUID = 1L;
         

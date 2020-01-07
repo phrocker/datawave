@@ -1,6 +1,5 @@
 package datawave.marking;
 
-import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.context.Initialized;
 import javax.enterprise.event.Observes;
@@ -9,6 +8,8 @@ import javax.inject.Inject;
 import datawave.configuration.spring.SpringBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 /**
@@ -16,7 +17,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
  *
  */
 @ApplicationScoped
-public class MarkingFunctionsFactory {
+public class MarkingFunctionsFactory implements InitializingBean, DisposableBean {
     
     @Inject
     @SpringBean(refreshable = true)
@@ -55,8 +56,17 @@ public class MarkingFunctionsFactory {
         // we might have several, we use to post construct of this bean to ensure our work is only done once.
     }
     
-    @PostConstruct
     public void postContruct() {
         markingFunctions = applicationMarkingFunctions;
+    }
+    
+    @Override
+    public void destroy() throws Exception {
+        
+    }
+    
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        postContruct();
     }
 }
