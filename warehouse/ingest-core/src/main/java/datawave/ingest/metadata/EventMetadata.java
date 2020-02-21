@@ -17,10 +17,13 @@ import datawave.util.TextUtil;
 import datawave.util.time.DateHelper;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableUtils;
 import org.slf4j.Logger;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -405,9 +408,22 @@ public class EventMetadata implements RawRecordMetadata {
         }
     }
     
+    public byte[] encode(Long v) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos);
+        
+        try {
+            WritableUtils.writeVLong(dos, v);
+        } catch (IOException var5) {
+            throw new NumberFormatException(var5.getMessage());
+        }
+        
+        return baos.toByteArray();
+    }
+    
     protected void addToResults(Multimap<BulkIngestKey,Value> results, Long value, Key key, Text tableName) {
         BulkIngestKey bk = new BulkIngestKey(tableName, key);
-        results.put(bk, new Value(SummingCombiner.VAR_LEN_ENCODER.encode(value)));
+        results.put(bk, new Value(encode(value)));
     }
     
     protected void addIndexedFieldToMetadata(Multimap<BulkIngestKey,Value> results, MetadataWithMostRecentDate mostRecentDates) {

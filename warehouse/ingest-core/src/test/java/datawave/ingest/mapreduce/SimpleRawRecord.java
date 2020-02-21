@@ -192,6 +192,11 @@ public class SimpleRawRecord implements RawRecordContainer, Writable {
     }
     
     @Override
+    public long getRawDataSize() {
+        return rawData.length;
+    }
+    
+    @Override
     public byte[] getRawData() {
         return rawData;
     }

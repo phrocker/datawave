@@ -98,6 +98,8 @@ public interface RawRecordContainer {
     
     void setRawFileTimestamp(long rawRecordTimestamp);
     
+    long getRawDataSize();
+    
     byte[] getRawData();
     
     void setRawData(byte[] rawData);

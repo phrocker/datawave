@@ -351,6 +351,11 @@ public class RawRecordContainerImpl implements Writable, Configurable, RawRecord
     }
     
     @Override
+    public long getRawDataSize() {
+        return rawData.length;
+    }
+    
+    @Override
     public byte[] getRawData() {
         return rawData;
     }

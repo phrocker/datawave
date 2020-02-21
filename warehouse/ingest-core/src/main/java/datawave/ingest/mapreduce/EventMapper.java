@@ -40,9 +40,9 @@ import datawave.ingest.time.Now;
 import datawave.ingest.validation.FieldValidator;
 import datawave.marking.MarkingFunctions;
 import datawave.util.StringUtils;
-import datawave.util.time.TraceStopwatch;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.commons.lang3.time.StopWatch;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Counter;
 import org.apache.hadoop.mapreduce.CounterGroup;
@@ -379,10 +379,10 @@ public class EventMapper<K1,V1 extends RawRecordContainer,K2,V2> extends StatsDE
     
     public void map(K1 key, V1 value, Context context) throws IOException, InterruptedException {
         
-        TraceStopwatch eventMapperTimer = null;
+        StopWatch eventMapperTimer = null;
         
         if (metricsEnabled) {
-            eventMapperTimer = new TraceStopwatch("Time in EventMapper");
+            eventMapperTimer = new StopWatch();
             eventMapperTimer.start();
         }
         
@@ -551,7 +551,7 @@ public class EventMapper<K1,V1 extends RawRecordContainer,K2,V2> extends StatsDE
         
         if (metricsEnabled && eventMapperTimer != null) {
             eventMapperTimer.stop();
-            long timeInEventMapper = eventMapperTimer.elapsed(TimeUnit.MILLISECONDS);
+            long timeInEventMapper = eventMapperTimer.getTime();
             
             metricsLabels.clear();
             metricsLabels.put("dataType", value.getDataType().typeName());
@@ -607,6 +607,22 @@ public class EventMapper<K1,V1 extends RawRecordContainer,K2,V2> extends StatsDE
         }
         
         return synopsis;
+    }
+    
+    public void writeMetadata(Context context) throws IOException, InterruptedException {
+        for (List<DataTypeHandler<K1>> handlers : typeMap.values()) {
+            for (DataTypeHandler<K1> h : handlers)
+                if (h.getMetadata() != null) {
+                    try {
+                        contextWriter.write(h.getMetadata().getBulkMetadata(), context);
+                        h.getMetadata().clear();
+                    } finally {
+                        contextWriter.commit(context);
+                    }
+                }
+        }
+        metricsService.close();
+        contextWriter.cleanup(context);
     }
     
     @Override
@@ -712,7 +728,7 @@ public class EventMapper<K1,V1 extends RawRecordContainer,K2,V2> extends StatsDE
                     metricsLabels.put("dataType", value.getDataType().typeName());
                     
                     metricsService.collect(Metric.EVENT_COUNT, metricsLabels.get(), fields, 1L);
-                    metricsService.collect(Metric.BYTE_COUNT, metricsLabels.get(), fields, (long) value.getRawData().length);
+                    metricsService.collect(Metric.BYTE_COUNT, metricsLabels.get(), fields, (long) value.getRawDataSize());
                 }
                 
                 previousHelper = thisHelper;
@@ -816,12 +832,12 @@ public class EventMapper<K1,V1 extends RawRecordContainer,K2,V2> extends StatsDE
                     Context context) throws Exception {
         long count = 0;
         
-        TraceStopwatch handlerTimer = null;
+        StopWatch handlerTimer = null;
         
         // Handler based metrics
         if (metricsEnabled) {
             
-            handlerTimer = new TraceStopwatch("Time in handler");
+            handlerTimer = new StopWatch();
             handlerTimer.start();
         }
         
@@ -858,7 +874,7 @@ public class EventMapper<K1,V1 extends RawRecordContainer,K2,V2> extends StatsDE
         
         if (metricsEnabled && handlerTimer != null) {
             handlerTimer.stop();
-            long handlerTime = handlerTimer.elapsed(TimeUnit.MILLISECONDS);
+            long handlerTime = handlerTimer.getTime();
             
             metricsLabels.clear();
             metricsLabels.put("dataType", event.getDataType().typeName());

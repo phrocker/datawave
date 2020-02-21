@@ -19,7 +19,6 @@
         <module>web-services</module>
         <module>warehouse</module>
         <module>type-metadata-hdfs</module>
-        <module>nifi-accumulo</module>
     </modules>
     <scm>
         <connection>scm:git:https://github.com/NationalSecurityAgency/datawave.git</connection>

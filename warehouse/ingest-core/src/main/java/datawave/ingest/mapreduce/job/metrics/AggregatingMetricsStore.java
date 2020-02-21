@@ -48,12 +48,14 @@ public class AggregatingMetricsStore<OK,OV> implements MetricsStore<OK,OV> {
     
     @Override
     public void close() throws Exception {
+        logger.info("Flushing store");
         counts.flush(flusher);
     }
     
     private class FlushMetrics implements Counts.FlushOp<String> {
         @Override
         public void flush(ConcurrentMap<String,AtomicLong> counts) {
+            logger.info("Adding " + counts.entrySet().size() + " metrics to the context");
             for (Map.Entry<String,AtomicLong> entry : counts.entrySet()) {
                 try {
                     byte[] countAsBytes = TextUtil.toUtf8(String.valueOf(entry.getValue().get()));
