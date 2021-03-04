@@ -12,6 +12,7 @@ import datawave.ingest.data.config.DataTypeHelper;
 import datawave.ingest.json.util.JsonObjectFlattener;
 import datawave.ingest.json.util.JsonObjectFlattenerImpl;
 import org.apache.commons.collections4.IteratorUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.conf.Configuration;
 
 import java.io.File;
@@ -51,7 +52,8 @@ public class JsonIngestFlattener extends JsonObjectFlattenerImpl {
     }
     
     @Override
-    protected void mapPut(String currentPath, String currentValue, Multimap<String,String> map, Map<String,Integer> occurrenceCounts) {
+    protected void mapPut(String currentPath, String currentValue, Multimap<String,Pair<String,Map<String,String>>> map, Map<String,Integer> occurrenceCounts,
+                    Map<String,String> markings) {
         String key = this.keyValueNormalizer.normalizeMapKey(currentPath, currentValue);
         String value = this.keyValueNormalizer.normalizeMapValue(currentValue, key);
         if (!ignoreKeyValue(key, value)) {
@@ -66,7 +68,7 @@ public class JsonIngestFlattener extends JsonObjectFlattenerImpl {
                 }
             }
             
-            map.put(key, value);
+            map.put(key, Pair.of(value, markings));
         }
     }
     
@@ -205,7 +207,7 @@ public class JsonIngestFlattener extends JsonObjectFlattenerImpl {
         private Configuration jsonIngestConfig = null;
         private JsonObjectFlattener jsonIngestFlattener = null;
         private Iterator<JsonElement> jsonIterator;
-        private TreeMultimap<String,String> sortedMap = TreeMultimap.create();
+        private TreeMultimap<String,Pair<String,Map<String,String>>> sortedMap = TreeMultimap.create();
         private int objectCounter = 0;
         
         /**
@@ -271,10 +273,8 @@ public class JsonIngestFlattener extends JsonObjectFlattenerImpl {
             
             for (String key : sortedMap.keySet()) {
                 System.out.print(key + ": ");
-                Collection<String> values = sortedMap.get(key);
-                for (String value : values) {
-                    System.out.print("[" + value + "]");
-                }
+                Collection<Pair<String,Map<String,String>>> values = sortedMap.get(key);
+                values.forEach(pair -> System.out.println("[" + pair.getLeft() + "] markings=" + pair.getRight()));
                 System.out.println();
             }
             

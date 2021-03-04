@@ -7,6 +7,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import datawave.marking.MarkingFunctions;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,6 +41,7 @@ public class JsonObjectFlattenerImpl implements JsonObjectFlattener {
     protected final Set<String> mapKeyBlacklist;
     protected final String occurrenceDelimiter;
     protected final boolean addArrayIndexToFieldName;
+    protected final String objectVisibilityField;
     
     protected JsonObjectFlattenerImpl(Builder builder) {
         this.pathDelimiter = builder.pathDelimiter;
@@ -46,12 +49,13 @@ public class JsonObjectFlattenerImpl implements JsonObjectFlattener {
         this.mapKeyBlacklist = builder.fieldNameBlacklist != null ? new HashSet<>(builder.fieldNameBlacklist) : null;
         this.flattenMode = builder.flattenMode;
         this.occurrenceDelimiter = builder.occurrenceDelimiter;
+        this.objectVisibilityField = builder.objectVisibilityField;
         
         // If a GROUPED* mode is enabled, then we force addArrayIndexToFieldName to false, since the additional
         // context is redundant in those cases. The property is really only relevant for NORMAL mode usage
         
-        this.addArrayIndexToFieldName = (this.flattenMode == FlattenMode.GROUPED || this.flattenMode == FlattenMode.GROUPED_AND_NORMAL) ? false
-                        : builder.addArrayIndexToFieldName;
+        this.addArrayIndexToFieldName = this.flattenMode != FlattenMode.GROUPED && this.flattenMode != FlattenMode.GROUPED_AND_NORMAL
+                        && builder.addArrayIndexToFieldName;
         
         if (this.flattenMode == FlattenMode.GROUPED) {
             if (this.pathDelimiter.equals(this.occurrenceDelimiter)) {
@@ -84,20 +88,20 @@ public class JsonObjectFlattenerImpl implements JsonObjectFlattener {
     }
     
     @Override
-    public Multimap<String,String> flatten(JsonObject object) throws IllegalStateException {
-        Multimap<String,String> map = HashMultimap.create();
+    public Multimap<String,Pair<String,Map<String,String>>> flatten(JsonObject object) throws IllegalStateException {
+        Multimap<String,Pair<String,Map<String,String>>> map = HashMultimap.create();
         flatten(object, map);
         return map;
     }
     
     @Override
-    public void flatten(JsonObject object, Multimap<String,String> map) throws NullPointerException, IllegalStateException {
+    public void flatten(JsonObject object, Multimap<String,Pair<String,Map<String,String>>> map) throws NullPointerException, IllegalStateException {
         Preconditions.checkNotNull(map, "'map' argument cannot be null");
         Map<String,Integer> occurrenceCounts = null;
         if (this.flattenMode == FlattenMode.GROUPED || this.flattenMode == FlattenMode.GROUPED_AND_NORMAL) {
             occurrenceCounts = new HashMap<>();
         }
-        addKeysToMap("", object, map, occurrenceCounts);
+        addKeysToMap("", object, map, occurrenceCounts, null);
     }
     
     @Override
@@ -105,7 +109,8 @@ public class JsonObjectFlattenerImpl implements JsonObjectFlattener {
         return this.flattenMode;
     }
     
-    protected void addKeysToMap(String currentPath, JsonElement element, Multimap<String,String> map, Map<String,Integer> occurrenceCounts) {
+    protected void addKeysToMap(String currentPath, JsonElement element, Multimap<String,Pair<String,Map<String,String>>> map,
+                    Map<String,Integer> occurrenceCounts, Map<String,String> markings) {
         
         if (null == element || element.isJsonNull()) {
             // Don't add nulls
@@ -133,9 +138,18 @@ public class JsonObjectFlattenerImpl implements JsonObjectFlattener {
             Iterator<Map.Entry<String,JsonElement>> iter = jsonObject.entrySet().iterator();
             String pathPrefix = currentPath.isEmpty() ? currentPath : currentPath + this.pathDelimiter;
             
+            Map<String,String> objectMarkings = null;
+            if (objectVisibilityField != null) {
+                JsonElement dsid = jsonObject.get(objectVisibilityField);
+                if (dsid != null && dsid.isJsonPrimitive() && dsid.getAsJsonPrimitive().isString()) {
+                    objectMarkings = new HashMap<>();
+                    objectMarkings.put(MarkingFunctions.Default.COLUMN_VISIBILITY, dsid.getAsString());
+                }
+            }
             while (iter.hasNext()) {
                 Map.Entry<String,JsonElement> entry = iter.next();
-                addKeysToMap(pathPrefix + this.nameNormalizer.normalizeElementName(entry.getKey(), currentPath), entry.getValue(), map, occurrenceCounts);
+                addKeysToMap(pathPrefix + this.nameNormalizer.normalizeElementName(entry.getKey(), currentPath), entry.getValue(), map, occurrenceCounts,
+                                objectMarkings);
             }
         } else if (element.isJsonArray()) {
             
@@ -143,20 +157,20 @@ public class JsonObjectFlattenerImpl implements JsonObjectFlattener {
             for (int i = 0; i < jsonArray.size(); i++) {
                 
                 if (jsonArray.get(i).isJsonPrimitive()) {
-                    mapPut(currentPath, jsonArray.get(i).getAsString(), map, occurrenceCounts);
+                    mapPut(currentPath, jsonArray.get(i).getAsString(), map, occurrenceCounts, markings);
                 } else {
                     
                     if (this.addArrayIndexToFieldName) {
-                        addKeysToMap(currentPath + this.pathDelimiter + i, jsonArray.get(i), map, occurrenceCounts);
+                        addKeysToMap(currentPath + this.pathDelimiter + i, jsonArray.get(i), map, occurrenceCounts, markings);
                     } else {
-                        addKeysToMap(currentPath, jsonArray.get(i), map, occurrenceCounts);
+                        addKeysToMap(currentPath, jsonArray.get(i), map, occurrenceCounts, markings);
                     }
                 }
             }
         } else if (element.isJsonPrimitive()) {
             
             JsonPrimitive primitive = element.getAsJsonPrimitive();
-            mapPut(currentPath, primitive.getAsString(), map, occurrenceCounts);
+            mapPut(currentPath, primitive.getAsString(), map, occurrenceCounts, markings);
         }
     }
     
@@ -175,22 +189,25 @@ public class JsonObjectFlattenerImpl implements JsonObjectFlattener {
         return name;
     }
     
-    protected void mapPut(String currentPath, String currentValue, Multimap<String,String> map, Map<String,Integer> occurrenceCounts) {
+    protected void mapPut(String currentPath, String currentValue, Multimap<String,Pair<String,Map<String,String>>> map, Map<String,Integer> occurrenceCounts,
+                    Map<String,String> markings) {
         String key = this.keyValueNormalizer.normalizeMapKey(currentPath, currentValue);
         String value = this.keyValueNormalizer.normalizeMapValue(currentValue, key);
         if (!ignoreKeyValue(key, value)) {
+            
+            Pair<String,Map<String,String>> mapVal = Pair.of(value, markings);
             
             if (this.flattenMode == FlattenMode.GROUPED || this.flattenMode == FlattenMode.GROUPED_AND_NORMAL) {
                 
                 if (this.flattenMode == FlattenMode.GROUPED_AND_NORMAL) {
                     // At this point we have everything we need to build the 'NORMAL', non-grouped key
-                    map.put(getNormalKeyFromGroupedContext(key), value);
+                    map.put(getNormalKeyFromGroupedContext(key), mapVal);
                 }
                 // Build key with fieldname + context suffix
                 key = getFieldAndContextSuffix(key, value, incrementCount(key, occurrenceCounts));
             }
             
-            map.put(key, value);
+            map.put(key, mapVal);
         }
     }
     
@@ -279,6 +296,7 @@ public class JsonObjectFlattenerImpl implements JsonObjectFlattener {
         protected boolean addArrayIndexToFieldName = true;
         protected FlattenMode flattenMode = FlattenMode.NORMAL;
         protected String occurrenceDelimiter = DEFAULT_OCCURRENCE_DELIMITER;
+        protected String objectVisibilityField = null;
         
         @Override
         public Builder pathDelimiter(String pathDelimiter) throws NullPointerException {
@@ -329,6 +347,11 @@ public class JsonObjectFlattenerImpl implements JsonObjectFlattener {
         public Builder jsonElementNameNormalizer(JsonElementNameNormalizer normalizer) {
             Preconditions.checkNotNull(normalizer, "normalizer cannot be null");
             this.nameNormalizer = normalizer;
+            return this;
+        }
+        
+        public Builder objectVisibilityField(String objectVisibilityField) {
+            this.objectVisibilityField = objectVisibilityField;
             return this;
         }
         

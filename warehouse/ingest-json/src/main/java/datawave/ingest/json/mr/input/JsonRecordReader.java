@@ -4,7 +4,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.HashMultimap;
@@ -27,6 +30,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.commons.collections4.IteratorUtils;
 import org.apache.commons.io.input.CountingInputStream;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -70,7 +74,7 @@ public class JsonRecordReader extends AbstractEventRecordReader<BytesWritable> {
     
     // Json parser-related stuff
     
-    protected Multimap<String,String> currentValue = HashMultimap.create();
+    protected Multimap<String,Pair<String,Map<String,String>>> currentValue = HashMultimap.create();
     protected Iterator<JsonElement> jsonIterator;
     protected JsonReader reader;
     protected JsonElement currentJsonObj;
@@ -99,7 +103,7 @@ public class JsonRecordReader extends AbstractEventRecordReader<BytesWritable> {
         }
     }
     
-    public Multimap<String,String> getCurrentFields() {
+    public Multimap<String,Pair<String,Map<String,String>>> getCurrentFields() {
         return currentValue;
     }
     
@@ -172,6 +176,62 @@ public class JsonRecordReader extends AbstractEventRecordReader<BytesWritable> {
         jsonFlattener.flatten(jsonObject, currentValue);
     }
     
+    protected JsonObject transformJson(JsonObject jsonObject) {
+        
+        final String[] latLonObjectPaths = jsonHelper.getLatLonObjectPaths();
+        final String latFieldName = jsonHelper.getLatitudeFieldName();
+        final String lonFieldName = jsonHelper.getLongitudeFieldName();
+        final String locFieldName = jsonHelper.getPointFieldName();
+        if (latLonObjectPaths != null && latFieldName != null && lonFieldName != null && locFieldName != null) {
+            for (String latLonObjectPath : latLonObjectPaths) {
+                // Start with the root object, and then move through each segment...
+                List<JsonObject> curObjects = new ArrayList<>(Collections.singletonList(jsonObject));
+                for (String segmentProp : latLonObjectPath.split("\\.")) {
+                    List<JsonObject> nextCurObjects = new ArrayList<>();
+                    // For each of the current objects, look for the current path segment
+                    // as a property on that object. If the property exists and its value
+                    // is an object, then add it to the next segment's current list. If
+                    // the property exists and its value is an array of objects, then add
+                    // each of the objects in the array to the next segment's current list.
+                    for (Iterator<JsonObject> it = curObjects.iterator(); it.hasNext();) {
+                        JsonObject object = it.next();
+                        // Remove the object we're examining. That way, if we don't reach
+                        // the end of the segment list, we'll end up with an empty array.
+                        it.remove();
+                        
+                        JsonElement e = object.get(segmentProp);
+                        if (e != null) {
+                            if (e.isJsonArray()) {
+                                for (JsonElement arrayElement : e.getAsJsonArray()) {
+                                    if (arrayElement.isJsonObject()) {
+                                        nextCurObjects.add(arrayElement.getAsJsonObject());
+                                    }
+                                }
+                            } else if (e.isJsonObject()) {
+                                nextCurObjects.add(e.getAsJsonObject());
+                            }
+                        }
+                    }
+                    // For the next segment, look at the objects we just extraced above...
+                    curObjects = nextCurObjects;
+                }
+                // Once the above loop completes, we should have a list of objects that match
+                // the paths. Look for a latitude and longitude property on those objects. If
+                // found, then turn the two fields into a POINT and add it to the object.
+                for (JsonObject o : curObjects) {
+                    JsonElement latEl = o.get(latFieldName);
+                    JsonElement lonEl = o.get(lonFieldName);
+                    if (latEl != null && latEl.isJsonPrimitive() && lonEl != null && lonEl.isJsonPrimitive() && o.get(locFieldName) == null) {
+                        String point = "POINT(" + lonEl.getAsJsonPrimitive().getAsString() + " " + latEl.getAsJsonPrimitive().getAsString() + ")";
+                        o.addProperty(locFieldName, point);
+                    }
+                }
+            }
+        }
+        
+        return jsonObject;
+    }
+    
     @Override
     public boolean nextKeyValue() throws IOException {
         
@@ -199,7 +259,7 @@ public class JsonRecordReader extends AbstractEventRecordReader<BytesWritable> {
         if (jsonIterator.hasNext()) {
             JsonElement jsonElement = jsonIterator.next();
             
-            parseCurrentValue(jsonElement.getAsJsonObject());
+            parseCurrentValue(transformJson(jsonElement.getAsJsonObject()));
             pos = countingInputStream.getByteCount();
             
             // Save ref to the current json element, to be used when writing the raw data to the record in getEvent
@@ -218,9 +278,10 @@ public class JsonRecordReader extends AbstractEventRecordReader<BytesWritable> {
             event.setDate(this.inputDate);
         }
         
-        for (Map.Entry<String,String> entry : currentValue.entries()) {
+        for (Map.Entry<String,Pair<String,Map<String,String>>> entry : currentValue.entries()) {
             String fieldName = entry.getKey();
-            String fieldValue = entry.getValue();
+            Pair<String,Map<String,String>> valuePair = entry.getValue();
+            String fieldValue = valuePair == null ? null : valuePair.getLeft();
             if (fieldValue != null) {
                 checkField(fieldName, fieldValue);
             }

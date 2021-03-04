@@ -10,17 +10,23 @@ import datawave.ingest.data.config.NormalizedFieldAndValue;
 import datawave.ingest.data.config.ingest.ContentBaseIngestHelper;
 import datawave.ingest.data.normalizer.SimpleGroupFieldNameParser;
 import datawave.ingest.json.util.JsonObjectFlattener;
+import datawave.marking.MarkingFunctions;
+import datawave.marking.MarkingFunctionsFactory;
+import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.log4j.Logger;
 
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Utilized by EventMapper to produce all the key/value pairs from each raw record, i.e, {@link RawRecordContainer}
  */
 public class JsonIngestHelper extends ContentBaseIngestHelper {
-    
-    private static final Logger log = Logger.getLogger(JsonIngestHelper.class);
+    private static final MarkingFunctions markingFunctions = MarkingFunctionsFactory.createMarkingFunctions();
     
     protected JsonDataTypeHelper helper = null;
     protected JsonObjectFlattener flattener = null;
@@ -42,7 +48,7 @@ public class JsonIngestHelper extends ContentBaseIngestHelper {
             throw new IllegalStateException("JsonObjectFlattener was not initialized. Method 'setup' must be invoked first");
         }
         
-        HashMultimap<String,String> fields = HashMultimap.create();
+        HashMultimap<String,Pair<String,Map<String,String>>> fields = HashMultimap.create();
         String jsonString = new String(event.getRawData());
         
         JsonParser parser = new JsonParser();
@@ -52,13 +58,29 @@ public class JsonIngestHelper extends ContentBaseIngestHelper {
         return normalizeMap(getGroupNormalizedMap(fields));
     }
     
-    protected Multimap<String,NormalizedContentInterface> getGroupNormalizedMap(HashMultimap<String,String> fields) {
+    protected Multimap<String,NormalizedContentInterface> getGroupNormalizedMap(HashMultimap<String,Pair<String,Map<String,String>>> fields) {
         Multimap<String,NormalizedContentInterface> results = HashMultimap.create();
-        for (Map.Entry<String,String> e : fields.entries()) {
-            if (e.getValue() != null) {
-                results.put(e.getKey(), new NormalizedFieldAndValue(e.getKey(), e.getValue()));
+        fields.forEach((key, pair) -> {
+            if (pair != null && pair.getLeft() != null) {
+                Map<String,String> fieldMarkings = pair.getRight();
+                if (fieldMarkings != null) {
+                    Map<String,String> defaultMarkings = markingsHelper.getFieldMarking(key);
+                    if (defaultMarkings == null)
+                        defaultMarkings = markingsHelper.getDefaultMarkings();
+                    try {
+                        ColumnVisibility defaultVis = markingFunctions.translateToColumnVisibility(defaultMarkings);
+                        ColumnVisibility fieldVis = markingFunctions.translateToColumnVisibility(fieldMarkings);
+                        ColumnVisibility combined = new ColumnVisibility(new ColumnVisibility(Stream.of(defaultVis, fieldVis).map(ColumnVisibility::flatten)
+                                        .filter(b -> b.length > 0).map(b -> "(" + new String(b, UTF_8) + ")").collect(Collectors.joining("|")).getBytes(UTF_8))
+                                        .flatten());
+                        fieldMarkings = markingFunctions.translateFromColumnVisibility(combined);
+                    } catch (MarkingFunctions.Exception e) {
+                        throw new IllegalArgumentException("Unable to combine markings: " + e.getMessage(), e);
+                    }
+                }
+                results.put(key, new NormalizedFieldAndValue(key, pair.getLeft(), fieldMarkings));
             }
-        }
+        });
         return groupNormalizer.extractFieldNameComponents(results);
     }
 }
