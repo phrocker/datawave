@@ -137,6 +137,12 @@
                 <include>org.locationtech.geowave:geowave-core-store</include>
                 <include>org.locationtech.geowave:geowave-core-index</include>
                 <include>org.locationtech.jts:jts-core</include>
+                <include>org.geotools:gt-opengis</include>
+                <include>org.geotools:gt-api</include>
+                <include>org.geotools:gt-epsg-wkt</include>
+                <include>org.geotools:gt-main</include>
+                <include>org.geotools:gt-metadata</include>
+                <include>org.geotools:gt-referencing</include>
                 <include>com.google.uzaygezen:uzaygezen-core</include>
                 <include>com.fasterxml.jackson.core:jackson-databind</include>
                 <include>com.fasterxml.jackson.core:jackson-core</include>
