@@ -5,6 +5,7 @@ import com.google.common.collect.TreeMultimap;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -17,6 +18,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Map;
 
 import datawave.ingest.json.util.JsonObjectFlattener.FlattenMode;
 
@@ -64,7 +66,7 @@ public class JsonObjectFlattenerImplTest {
         
         JsonParser parser = new JsonParser();
         JsonElement jsonElement = parser.parse(json);
-        Multimap<String,String> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
+        Multimap<String,Pair<String,Map<String,String>>> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
         
         // printJson(json);
         // printMap(fieldMap);
@@ -81,7 +83,7 @@ public class JsonObjectFlattenerImplTest {
         
         JsonParser parser = new JsonParser();
         JsonElement jsonElement = parser.parse(json);
-        Multimap<String,String> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
+        Multimap<String,Pair<String,Map<String,String>>> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
         
         // printJson(json);
         // printMap(fieldMap);
@@ -100,7 +102,7 @@ public class JsonObjectFlattenerImplTest {
         
         JsonParser parser = new JsonParser();
         JsonElement jsonElement = parser.parse(json);
-        Multimap<String,String> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
+        Multimap<String,Pair<String,Map<String,String>>> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
         
         // printJson(json);
         // printMap(fieldMap);
@@ -119,7 +121,7 @@ public class JsonObjectFlattenerImplTest {
         
         JsonParser parser = new JsonParser();
         JsonElement jsonElement = parser.parse(json);
-        Multimap<String,String> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
+        Multimap<String,Pair<String,Map<String,String>>> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
         
         // printJson(json);
         // printMap(fieldMap);
@@ -138,7 +140,7 @@ public class JsonObjectFlattenerImplTest {
         
         JsonParser parser = new JsonParser();
         JsonElement jsonElement = parser.parse(json);
-        Multimap<String,String> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
+        Multimap<String,Pair<String,Map<String,String>>> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
         
         // printJson(json);
         // printMap(fieldMap);
@@ -152,7 +154,7 @@ public class JsonObjectFlattenerImplTest {
         
         JsonParser parser = new JsonParser();
         JsonElement jsonElement = parser.parse(json);
-        Multimap<String,String> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
+        Multimap<String,Pair<String,Map<String,String>>> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
         
         // printJson(json);
         // printMap(fieldMap);
@@ -168,7 +170,7 @@ public class JsonObjectFlattenerImplTest {
         
         JsonParser parser = new JsonParser();
         JsonElement jsonElement = parser.parse(json);
-        Multimap<String,String> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
+        Multimap<String,Pair<String,Map<String,String>>> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
         
         // printJson(json);
         // printMap(fieldMap);
@@ -189,7 +191,7 @@ public class JsonObjectFlattenerImplTest {
         
         JsonParser parser = new JsonParser();
         JsonElement jsonElement = parser.parse(json);
-        Multimap<String,String> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
+        Multimap<String,Pair<String,Map<String,String>>> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
         
         // printJson(json);
         // printMap(fieldMap);
@@ -210,7 +212,7 @@ public class JsonObjectFlattenerImplTest {
         
         JsonParser parser = new JsonParser();
         JsonElement jsonElement = parser.parse(json);
-        Multimap<String,String> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
+        Multimap<String,Pair<String,Map<String,String>>> fieldMap = flattener.flatten(jsonElement.getAsJsonObject());
         
         // printJson(json);
         // printMap(fieldMap);

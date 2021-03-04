@@ -2,7 +2,9 @@ package datawave.ingest.json.util;
 
 import com.google.common.collect.Multimap;
 import com.google.gson.JsonObject;
+import org.apache.commons.lang3.tuple.Pair;
 
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -81,7 +83,7 @@ public interface JsonObjectFlattener {
      * @throws IllegalStateException
      *             if {@link FlattenMode#GROUPED} is used and {@link Builder#pathDelimiter} value is found to exist already within the object's key names
      */
-    Multimap<String,String> flatten(JsonObject object) throws IllegalStateException;
+    Multimap<String,Pair<String,Map<String,String>>> flatten(JsonObject object) throws IllegalStateException;
     
     /**
      * Flattens the specified json
@@ -89,13 +91,14 @@ public interface JsonObjectFlattener {
      * @param object
      *            {@link JsonObject} instance to flatten
      * @param map
-     *            {@link com.google.common.collect.Multimap} instance to receive the flattened keys and associated values
+     *            {@link com.google.common.collect.Multimap} instance to receive the flattened keys and associated values. The map values are pairs of string
+     *            (the field value) and optional markings that go with the field.
      * @throws IllegalStateException
      *             if {@link FlattenMode#GROUPED} is used and {@link Builder#pathDelimiter} is found to exist already within a json property name
      * @throws NullPointerException
      *             if map is null
      */
-    void flatten(JsonObject object, Multimap<String,String> map) throws IllegalStateException, NullPointerException;
+    void flatten(JsonObject object, Multimap<String,Pair<String,Map<String,String>>> map) throws IllegalStateException, NullPointerException;
     
     /**
      * <p>
