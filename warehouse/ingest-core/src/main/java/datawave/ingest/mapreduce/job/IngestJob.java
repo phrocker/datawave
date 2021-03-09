@@ -1116,7 +1116,7 @@ public class IngestJob implements Tool {
                     boolean useit = (inputFileListMarker == null);
                     while (line != null) {
                         if (useit) {
-                            inputPathList.add(new Path(line));
+                            inputPathList.add(fs.makeQualified(new Path(line)));
                         } else {
                             if (line.equals(inputFileListMarker)) {
                                 useit = true;
