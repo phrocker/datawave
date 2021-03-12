@@ -27,6 +27,13 @@ public class FlagDataTypeConfig {
      * Default to ESFIF but people can provide custom input format to override
      */
     private Class inputFormat = EventSequenceFileInputFormat.class;
+    
+    /*
+     * Indicates whether or not the input files are splittable. If the input files are not splittable, then blocksize is assumed to be the filesize so that the
+     * flag maker operates on a per-file rather than a per-block basis.
+     */
+    private boolean inputsSplittable = true;
+    
     /*
      * Allows you to override reducer count for a particular datatype
      */
@@ -141,6 +148,14 @@ public class FlagDataTypeConfig {
     
     public void setInputFormat(Class inputFormat) {
         this.inputFormat = inputFormat;
+    }
+    
+    public boolean isInputsSplittable() {
+        return inputsSplittable;
+    }
+    
+    public void setInputsSplittable(boolean inputsSplittable) {
+        this.inputsSplittable = inputsSplittable;
     }
     
     public int getReducers() {
