@@ -87,9 +87,12 @@ public class InputFile implements Comparable<InputFile> {
         this.currentDir = TrackedDir.PATH_DIR;
     }
     
-    InputFile(String folder, FileStatus status, String baseDir, boolean useFolderTimestamp) {
+    InputFile(String folder, FileStatus status, String baseDir, boolean useFolderTimestamp, boolean isSplittable) {
         this(folder, status.getPath(), status.getBlockSize(), status.getLen(), createTimestamp(status.getPath(), status.getModificationTime(),
                         useFolderTimestamp), baseDir);
+        if (!isSplittable) {
+            this.blocksize = this.filesize;
+        }
     }
     
     public long getTimestamp() {

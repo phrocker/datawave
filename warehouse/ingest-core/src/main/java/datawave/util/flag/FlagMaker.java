@@ -293,7 +293,8 @@ public class FlagMaker implements Runnable, Observer, SizeValidator {
                             if (log.isTraceEnabled()) {
                                 log.trace("Adding file " + status.getPath());
                             }
-                            this.fd.addInputFile(new InputFile(inputFolder, status, this.fmc.getBaseHDFSDir(), this.fmc.isUseFolderTimestamp()));
+                            this.fd.addInputFile(new InputFile(inputFolder, status, this.fmc.getBaseHDFSDir(), this.fmc.isUseFolderTimestamp(), fc
+                                            .isInputsSplittable()));
                             logFileInfo(fc, status);
                         } catch (UnusableFileException e) {
                             log.warn("Skipping unusable file " + status.getPath(), e);
