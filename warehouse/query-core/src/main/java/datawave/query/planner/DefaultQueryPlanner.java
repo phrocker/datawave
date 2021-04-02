@@ -1210,25 +1210,11 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
             stopwatch.stop();
         }
         
-        if (!disableCompositeFields) {
-            stopwatch = timers.newStartedStopwatch("DefaultQueryPlanner - Expand composite terms");
-            
-            try {
-                config.setCompositeToFieldMap(metadataHelper.getCompositeToFieldMap(config.getDatatypeFilter()));
-                config.setCompositeTransitionDates(metadataHelper.getCompositeTransitionDateMap(config.getDatatypeFilter()));
-                config.setCompositeFieldSeparators(metadataHelper.getCompositeFieldSeparatorMap(config.getDatatypeFilter()));
-                config.setFieldToDiscreteIndexTypes(CompositeUtils.getFieldToDiscreteIndexTypeMap(config.getQueryFieldsDatatypes()));
-            } catch (TableNotFoundException e) {
-                QueryException qe = new QueryException(DatawaveErrorCode.METADATA_ACCESS_ERROR, e);
-                throw new DatawaveFatalQueryException(qe);
-            }
-            
-            queryTree = ExpandCompositeTerms.expandTerms(config, queryTree);
-            stopwatch.stop();
-            if (log.isDebugEnabled()) {
-                logQuery(queryTree, "Query after expanding composite terms:");
-            }
-        }
+        /**
+         * Composite expansion was here; however, we are moving this to Post bounded range/regex lookup to facilitate regexes expanding and thus being
+         * considered for composite terms.
+         */
+        queryTree = checkAndExpandCompositeTerms(config, queryTree, timers, "Pre-regex expansion");
         
         if (!disableBoundedLookup) {
             stopwatch = timers.newStartedStopwatch("DefaultQueryPlanner - Expand bounded query ranges (total)");
@@ -1236,6 +1222,7 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
             
             // Expand any bounded ranges into a conjunction of discrete terms
             try {
+                
                 innerStopwatch = timers.newStartedStopwatch("DefaultQueryPlanner - Expand regex");
                 ParallelIndexExpansion regexExpansion = new ParallelIndexExpansion(config, scannerFactory, metadataHelper, expansionFields,
                                 config.isExpandFields(), config.isExpandValues(), config.isExpandUnfieldedNegations());
@@ -1244,6 +1231,18 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
                     logQuery(queryTree, "Query after expanding regex:");
                 }
                 innerStopwatch.stop();
+                
+                List<String> debugOutput = null;
+                if (log.isDebugEnabled()) {
+                    debugOutput = new ArrayList<>(32);
+                }
+                
+                /**
+                 * If the query is executable we can check and expand composite terms if the feature is enabled and following range and regex expansion.
+                 */
+                if (ExecutableDeterminationVisitor.isExecutable(queryTree, config, indexedFields, indexOnlyFields, nonEventFields, debugOutput, metadataHelper)) {
+                    queryTree = checkAndExpandCompositeTerms(config, queryTree, timers, "Post-regex expansion");
+                }
                 
                 innerStopwatch = timers.newStartedStopwatch("DefaultQueryPlanner - Expand ranges");
                 queryTree = RangeConjunctionRebuildingVisitor.expandRanges(config, scannerFactory, metadataHelper, queryTree, config.isExpandFields(),
@@ -1286,7 +1285,6 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
                 // if we now have an unexecutable tree because of delayed
                 // predicates, then remove delayed predicates as needed and
                 // reexpand
-                List<String> debugOutput = null;
                 if (log.isDebugEnabled()) {
                     debugOutput = new ArrayList<>(32);
                 }
@@ -1378,6 +1376,44 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
         }
         
         return queryTree;
+    }
+    
+    /**
+     * Helper Function which checks whether we can utilize composite indices and then returns an updated tree.
+     * 
+     * @param config
+     *            Shard Configuration
+     * @param queryTree
+     *            incoming query tree
+     * @param timers
+     *            Query stop watch we will use to time this execution segment.
+     * @return updated query tree or the original if composite fields are disabled.
+     */
+    private ASTJexlScript checkAndExpandCompositeTerms(final ShardQueryConfiguration config, final ASTJexlScript queryTree, final QueryStopwatch timers,
+                    String segmentName) {
+        if (!disableCompositeFields) {
+            TraceStopwatch stopwatch = timers.newStartedStopwatch("DefaultQueryPlanner - Expand composite terms ; " + segmentName);
+            
+            try {
+                config.setCompositeToFieldMap(metadataHelper.getCompositeToFieldMap(config.getDatatypeFilter()));
+                config.setCompositeTransitionDates(metadataHelper.getCompositeTransitionDateMap(config.getDatatypeFilter()));
+                config.setCompositeFieldSeparators(metadataHelper.getCompositeFieldSeparatorMap(config.getDatatypeFilter()));
+                config.setFieldToDiscreteIndexTypes(CompositeUtils.getFieldToDiscreteIndexTypeMap(config.getQueryFieldsDatatypes()));
+            } catch (TableNotFoundException e) {
+                QueryException qe = new QueryException(DatawaveErrorCode.METADATA_ACCESS_ERROR, e);
+                throw new DatawaveFatalQueryException(qe);
+            }
+            
+            ASTJexlScript retTree = ExpandCompositeTerms.expandTerms(config, queryTree);
+            
+            stopwatch.stop();
+            if (log.isDebugEnabled()) {
+                logQuery(retTree, "Query after expanding composite terms:");
+            }
+            return retTree;
+        }
+        return queryTree;
+        
     }
     
     /**

@@ -397,5 +397,11 @@ public class RangeQueryTest extends AbstractFunctionalQuery {
     protected void testInit() {
         this.auths = CitiesDataType.getTestAuths();
         this.documentKey = CityField.EVENT_ID.name();
+        /**
+         * Disabling composite fields for these tests as composite tests are exploited elsewhere, and we want to keep the spirit of this test the same.
+         */
+        if (DefaultQueryPlanner.class.isInstance(this.logic.getQueryPlanner())) {
+            (DefaultQueryPlanner.class.cast(this.logic.getQueryPlanner())).setDisableCompositeFields(true);
+        }
     }
 }
