@@ -56,21 +56,21 @@ yarn.nodemanager.log-dirs ${DW_CLOUD_DATA}/hadoop/yarn/log
 yarn.nodemanager.aux-services mapreduce_shuffle
 yarn.nodemanager.pmem-check-enabled false
 yarn.nodemanager.vmem-check-enabled false
-yarn.nodemanager.resource.memory-mb 4096
+yarn.nodemanager.resource.memory-mb 6144
 yarn.app.mapreduce.am.resource.mb 1024
 yarn.log.server.url http://localhost:8070/jobhistory/logs"
 
 # capacity-scheduler.xml (Format: <property-name><space><property-value>{<newline>})
 DW_HADOOP_CAPACITY_SCHEDULER_CONF="yarn.scheduler.capacity.maximum-applications 10000
-yarn.scheduler.capacity.maximum-am-resource-percent 0.1
+yarn.scheduler.capacity.maximum-am-resource-percent 0.2
 yarn.scheduler.capacity.resource-calculator org.apache.hadoop.yarn.util.resource.DefaultResourceCalculator
 yarn.scheduler.capacity.root.queues default,bulkIngestQueue,liveIngestQueue
 yarn.scheduler.capacity.root.default.capacity 20
 yarn.scheduler.capacity.root.bulkIngestQueue.capacity 40
 yarn.scheduler.capacity.root.liveIngestQueue.capacity 40
-yarn.scheduler.capacity.root.default.user-limit-factor 0.2
-yarn.scheduler.capacity.root.bulkIngestQueue.user-limit-factor 0.4
-yarn.scheduler.capacity.root.liveIngestQueue.user-limit-factor 0.4
+yarn.scheduler.capacity.root.default.user-limit-factor 5
+yarn.scheduler.capacity.root.bulkIngestQueue.user-limit-factor 1
+yarn.scheduler.capacity.root.liveIngestQueue.user-limit-factor 1
 yarn.scheduler.capacity.root.default.maximum-capacity 100
 yarn.scheduler.capacity.root.bulkIngestQueue.maximum-capacity 90
 yarn.scheduler.capacity.root.liveIngestQueue.maximum-capacity 90
