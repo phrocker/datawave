@@ -1210,13 +1210,10 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
             stopwatch.stop();
         }
         
-        /**
-         * Composite expansion was here; however, we are moving this to Post bounded range/regex lookup to facilitate regexes expanding and thus being
-         * considered for composite terms.
-         */
-        queryTree = checkAndExpandCompositeTerms(config, queryTree, timers, "Pre-regex expansion");
-        
         if (!disableBoundedLookup) {
+            
+            queryTree = checkAndExpandCompositeTerms(config, queryTree, timers, scannerFactory, metadataHelper, expansionFields);
+            
             stopwatch = timers.newStartedStopwatch("DefaultQueryPlanner - Expand bounded query ranges (total)");
             TraceStopwatch innerStopwatch = null;
             
@@ -1241,7 +1238,7 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
                  * If the query is executable we can check and expand composite terms if the feature is enabled and following range and regex expansion.
                  */
                 if (ExecutableDeterminationVisitor.isExecutable(queryTree, config, indexedFields, indexOnlyFields, nonEventFields, debugOutput, metadataHelper)) {
-                    queryTree = checkAndExpandCompositeTerms(config, queryTree, timers, "Post-regex expansion");
+                    // queryTree = checkAndExpandCompositeTerms(config, queryTree, timers, "Post-regex expansion");
                 }
                 
                 innerStopwatch = timers.newStartedStopwatch("DefaultQueryPlanner - Expand ranges");
@@ -1373,6 +1370,8 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
             if (log.isDebugEnabled()) {
                 log.debug("Bounded range and regex conversion has been disabled");
             }
+            
+            queryTree = checkAndExpandCompositeTerms(config, queryTree, timers, scannerFactory, metadataHelper, expansionFields);
         }
         
         return queryTree;
@@ -1390,9 +1389,9 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
      * @return updated query tree or the original if composite fields are disabled.
      */
     private ASTJexlScript checkAndExpandCompositeTerms(final ShardQueryConfiguration config, final ASTJexlScript queryTree, final QueryStopwatch timers,
-                    String segmentName) {
+                    ScannerFactory scannerFactory, MetadataHelper metadataHelper, Set<String> expansionFields) {
         if (!disableCompositeFields) {
-            TraceStopwatch stopwatch = timers.newStartedStopwatch("DefaultQueryPlanner - Expand composite terms ; " + segmentName);
+            TraceStopwatch stopwatch = timers.newStartedStopwatch("DefaultQueryPlanner - Expand composite terms ");
             
             try {
                 config.setCompositeToFieldMap(metadataHelper.getCompositeToFieldMap(config.getDatatypeFilter()));
@@ -1404,7 +1403,19 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
                 throw new DatawaveFatalQueryException(qe);
             }
             
-            ASTJexlScript retTree = ExpandCompositeTerms.expandTerms(config, queryTree);
+            ASTJexlScript retTree = null;
+            if (!disableBoundedLookup) {
+                try {
+                    retTree = ExpandCompositeTerms.expandTermsWithRegex(config, queryTree, scannerFactory, metadataHelper, expansionFields);
+                } catch (TableNotFoundException | InstantiationException | IllegalAccessException e1) {
+                    e1.printStackTrace();
+                    stopwatch.stop();
+                    QueryException qe = new QueryException(DatawaveErrorCode.METADATA_ACCESS_ERROR, e1);
+                    throw new DatawaveFatalQueryException(qe);
+                }
+            } else {
+                retTree = ExpandCompositeTerms.expandTerms(config, queryTree);
+            }
             
             stopwatch.stop();
             if (log.isDebugEnabled()) {
