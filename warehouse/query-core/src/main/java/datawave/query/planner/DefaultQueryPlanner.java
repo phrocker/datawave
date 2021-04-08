@@ -1408,7 +1408,6 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
                 try {
                     retTree = ExpandCompositeTerms.expandTermsWithRegex(config, queryTree, scannerFactory, metadataHelper, expansionFields);
                 } catch (TableNotFoundException | InstantiationException | IllegalAccessException e1) {
-                    e1.printStackTrace();
                     stopwatch.stop();
                     QueryException qe = new QueryException(DatawaveErrorCode.METADATA_ACCESS_ERROR, e1);
                     throw new DatawaveFatalQueryException(qe);
