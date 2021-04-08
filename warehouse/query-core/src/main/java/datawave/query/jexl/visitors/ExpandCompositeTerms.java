@@ -404,7 +404,9 @@ public class ExpandCompositeTerms extends RebuildingVisitor {
         List<JexlNode> unmodifiedNodes = new ArrayList<>();
         List<JexlNode> modifiedNodes = new ArrayList<>();
         for (JexlNode nonLeafNode : nonLeafNodes) {
-            log.debug("Processing non leaf node {}", JexlStringBuildingVisitor.buildQuery(nonLeafNode));
+            if (log.isDebugEnabled()){
+                log.debug("Processing non leaf node {}", JexlStringBuildingVisitor.buildQuery(nonLeafNode));
+            }
             ExpandData eData = new ExpandData();
             
             // add the anded leaf nodes from our ancestors
@@ -785,7 +787,6 @@ public class ExpandCompositeTerms extends RebuildingVisitor {
             // we have what we need to make a composite
             List<Composite> tempComposites = new ArrayList<>();
             Composite baseComp = new CompositeTerm(compositeField, config.getCompositeFieldSeparators().get(compositeField));
-            log.debug("composite term is {}", baseComp);
             tempComposites.add(baseComp);
             
             // keep track of the used nodes
@@ -801,26 +802,18 @@ public class ExpandCompositeTerms extends RebuildingVisitor {
                 // add any required leaf nodes
                 for (JexlNode node : remainingLeafNodes.get(componentField)) {
                     JexlNode trimmedNode = getLeafNode(node);
-                    if (trimmedNode != null) {
-                        if (isNodeValid(trimmedNode, i, componentFields.size(), isFixedLengthField(componentField))) {
-                            nodes.add(trimmedNode);
-                            tempUsedLeafNodes.put(componentField, node);
-                        } else {
-                            log.debug("Node is not valid {} ", JexlStringBuildingVisitor.buildQuery(trimmedNode));
-                        }
+                    if (trimmedNode != null && isNodeValid(trimmedNode, i, componentFields.size(), isFixedLengthField(componentField))) {
+                        nodes.add(trimmedNode);
+                        tempUsedLeafNodes.put(componentField, node);
                     }
                 }
                 
                 // add any required anded nodes
                 for (JexlNode node : remainingAndedNodes.get(componentField)) {
                     JexlNode trimmedNode = getLeafNode(node);
-                    if (trimmedNode != null) {
-                        if (isNodeValid(trimmedNode, i, componentFields.size(), isFixedLengthField(componentField))) {
-                            nodes.add(trimmedNode);
-                            tempUsedAndedNodes.put(componentField, node);
-                        } else {
-                            log.debug("Node is not valid {} ", JexlStringBuildingVisitor.buildQuery(trimmedNode));
-                        }
+                    if (trimmedNode != null && isNodeValid(trimmedNode, i, componentFields.size(), isFixedLengthField(componentField))) {
+                        nodes.add(trimmedNode);
+                        tempUsedAndedNodes.put(componentField, node);
                     }
                 }
                 

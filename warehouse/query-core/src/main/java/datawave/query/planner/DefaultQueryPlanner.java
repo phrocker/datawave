@@ -1233,14 +1233,7 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
                 if (log.isDebugEnabled()) {
                     debugOutput = new ArrayList<>(32);
                 }
-                
-                /**
-                 * If the query is executable we can check and expand composite terms if the feature is enabled and following range and regex expansion.
-                 */
-                if (ExecutableDeterminationVisitor.isExecutable(queryTree, config, indexedFields, indexOnlyFields, nonEventFields, debugOutput, metadataHelper)) {
-                    // queryTree = checkAndExpandCompositeTerms(config, queryTree, timers, "Post-regex expansion");
-                }
-                
+                                
                 innerStopwatch = timers.newStartedStopwatch("DefaultQueryPlanner - Expand ranges");
                 queryTree = RangeConjunctionRebuildingVisitor.expandRanges(config, scannerFactory, metadataHelper, queryTree, config.isExpandFields(),
                                 config.isExpandValues());
