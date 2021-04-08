@@ -404,7 +404,7 @@ public class ExpandCompositeTerms extends RebuildingVisitor {
         List<JexlNode> unmodifiedNodes = new ArrayList<>();
         List<JexlNode> modifiedNodes = new ArrayList<>();
         for (JexlNode nonLeafNode : nonLeafNodes) {
-            if (log.isDebugEnabled()){
+            if (log.isDebugEnabled()) {
                 log.debug("Processing non leaf node {}", JexlStringBuildingVisitor.buildQuery(nonLeafNode));
             }
             ExpandData eData = new ExpandData();

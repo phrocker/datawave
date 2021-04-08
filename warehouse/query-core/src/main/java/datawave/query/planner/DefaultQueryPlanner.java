@@ -1233,7 +1233,7 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
                 if (log.isDebugEnabled()) {
                     debugOutput = new ArrayList<>(32);
                 }
-                                
+                
                 innerStopwatch = timers.newStartedStopwatch("DefaultQueryPlanner - Expand ranges");
                 queryTree = RangeConjunctionRebuildingVisitor.expandRanges(config, scannerFactory, metadataHelper, queryTree, config.isExpandFields(),
                                 config.isExpandValues());
