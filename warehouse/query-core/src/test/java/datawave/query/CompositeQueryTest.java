@@ -13,14 +13,11 @@ import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import datawave.query.parser.JavaRegexAnalyzer;
-import datawave.query.parser.JavaRegexAnalyzer.JavaRegexParseException;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import static datawave.query.testframework.RawDataManager.AND_OP;
 import static datawave.query.testframework.RawDataManager.EQ_OP;
@@ -145,5 +142,4 @@ public class CompositeQueryTest extends AbstractFunctionalQuery {
         this.auths = CitiesDataType.getTestAuths();
         this.documentKey = CityField.EVENT_ID.name();
     }
-    
 }
