@@ -146,12 +146,4 @@ public class CompositeQueryTest extends AbstractFunctionalQuery {
         this.documentKey = CityField.EVENT_ID.name();
     }
     
-    @Test
-    public void testRegex() throws JavaRegexAnalyzer.JavaRegexParseException {
-        String dt = "2004-10-22T00:00:00.0Z";
-        JavaRegexAnalyzer analyzer = new JavaRegexAnalyzer(Pattern.quote(dt) + "\ffffname blah.*");
-        System.out.println(analyzer.getLeadingLiteral());
-        System.out.println(analyzer.getTrailingLiteral());
-        
-    }
 }
