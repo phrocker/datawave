@@ -13,11 +13,14 @@ import org.apache.log4j.Logger;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
+import datawave.query.parser.JavaRegexAnalyzer;
+import datawave.query.parser.JavaRegexAnalyzer.JavaRegexParseException;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import static datawave.query.testframework.RawDataManager.AND_OP;
 import static datawave.query.testframework.RawDataManager.EQ_OP;
@@ -141,5 +144,14 @@ public class CompositeQueryTest extends AbstractFunctionalQuery {
     protected void testInit() {
         this.auths = CitiesDataType.getTestAuths();
         this.documentKey = CityField.EVENT_ID.name();
+    }
+    
+    @Test
+    public void testRegex() throws JavaRegexAnalyzer.JavaRegexParseException {
+        String dt = "2004-10-22T00:00:00.0Z";
+        JavaRegexAnalyzer analyzer = new JavaRegexAnalyzer(Pattern.quote(dt) + "\ffffname blah.*");
+        System.out.println(analyzer.getLeadingLiteral());
+        System.out.println(analyzer.getTrailingLiteral());
+        
     }
 }
