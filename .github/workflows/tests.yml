@@ -22,9 +22,10 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v2
     - name: Set up JDK 1.8
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v2
       with:
-        java-version: 1.8
+        java-version: '8'
+        distribution: 'zulu'
     - uses: actions/cache@v2
       with:
         path: ~/.m2/repository
@@ -39,6 +40,7 @@ jobs:
         git diff-index --quiet HEAD || (echo "Error! There are modified files after formatting." && false)
       env:
         MAVEN_OPTS: "-Djansi.force=true -Dhttps.protocols=TLSv1.2 -Djava.awt.headless=true"
+        GITHUB_TOKEN: ${{ github.token }}
 
   # Build the code and run the unit/integration tests.
   build-and-test:
@@ -47,9 +49,10 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v2
     - name: Set up JDK 1.8
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v2
       with:
-        java-version: 1.8
+        java-version: '8'
+        distribution: 'zulu'
     - uses: actions/cache@v2
       with:
         path: ~/.m2/repository
@@ -66,6 +69,7 @@ jobs:
           || { echo "***** TESTS FAILED. Attempting final retry."; $RUN_TESTS; }
       env:
         MAVEN_OPTS: "-Djansi.force=true -Dhttps.protocols=TLSv1.2 -Djava.awt.headless=true"
+        GITHUB_TOKEN: ${{ github.token }}
 
   quickstart-build-and-test:
     runs-on: ubuntu-latest
@@ -73,9 +77,10 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v2
     - name: Set up JDK 1.8
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v2
       with:
-        java-version: 1.8
+        java-version: '8'
+        distribution: 'zulu'
     # Allow us to use the "--squash" option below
     - name: Turn on Docker experimental features and move Docker data root
       run: |
@@ -100,6 +105,7 @@ jobs:
         DW_DATAWAVE_BUILD_COMMAND: "mvn -B -V -e -ntp -Dstyle.color=always -Pdev -Ddeploy -Dtar -DskipTests clean package"
         DOCKER_BUILD_OPTS: "--squash --force-rm"
         MAVEN_OPTS: "-Djansi.force=true -Dhttps.protocols=TLSv1.2 -Djava.awt.headless=true"
+        GITHUB_TOKEN: ${{ github.token }}
       run: |
         TAG=$(mvn -q -N -Dexec.executable='echo' -Dexec.args='${project.version}' exec:exec)
         contrib/datawave-quickstart/docker/docker-build.sh ${TAG} --docker-opts "${DOCKER_BUILD_OPTS}"
