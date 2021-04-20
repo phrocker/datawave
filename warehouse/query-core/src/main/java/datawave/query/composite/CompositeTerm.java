@@ -93,12 +93,9 @@ public class CompositeTerm extends Composite {
         if (Iterables.getLast(jexlNodeList) instanceof ASTERNode && !jexlNodeList.stream().allMatch(x -> x instanceof ASTERNode)) {
             // We have an ASTERNode in the last position, but the rest are not ERNodes ( and therefore must be EQNodes )
             // escape all of the terms
-            newExpressions = expressionList.stream().map(term -> {
-                return Pattern.quote(term);
-            }).collect(Collectors.toList());
+            newExpressions = expressionList.stream().map(Pattern::quote).collect(Collectors.toList());
             // set the last ( the regex ) so that it is not escaped.
             newExpressions.set(expressionList.size() - 1, expressionList.get(expressionList.size() - 1));
-            q
         } else {
             newExpressions = expressionList;
         }
