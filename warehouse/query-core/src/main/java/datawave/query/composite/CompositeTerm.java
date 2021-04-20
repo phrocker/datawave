@@ -90,7 +90,7 @@ public class CompositeTerm extends Composite {
      */
     private String getAppendedExpressions() {
         final List<String> newExpressions;
-        if (Iterables.getLast(jexlNodeList) instanceof ASTERNode && !jexlNodeList.stream().allMatch(x -> x instanceof ASTERNode)) {
+        if (Iterables.getLast(jexlNodeList) instanceof ASTERNode && jexlNodeList.stream().filter(x -> x instanceof ASTERNode).count() == 1) {
             // We have an ASTERNode in the last position, but the rest are not ERNodes ( and therefore must be EQNodes )
             // escape all of the terms
             newExpressions = expressionList.stream().map(Pattern::quote).collect(Collectors.toList());
