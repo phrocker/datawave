@@ -51,17 +51,6 @@ public class CompositeTerm extends Composite {
     public void addComponent(JexlNode node) {
         Object lit = JexlASTHelper.getLiteralValue(node);
         String identifier = JexlASTHelper.getIdentifier(node);
-        
-        // If this is the first ASTERNode we're adding, then we want to escape
-        // all of the previous expressions so that when the composite term is
-        // regex expanded, the non-regex expressions don't accidentally get
-        // counted as regexes (e.g., a normalized date has a '.' character in it).
-        if ((node instanceof ASTERNode) && jexlNodeList.stream().noneMatch(n -> n instanceof ASTERNode)) {
-            for (int i = 0; i < expressionList.size(); i++) {
-                expressionList.set(i, Pattern.quote(expressionList.get(i)));
-            }
-        }
-        
         jexlNodeList.add(node);
         fieldNameList.add(identifier);
         expressionList.add(lit.toString());
@@ -100,7 +89,20 @@ public class CompositeTerm extends Composite {
      * @return
      */
     private String getAppendedExpressions() {
-        return String.join(separator, expressionList);
+        final List<String> newExpressions;
+        if (Iterables.getLast(jexlNodeList) instanceof ASTERNode && !jexlNodeList.stream().allMatch(x -> x instanceof ASTERNode)) {
+            // We have an ASTERNode in the last position, but the rest are not ERNodes ( and therefore must be EQNodes )
+            // escape all of the terms
+            newExpressions = expressionList.stream().map(term -> {
+                return Pattern.quote(term);
+            }).collect(Collectors.toList());
+            // set the last ( the regex ) so that it is not escaped.
+            newExpressions.set(expressionList.size() - 1, expressionList.get(expressionList.size() - 1));
+            q
+        } else {
+            newExpressions = expressionList;
+        }
+        return String.join(separator, newExpressions);
     }
     
     // what this essentially boils down to is that the only valid nodes are equals or equals regex nodes

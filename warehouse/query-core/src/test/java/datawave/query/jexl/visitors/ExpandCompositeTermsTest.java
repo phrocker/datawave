@@ -95,6 +95,10 @@ public class ExpandCompositeTermsTest {
     public void test3() throws Exception {
         String query = "WINNER=='blue' && TEAM=='gold' && NAME=='gold-8' && POINTS==11";
         runTestQuery(query, "WINNER == 'blue' && TEAM_NAME_POINTS == 'gold,gold-8,11'");
+        query = "WINNER=='blue' && TEAM=='gold' && NAME=~'gold-?.*' && POINTS==11";
+        runTestQuery(query, "WINNER == 'blue' && NAME =~ 'gold-?.*' && TEAM_POINTS == 'gold,11'");
+        query = "WINNER=='blue' && TEAM=~'gol.*' && NAME=='gold-8' && POINTS==11";
+        runTestQuery(query, "WINNER == 'blue' && TEAM =~ 'gol.*' && NAME == 'gold-8' && POINTS == 11");
     }
     
     @Test
