@@ -308,7 +308,7 @@ public class GroupingRequiredFilterFunctions {
         }
         return Collections.unmodifiableCollection(allMatches);
     }
-
+    
     /**
      * <pre>
      * 'args' will be either a matched set of field/regex pairs, or a matched set of field/regex pairs followed by an index integer,
@@ -341,19 +341,19 @@ public class GroupingRequiredFilterFunctions {
             // cast as Iterable in order to call the right getAllMatches method
             firstMatches = EvaluationPhaseFilterFunctions.getWithinInclusiveRange((Iterable) fieldValue1, lowerBound, upperBound);
         } else {
-            firstMatches = EvaluationPhaseFilterFunctions.getWithinInclusiveRange(ValueTuple.toValueTuple(fieldValue1), lowerBound,upperBound);
+            firstMatches = EvaluationPhaseFilterFunctions.getWithinInclusiveRange(ValueTuple.toValueTuple(fieldValue1), lowerBound, upperBound);
         }
         if (log.isTraceEnabled()) {
             log.trace("firstMatches = " + firstMatches);
         }
-
+        
         for (ValueTuple currentMatch : firstMatches) {
             String matchFieldName = ValueTuple.getFieldName(currentMatch);
             // my firstMatches will be a collection that looks like [NAME.grandparent_0.parent_0.child_0:SANTINO]
             String theFirstMatch = EvaluationPhaseFilterFunctions.getMatchToLeftOfPeriod(matchFieldName, positionFromLeft);
-
+            
             for (int i = 3; i < args.length; i += 3) {
-
+                
                 if (args[i] instanceof Iterable) {
                     // args[i] is a collection that looks like:
                     // [[NAME.grandparent_0.parent_1.child_0,LUCA,luca],
@@ -399,13 +399,13 @@ public class GroupingRequiredFilterFunctions {
                 }
             }
         }
-
+        
         // if there was a match found at all levels, then the matches.size will be equal to the
         // number of field/regex pairs
         if (allMatches.size() < args.length / 3) { // truncated in case args.length was odd
             allMatches.clear();
         }
-
+        
         if (log.isTraceEnabled()) {
             log.trace("returning matches:" + allMatches);
         }
@@ -423,15 +423,15 @@ public class GroupingRequiredFilterFunctions {
             allMatches.add(currentMatch);
         }
     }
-
-    private static void manageMatchesInGroupLeftRemainingArgs(Object fieldValue, Object lowerBound, Object upperBound, Collection<ValueTuple> allMatches, String theFirstMatch,
-                                                              String theNextMatch, ValueTuple currentMatch) {
-
+    
+    private static void manageMatchesInGroupLeftRemainingArgs(Object fieldValue, Object lowerBound, Object upperBound, Collection<ValueTuple> allMatches,
+                    String theFirstMatch, String theNextMatch, ValueTuple currentMatch) {
+        
         if (theNextMatch != null && theNextMatch.equals(theFirstMatch)) {
             if (log.isTraceEnabled()) {
                 log.trace("\tfirst match equals the second: " + theFirstMatch + " == " + theNextMatch);
             }
-            allMatches.addAll(EvaluationPhaseFilterFunctions.getWithinInclusiveRange((ValueTuple)fieldValue, lowerBound,upperBound));
+            allMatches.addAll(EvaluationPhaseFilterFunctions.getWithinInclusiveRange((ValueTuple) fieldValue, lowerBound, upperBound));
             allMatches.add(currentMatch);
         }
     }
