@@ -18,6 +18,7 @@
         <module>common-test</module>
         <module>web-services</module>
         <module>warehouse</module>
+        <module>query-runner</module>
     </modules>
     <scm>
         <connection>scm:git:https://github.com/NationalSecurityAgency/datawave.git</connection>
