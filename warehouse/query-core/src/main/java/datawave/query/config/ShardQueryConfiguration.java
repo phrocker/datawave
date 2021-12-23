@@ -280,6 +280,7 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
     // Used to filter out masked values when the unmasked value is available
     private boolean filterMaskedValues = true;
     private boolean reducedResponse = false;
+
     /**
      * By default enable shortcut evaluation
      */
@@ -362,7 +363,8 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
      * should the sizes of documents be tracked for this query
      */
     private boolean trackSizes = true;
-    
+
+
     private List<String> contentFieldNames = Collections.emptyList();
     
     /**
@@ -409,6 +411,25 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
      */
     private long visitorFunctionMaxWeight = 5000000L;
     
+
+    /**
+     * Query iterator class name
+     */
+    private String queryIteratorClazz = "";
+
+    private boolean forceAllTypes=false;
+
+    private String allowedTypes="";
+    private boolean typeString=true;
+
+    private boolean customBatchScanner = false;
+
+    private boolean docRawFields = false;
+
+    private int queueCapacity=0;
+    private int maxTabletsPerRequest=0;
+    private String transformedQuery="";
+
     /**
      * If true, the LAZY_SET mechanism will be enabled for non-event and index-only fields.
      */
@@ -671,7 +692,8 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
         
         return config;
     }
-    
+
+
     /**
      * Factory method that creates a ShardQueryConfiguration from a ShardQueryLogic and a Query
      *
@@ -686,6 +708,7 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
         config.setQuery(query);
         return config;
     }
+
     
     /**
      * A convenience method that determines whether we can handle when we have exceeded the value threshold on some node. We can handle this if the Ivarators
@@ -1846,6 +1869,10 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
     public QueryStopwatch getTimers() {
         return timers;
     }
+
+    public void clearTimers(){
+        timers = new QueryStopwatch();
+    }
     
     public Query getQuery() {
         return query;
@@ -1878,6 +1905,15 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
         return super.getQueryString();
     }
     
+
+    public String getTransformedQuery() {
+        return transformedQuery;
+    }
+
+    public void setTransformedQuery(String transformedQuery) {
+        this.transformedQuery = transformedQuery;
+    }
+
     public boolean isCompressServerSideResults() {
         return compressServerSideResults;
     }
@@ -2288,6 +2324,57 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
     
     public void setNoExpansionFields(Set<String> noExpansionFields) {
         this.noExpansionFields = noExpansionFields;
+    }
+    // new additions
+
+    public String getQueryIteratorClass() { return queryIteratorClazz; }
+
+    public void setQueryIteratorClass(final String queryIteratorClazz){
+        this.queryIteratorClazz = queryIteratorClazz;
+    }
+
+    public boolean getForceAllTypes() { return forceAllTypes; }
+
+    public void setForceAllTypes(final boolean forceAllTypes){
+        this.forceAllTypes = forceAllTypes;
+    }
+
+    public String getAllowedTypes() { return allowedTypes; }
+
+    public void setAllowedTypes(final String allowedTypes){
+        this.allowedTypes = allowedTypes;
+    }
+
+    public boolean getTypeString() {
+        return this.typeString;
+    }
+
+    public void setTypeString(final Boolean setType){
+        this.typeString=setType;
+    }
+
+    public boolean getCustomBatchScanner() { return this.customBatchScanner; }
+
+    public void setCustomBatchScanner(final Boolean customBatchScanner) { this.customBatchScanner = customBatchScanner; }
+
+    public boolean getDocRawFields(){ return this.docRawFields; }
+
+    public void setDocRawFields(final Boolean docRawFields){ this.docRawFields=docRawFields; }
+
+    public int getQueueCapacity() {
+        return queueCapacity;
+    }
+
+    public void setQueueCapacity(int queueCapacity){
+        this.queueCapacity=queueCapacity;
+    }
+
+    public int getMaxTabletsPerRequest() {
+        return maxTabletsPerRequest;
+    }
+
+    public void setMaxTabletsPerRequest(int maxTabletsPerRequest){
+        this.maxTabletsPerRequest=maxTabletsPerRequest;
     }
     
     public ExcerptFields getExcerptFields() {

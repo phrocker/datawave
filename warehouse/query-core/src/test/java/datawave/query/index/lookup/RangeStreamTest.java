@@ -31,6 +31,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.commons.jexl2.parser.ASTJexlScript;
 import org.apache.commons.jexl2.parser.JexlNode;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -1213,7 +1215,7 @@ public class RangeStreamTest {
         for (String shard : Arrays.asList("20190314_0", "20190314_1", "20190314_10", "20190314_100", "20190314_9")) {
             expectedRanges.add(makeShardedRange(shard));
         }
-        
+
         RangeStream rangeStream = new RangeStream(config, new ScannerFactory(config.getClient(), 1), helper).setLimitScanners(true);
         CloseableIterable<QueryPlan> queryPlans = rangeStream.streamPlans(script);
         // streamPlans(script) to populate the StreamContext.
@@ -1240,6 +1242,7 @@ public class RangeStreamTest {
     // (A && B)
     @Test
     public void testIntersection_HighAndLowCardinality_withSeek() throws Exception {
+        Logger.getLogger("datawave.query").setLevel(Level.TRACE);
         String originalQuery = "(FOO == 'lowest_card' && FOO == 'highest_card')";
         ASTJexlScript script = JexlASTHelper.parseJexlQuery(originalQuery);
         
@@ -1524,11 +1527,17 @@ public class RangeStreamTest {
         MockMetadataHelper helper = new MockMetadataHelper();
         helper.setIndexedFields(dataTypes.keySet());
         
-        Range range1 = makeShardedRange("20190310_21");
+/*        Range range1 = makeShardedRange("20190310_21");
         // Fun story. It's hard to roll up to a day range when you seek most of the way through the day and don't have all the shards for the day.
         Range range2 = makeShardedRange("20190315_51");
         Set<Range> expectedRanges = Sets.newHashSet(range1, range2);
-        
+
+ */
+        // Now that RangeStream returns individual ranges as opposed to day ranges, this means that this test
+        // is OBE. Leaving it should show that without day ranges ( and only returning shard ranges ) prevents this
+        // test from returning a range that needs to be tested at the doc level.
+        Set<Range> expectedRanges = Sets.newHashSet();
+
         RangeStream rangeStream = new RangeStream(config, new ScannerFactory(client, 1), helper);
         rangeStream.setLimitScanners(true);
         CloseableIterable<QueryPlan> queryPlans = rangeStream.streamPlans(script);
@@ -1536,7 +1545,9 @@ public class RangeStreamTest {
         for (QueryPlan queryPlan : queryPlans) {
             Iterable<Range> ranges = queryPlan.getRanges();
             for (Range range : ranges) {
-                assertTrue("Tried to remove unexpected range " + range.toString() + "\nfrom expected ranges: " + expectedRanges, expectedRanges.remove(range));
+                System.out.println(range.toString());
+                assertTrue("Tried to remove unexpected range " + range.toString() + "\nfrom expected ranges: " + expectedRanges.toString(),
+                                expectedRanges.remove(range));
             }
         }
         assertTrue("Expected ranges not found in query plan: " + expectedRanges, expectedRanges.isEmpty());

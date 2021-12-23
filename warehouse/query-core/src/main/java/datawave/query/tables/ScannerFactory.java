@@ -1,12 +1,6 @@
 package datawave.query.tables;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.Set;
-
+import com.google.common.base.Preconditions;
 import datawave.ingest.data.config.ingest.AccumuloHelper;
 import datawave.mr.bulk.BulkInputFormat;
 import datawave.mr.bulk.MultiRfileInputformat;
@@ -17,29 +11,26 @@ import datawave.query.util.QueryScannerHelper;
 import datawave.webservice.common.connection.WrappedConnector;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.configuration.GenericQueryConfiguration;
-
-import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
-import com.google.common.base.Preconditions;
+import java.util.*;
 
 public class ScannerFactory {
     
     protected int maxQueue = 1000;
     protected HashSet<ScannerBase> instances = new HashSet<>();
-    protected HashSet<ScannerSession> sessionInstances = new HashSet<>();
+    protected HashSet<BaseScannerSession<?>> sessionInstances = new HashSet<>();
     protected AccumuloClient cxn;
     protected boolean open = true;
     protected boolean accrueStats = false;
     protected Query settings;
     protected ResourceQueue scanQueue = null;
+    protected DocumentResourceQueue documentScanQueue = null;
     ShardQueryConfiguration config = null;
     
     private static final Logger log = Logger.getLogger(ScannerFactory.class);
@@ -60,6 +51,7 @@ public class ScannerFactory {
             this.settings = ((ShardQueryConfiguration) queryConfiguration).getQuery();
             try {
                 scanQueue = new ResourceQueue(((ShardQueryConfiguration) queryConfiguration).getNumQueryThreads(), this.cxn);
+                documentScanQueue = new DocumentResourceQueue(((ShardQueryConfiguration) queryConfiguration).getNumQueryThreads(), this.cxn);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -111,7 +103,7 @@ public class ScannerFactory {
     public synchronized BatchScanner newScanner(String tableName, Set<Authorizations> auths, int threads, Query query, boolean reportErrors)
                     throws TableNotFoundException {
         if (open) {
-            BatchScanner bs = QueryScannerHelper.createBatchScanner(cxn, tableName, auths, threads, query, reportErrors);
+            BatchScanner bs = QueryScannerHelper.createBatchScanner(cxn, tableName, auths, threads, query, reportErrors, false);
             log.debug("Created scanner " + System.identityHashCode(bs));
             if (log.isTraceEnabled()) {
                 log.trace("Adding instance " + bs.hashCode());
@@ -122,7 +114,22 @@ public class ScannerFactory {
             throw new IllegalStateException("Factory has been locked. No new scanners can be created.");
         }
     }
-    
+
+    public synchronized BatchScanner newScanner(String tableName, Set<Authorizations> auths, int threads, Query query, boolean reportErrors, boolean customScanner)
+            throws TableNotFoundException {
+        if (open) {
+            BatchScanner bs = QueryScannerHelper.createBatchScanner(cxn, tableName, auths, threads, query, reportErrors, customScanner);
+            log.debug("Created scanner " + System.identityHashCode(bs));
+            if (log.isTraceEnabled()) {
+                log.trace("Adding instance " + bs.hashCode());
+            }
+            instances.add(bs);
+            return bs;
+        } else {
+            throw new IllegalStateException("Factory has been locked. No new scanners can be created.");
+        }
+    }
+
     public BatchScanner newScanner(String tableName, Set<Authorizations> auths, Query query) throws TableNotFoundException {
         return newScanner(tableName, auths, 1, query);
     }
@@ -149,7 +156,11 @@ public class ScannerFactory {
         
         return newLimitedScanner(BatchScannerSession.class, tableName, auths, settings).setThreads(scanQueue.getCapacity());
     }
-    
+
+    public synchronized DocumentBatchScannerSession newDocumentQueryScanner(final String tableName, final Set<Authorizations> auths, Query settings) throws Exception {
+
+        return newLimitedScanner(DocumentBatchScannerSession.class, tableName, auths, settings).setThreads(scanQueue.getCapacity());
+    }
     /**
      * Builds a new scanner session using a finalized table name and set of authorizations using the previously defined queue. Note that the number of entries
      * is hardcoded, below, to 1000, but can be changed
@@ -169,7 +180,7 @@ public class ScannerFactory {
      *             if there are issues
      *
      */
-    public synchronized <T extends ScannerSession> T newLimitedScanner(Class<T> wrapper, final String tableName, final Set<Authorizations> auths,
+    public synchronized <T extends BaseScannerSession> T newLimitedScanner(Class<T> wrapper, final String tableName, final Set<Authorizations> auths,
                     final Query settings) throws Exception {
         Preconditions.checkNotNull(scanQueue);
         Preconditions.checkNotNull(wrapper);
@@ -186,8 +197,14 @@ public class ScannerFactory {
         if (wrapper == ScannerSession.class) {
             session = (T) new ScannerSession(tableName, auths, scanQueue, maxQueue, settings).applyStats(stats);
         } else {
-            session = wrapper.getConstructor(ScannerSession.class).newInstance(
-                            new ScannerSession(tableName, auths, scanQueue, maxQueue, settings).applyStats(stats));
+            if (wrapper == DocumentBatchScannerSession.class){
+                session = wrapper.getConstructor(DocumentScannerSession.class).newInstance(
+                        new DocumentScannerSession(tableName, auths, documentScanQueue, maxQueue, settings).applyStats(stats));
+            }
+            else {
+                session = wrapper.getConstructor(ScannerSession.class).newInstance(
+                        new ScannerSession(tableName, auths, scanQueue, maxQueue, settings).applyStats(stats));
+            }
         }
         
         log.debug("Created session " + System.identityHashCode(session));
@@ -247,8 +264,8 @@ public class ScannerFactory {
      * 
      * @return a NEW collection of scanner session instances
      */
-    public synchronized Collection<ScannerSession> currentSessions() {
-        return new ArrayList<>(sessionInstances);
+    public synchronized Collection<BaseScannerSession<?>> currentSessions() {
+        return Collections.unmodifiableSet(sessionInstances);
     }
     
     public synchronized boolean lockdown() {
@@ -261,7 +278,10 @@ public class ScannerFactory {
         return open;
     }
     
-    public synchronized void close(ScannerSession bs) {
+    /**
+     * @param bs
+     */
+    public void close(BaseScannerSession bs) {
         try {
             log.debug("Closed session " + System.identityHashCode(bs));
             sessionInstances.remove(bs);
