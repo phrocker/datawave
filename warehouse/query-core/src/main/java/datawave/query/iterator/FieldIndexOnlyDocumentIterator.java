@@ -1,14 +1,11 @@
 package datawave.query.iterator;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Sets;
-import com.google.common.collect.UnmodifiableIterator;
+import com.google.common.collect.*;
 import datawave.core.iterators.DatawaveFieldIndexListIteratorJexl;
 import datawave.data.type.Type;
 import datawave.data.type.util.NumericalEncoder;
@@ -20,20 +17,7 @@ import datawave.query.attributes.AttributeKeepFilter;
 import datawave.query.attributes.Document;
 import datawave.query.attributes.ValueTuple;
 import datawave.query.composite.CompositeMetadata;
-import datawave.query.function.Aggregation;
-import datawave.query.function.DataTypeAsField;
-import datawave.query.function.DocumentMetadata;
-import datawave.query.function.DocumentPermutation;
-import datawave.query.function.DocumentProjection;
-import datawave.query.function.IndexOnlyContextCreator;
-import datawave.query.function.IndexOnlyContextCreatorBuilder;
-import datawave.query.function.JexlContextCreator;
-import datawave.query.function.JexlEvaluation;
-import datawave.query.function.KeyToDocumentData;
-import datawave.query.function.LimitFields;
-import datawave.query.function.MaskedValueFilterFactory;
-import datawave.query.function.MaskedValueFilterInterface;
-import datawave.query.function.RemoveGroupingContext;
+import datawave.query.function.*;
 import datawave.query.function.deserializer.KryoDocumentDeserializer;
 import datawave.query.function.serializer.JsonDocumentSerializer;
 import datawave.query.function.serializer.KryoDocumentSerializer;
@@ -43,16 +27,7 @@ import datawave.query.iterator.aggregation.DocumentData;
 import datawave.query.iterator.ivarator.IvaratorCacheDirConfig;
 import datawave.query.iterator.pipeline.PipelineFactory;
 import datawave.query.iterator.pipeline.PipelineIterator;
-import datawave.query.iterator.profile.EvaluationTrackingFunction;
-import datawave.query.iterator.profile.EvaluationTrackingIterator;
-import datawave.query.iterator.profile.EvaluationTrackingNestedIterator;
-import datawave.query.iterator.profile.EvaluationTrackingPredicate;
-import datawave.query.iterator.profile.FinalDocumentTrackingIterator;
-import datawave.query.iterator.profile.MultiThreadedQuerySpan;
-import datawave.query.iterator.profile.PipelineQuerySpanCollectionIterator;
-import datawave.query.iterator.profile.QuerySpan;
-import datawave.query.iterator.profile.QuerySpanCollector;
-import datawave.query.iterator.profile.SourceTrackingIterator;
+import datawave.query.iterator.profile.*;
 import datawave.query.jexl.DatawaveJexlContext;
 import datawave.query.jexl.DefaultArithmetic;
 import datawave.query.jexl.JexlASTHelper;
@@ -65,28 +40,16 @@ import datawave.query.jexl.visitors.SatisfactionVisitor;
 import datawave.query.jexl.visitors.VariableNameVisitor;
 import datawave.query.postprocessing.tf.TFFactory;
 import datawave.query.predicate.EmptyDocumentFilter;
-import datawave.query.statsd.QueryStatsDClient;
-import datawave.query.tracking.ActiveQuery;
 import datawave.query.tracking.ActiveQueryLog;
 import datawave.query.transformer.GroupingTransform;
 import datawave.query.transformer.UniqueTransform;
-import datawave.query.util.EmptyContext;
-import datawave.query.util.EntryToTuple;
-import datawave.query.util.TraceIterators;
-import datawave.query.util.Tuple2;
-import datawave.query.util.Tuple3;
-import datawave.query.util.TupleToEntry;
-import datawave.query.util.TypeMetadata;
+import datawave.query.util.*;
 import datawave.util.StringUtils;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IterationInterruptedException;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.YieldCallback;
-import org.apache.accumulo.core.iterators.YieldingKeyValueIterator;
+import org.apache.accumulo.core.iterators.*;
 import org.apache.accumulo.tserver.tablet.TabletClosedException;
 import org.apache.commons.collections4.iterators.EmptyIterator;
 import org.apache.commons.jexl2.JexlArithmetic;
@@ -100,8 +63,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 
@@ -110,22 +71,16 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.MalformedURLException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.commons.pool.impl.GenericObjectPool.WHEN_EXHAUSTED_BLOCK;
 
 /**
  * <p>
- * QueryIterator is the entry point to the Datawave query iterator stack. At a high level, this iterator has a source of Document Keys (row + columnfamily) and
+ * FieldIndexOnlyDocumentIterator is the entry point to the Datawave query iterator stack. At a high level, this iterator has a source of Document Keys (row + columnfamily) and
  * applies a series of transformations and predicates to satisfy the Datawave query requirements.
  *
  * <br>
@@ -137,7 +92,7 @@ import static org.apache.commons.pool.impl.GenericObjectPool.WHEN_EXHAUSTED_BLOC
  * <li>Boolean Logic Iterators</li>
  * <li>"Date-Range" scan (formerly known as "full-table scan")</li>
  * </ol>
- * In addition to the Accumulo Key pointing to the document, a Document containing index-only fields matched by the query and a {@link java.util.List} of the
+ * In addition to the Accumulo Key pointing to the document, a Document containing index-only fields matched by the query and a {@link List} of the
  * {@link Entry}&lt;Key,Value&gt;
  *
  * <br>
@@ -158,50 +113,54 @@ import static org.apache.commons.pool.impl.GenericObjectPool.WHEN_EXHAUSTED_BLOC
  * </ol>
  *
  */
-public class QueryIterator extends QueryOptions implements YieldingKeyValueIterator<Key,Value>, JexlContextCreator.JexlContextValueComparator,
-                SourceFactory<Key,Value>, SortedKeyValueIterator<Key,Value> {
-    
-    private static final Logger log = Logger.getLogger(QueryIterator.class);
-    
+public class FieldIndexOnlyDocumentIterator extends QueryIterator {
+
+    private static final Logger log = Logger.getLogger(FieldIndexOnlyDocumentIterator.class);
+
     protected SortedKeyValueIterator<Key,Value> source;
     protected SortedKeyValueIterator<Key,Value> sourceForDeepCopies;
     protected Map<String,String> documentOptions;
     protected NestedIterator<Key> initKeySource, seekKeySource;
     protected Iterator<Entry<Key,Value>> serializedDocuments;
     protected boolean fieldIndexSatisfiesQuery = false;
-    
+
     protected Range range;
     protected Range originalRange;
-    
+
     protected Key key;
     protected Value value;
     protected YieldCallback<Key> yield;
-    
+
     protected IteratorEnvironment myEnvironment;
-    
+
     protected ASTJexlScript script = null;
-    
+
     protected JexlEvaluation myEvaluationFunction = null;
-    
+
     protected QuerySpan trackingSpan = null;
-    
+
     protected QuerySpanCollector querySpanCollector = new QuerySpanCollector();
-    
+
     protected UniqueTransform uniqueTransform = null;
-    
+
     protected GroupingTransform groupingTransform;
-    
+
     protected boolean groupingContextAddedByMe = false;
-    
+
     protected TypeMetadata typeMetadataWithNonIndexed = null;
-    
+
     protected Map<String,Object> exceededOrEvaluationCache = null;
-    
+
     protected ActiveQueryLog activeQueryLog;
-    
-    public QueryIterator() {}
-    
-    public QueryIterator(QueryIterator other, IteratorEnvironment env) {
+
+    protected static LoadingCache<String, ASTJexlScript> scriptLoadingCache = Caffeine.newBuilder()
+            .expireAfterWrite(10, TimeUnit.MINUTES)
+            .maximumSize(100)
+            .build( x -> JexlASTHelper.parseJexlQuery(x));
+
+    public FieldIndexOnlyDocumentIterator() {}
+
+    public FieldIndexOnlyDocumentIterator(FieldIndexOnlyDocumentIterator other, IteratorEnvironment env) {
         // Need to copy all members instantiated/modified during init()
         this.source = other.source.deepCopy(env);
         this.sourceForDeepCopies = source.deepCopy(env);
@@ -228,11 +187,11 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
         if (log.isTraceEnabled()) {
-            log.trace("QueryIterator init()");
+            log.trace("FieldIndexOnlyDocumentIterator init()");
         }
         
         if (!validateOptions(new SourcedOptions<>(source, env, options))) {
-            throw new IllegalArgumentException("Could not initialize QueryIterator with " + options);
+            throw new IllegalArgumentException("Could not initialize FieldIndexOnlyDocumentIterator with " + options);
         }
         
         // We want to add in spoofed dataTypes for Aggregation/Evaluation to
@@ -245,7 +204,7 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
         
         // Parse the query
         try {
-            this.script = JexlASTHelper.parseJexlQuery(this.getQuery());
+            this.script = scriptLoadingCache.get(this.getQuery()); // JexlASTHelper.parseJexlQuery(this.getQuery());
             this.myEvaluationFunction = new JexlEvaluation(this.getQuery(), arithmetic);
             
         } catch (Exception e) {
@@ -255,12 +214,14 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
         this.documentOptions = options;
         this.myEnvironment = env;
         
-        if (gatherTimingDetails()) {
+   /*     if (gatherTimingDetails()) {
             this.trackingSpan = new MultiThreadedQuerySpan(getStatsdClient());
             this.source = new SourceTrackingIterator(trackingSpan, source);
         } else {
+
+    */
             this.source = source;
-        }
+        //}
         
         this.fiAggregator = new IdentityAggregator(getAllIndexOnlyFields(), getEvaluationFilter(), getEvaluationFilter() != null ? getEvaluationFilter()
                         .getMaxNextCount() : -1);
@@ -272,9 +233,9 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
         this.sourceForDeepCopies = this.source.deepCopy(this.myEnvironment);
         
         // update ActiveQueryLog with (potentially) updated config
-        if (env != null) {
-            ActiveQueryLog.setConfig(env.getConfig());
-        }
+   //     if (env != null) {
+  //          ActiveQueryLog.setConfig(env.getConfig());
+//        }
         
         DatawaveFieldIndexListIteratorJexl.FSTManager.setHdfsFileSystem(this.getFileSystemCache());
         DatawaveFieldIndexListIteratorJexl.FSTManager.setHdfsFileCompressionCodec(this.getHdfsFileCompressionCodec());
@@ -284,7 +245,8 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
     
     // this method will prune any ivarator cache directories that do not have a valid configuration.
     private void pruneIvaratorCacheDirs() throws InterruptedIOException {
-        return;/*
+        return;
+        /*
         if (ivaratorCacheDirConfigs.isEmpty()) {
             return;
         }
@@ -299,7 +261,9 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
             ivaratorCacheDirConfigs = Collections.singletonList(validConfig);
         } else {
             ivaratorCacheDirConfigs = Collections.EMPTY_LIST;
-        }*/
+        }
+        */
+
     }
     
     private boolean hasValidBasePath(IvaratorCacheDirConfig config) throws InterruptedIOException {
@@ -358,24 +322,30 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
     
     @Override
     public void next() throws IOException {
-        getActiveQueryLog().get(getQueryId()).beginCall(this.originalRange, ActiveQuery.CallType.NEXT);
-        try (TraceScope s = Trace.startSpan("QueryIterator.next()")) {
+        //getActiveQueryLog().get(getQueryId()).beginCall(this.originalRange, ActiveQuery.CallType.NEXT);
+
+        try{
+            // (TraceScope s = Trace.startSpan("FieldIndexOnlyDocumentIterator.next()")) {
             if (log.isTraceEnabled()) {
                 log.trace("next");
             }
-            prepareKeyValue(s);
+            prepareKeyValue();
         } catch (Exception e) {
             handleException(e);
         } finally {
-            QueryStatsDClient client = getStatsdClient();
+            /*QueryStatsDClient client = getStatsdClient();
             if (client != null) {
                 client.flush();
             }
-            getActiveQueryLog().get(getQueryId()).endCall(this.originalRange, ActiveQuery.CallType.NEXT);
+
+             */
+          /* getActiveQueryLog().get(getQueryId()).endCall(this.originalRange, ActiveQuery.CallType.NEXT);
             if (this.key == null && this.value == null) {
                 // no entries to return
                 getActiveQueryLog().remove(getQueryId(), this.originalRange);
             }
+
+           */
         }
     }
     
@@ -384,10 +354,10 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
         // preserve the original range for use with the Final Document tracking iterator because it is placed after the ResultCountingIterator
         // so the FinalDocumentTracking iterator needs the start key with the count already appended
         originalRange = range;
-        getActiveQueryLog().get(getQueryId()).beginCall(this.originalRange, ActiveQuery.CallType.SEEK);
-        ActiveQueryLog.getInstance().get(getQueryId()).beginCall(this.originalRange, ActiveQuery.CallType.SEEK);
+        //getActiveQueryLog().get(getQueryId()).beginCall(this.originalRange, ActiveQuery.CallType.SEEK);
+        //ActiveQueryLog.getInstance().get(getQueryId()).beginCall(this.originalRange, ActiveQuery.CallType.SEEK);
         
-        try (TraceScope span = Trace.startSpan("QueryIterator.seek")) {
+        try { // (TraceScope span = Trace.startSpan("FieldIndexOnlyDocumentIterator.seek")) {
             if (this.isIncludeGroupingContext() == false
                             && (this.query.contains("grouping:") || this.query.contains("matchesInGroup") || this.query.contains("MatchesInGroup") || this.query
                                             .contains("atomValuesMatch"))) {
@@ -409,7 +379,7 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
                 if (collectTimingDetails && FinalDocumentTrackingIterator.isFinalDocumentKey(range.getStartKey())) {
                     this.seekKeySource = new EmptyTreeIterable();
                     this.serializedDocuments = EmptyIterator.emptyIterator();
-                    prepareKeyValue(span);
+                    prepareKeyValue(); //span);
                     return;
                 }
                 
@@ -468,7 +438,7 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
             // Create the pipeline iterator for document aggregation and
             // evaluation within a thread pool
             PipelineIterator pipelineIter = PipelineFactory.createIterator(this.seekKeySource, getMaxEvaluationPipelines(), getMaxPipelineCachedResults(),
-                            getSerialPipelineRequest(), querySpanCollector, trackingSpan, this, sourceForDeepCopies.deepCopy(myEnvironment), myEnvironment,
+                            getSerialPipelineRequest(), querySpanCollector, trackingSpan, this, sourceForDeepCopies, myEnvironment,
                             yield, yieldThresholdMs, columnFamilies, inclusive);
             
             pipelineIter.setCollectTimingDetails(collectTimingDetails);
@@ -509,7 +479,7 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
             
             pipelineDocuments = Iterators.filter(pipelineDocuments, keyDocumentEntry -> {
                 // last chance before the documents are serialized
-                            getActiveQueryLog().get(getQueryId()).recordStats(keyDocumentEntry.getValue(), querySpanCollector.getCombinedQuerySpan(null));
+                            //getActiveQueryLog().get(getQueryId()).recordStats(keyDocumentEntry.getValue(), querySpanCollector.getCombinedQuerySpan(null));
                             // Always return true since we just want to record data in the ActiveQueryLog
                             return true;
                         });
@@ -563,11 +533,11 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
             }
             
             // Determine if we have items to return
-            prepareKeyValue(span);
+            prepareKeyValue();// span);
         } catch (Exception e) {
             handleException(e);
         } finally {
-            if (gatherTimingDetails() && trackingSpan != null && querySpanCollector != null) {
+            /*if (gatherTimingDetails() && trackingSpan != null && querySpanCollector != null) {
                 querySpanCollector.addQuerySpan(trackingSpan);
             }
             QueryStatsDClient client = getStatsdClient();
@@ -579,6 +549,8 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
                 // no entries to return
                 getActiveQueryLog().remove(getQueryId(), this.originalRange);
             }
+
+             */
         }
     }
     
@@ -838,10 +810,10 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
                     final NestedQueryIterator<Key> documentSpecificSource, Collection<ByteSequence> columnFamilies, boolean inclusive,
                     QuerySpanCollector querySpanCollector) {
         
-        QuerySpan trackingSpan = null;
+        /*QuerySpan trackingSpan = null;
         if (gatherTimingDetails()) {
             trackingSpan = new QuerySpan(getStatsdClient());
-        }
+        }*/
         if (log.isTraceEnabled()) {
             log.trace("createDocumentPipeline");
         }
@@ -885,7 +857,7 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
         } else {
             documents = Iterators.transform(sourceIterator, a);
         }
-        
+
         // Inject the data type as a field if the user requested it
         if (this.includeDatatype) {
             if (gatherTimingDetails()) {
@@ -907,10 +879,10 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
         }
         
         if (gatherTimingDetails()) {
-            documents = new EvaluationTrackingIterator(QuerySpan.Stage.DocumentEvaluation, trackingSpan, getEvaluation(documentSpecificSource, deepSourceCopy,
+            documents = new EvaluationTrackingIterator(QuerySpan.Stage.DocumentEvaluation, trackingSpan, getEvaluation(script,documentSpecificSource, deepSourceCopy,
                             documents, compositeMetadata, typeMetadataWithNonIndexed, columnFamilies, inclusive));
         } else {
-            documents = getEvaluation(documentSpecificSource, deepSourceCopy, documents, compositeMetadata, typeMetadataWithNonIndexed, columnFamilies,
+            documents = getEvaluation(script,documentSpecificSource, deepSourceCopy, documents, compositeMetadata, typeMetadataWithNonIndexed, columnFamilies,
                             inclusive);
         }
         
@@ -943,7 +915,7 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
         } else {
             documents = Iterators.transform(documents, new AttributeKeepFilter<>());
         }
-        
+
         // Project fields using a whitelist or a blacklist before serialization
         if (this.projectResults) {
             if (gatherTimingDetails()) {
@@ -952,7 +924,7 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
                 documents = Iterators.transform(documents, getProjection());
             }
         }
-        
+
         // remove the composite entries
         documents = Iterators.transform(documents, this.getCompositeProjection());
         
@@ -998,13 +970,8 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
         
         return documents;
     }
-    
-    protected Iterator<Entry<Key,Document>> getEvaluation(SortedKeyValueIterator<Key,Value> sourceDeepCopy, Iterator<Entry<Key,Document>> documents,
-                    CompositeMetadata compositeMetadata, TypeMetadata typeMetadataForEval, Collection<ByteSequence> columnFamilies, boolean inclusive) {
-        return getEvaluation(null, sourceDeepCopy, documents, compositeMetadata, typeMetadataForEval, columnFamilies, inclusive);
-    }
-    
-    protected Iterator<Entry<Key,Document>> getEvaluation(NestedQueryIterator<Key> documentSource, SortedKeyValueIterator<Key,Value> sourceDeepCopy,
+
+    protected Iterator<Entry<Key,Document>> getEvaluation(ASTJexlScript script,NestedQueryIterator<Key> documentSource, SortedKeyValueIterator<Key,Value> sourceDeepCopy,
                     Iterator<Entry<Key,Document>> documents, CompositeMetadata compositeMetadata, TypeMetadata typeMetadataForEval,
                     Collection<ByteSequence> columnFamilies, boolean inclusive) {
         // Filter the Documents by testing them against the JEXL query
@@ -1014,9 +981,9 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
             Collection<String> variables = null;
             if (null != documentSource && null != documentSource.getQuery()) {
                 
-                variables = VariableNameVisitor.parseQuery(jexlEvaluationFunction.parse(documentSource.getQuery()));
+                variables = VariableNameVisitor.parseQuery(script);
             } else {
-                variables = VariableNameVisitor.parseQuery(jexlEvaluationFunction.parse(query));
+                variables = VariableNameVisitor.parseQuery(script);
             }
             
             final Iterator<Tuple2<Key,Document>> tupleItr = Iterators.transform(documents, new EntryToTuple<>());
@@ -1171,7 +1138,7 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
         }
     }
     
-    protected void prepareKeyValue(TraceScope span) {
+    private void prepareKeyValue(/*TraceScope span*/) {
         if (this.serializedDocuments.hasNext()) {
             Entry<Key,Value> entry = this.serializedDocuments.next();
             
@@ -1181,10 +1148,10 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
             
             this.key = entry.getKey();
             this.value = entry.getValue();
-            
+            /*
             if (Trace.isTracing() && span.getSpan() != null) {
                 span.getSpan().addKVAnnotation("Key", rowColFamToString(this.key));
-            }
+            }*/
         } else {
             if (log.isTraceEnabled()) {
                 log.trace("Exhausted all keys");
@@ -1206,7 +1173,7 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
     
     @Override
     public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-        return new QueryIterator(this, env);
+        return new FieldIndexOnlyDocumentIterator(this, env);
     }
     
     /**
@@ -1386,7 +1353,7 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
             rangeScript.jjtAccept(visitor, null);
             
             sourceIter = visitor.root();
-            
+
             if (visitor.isQueryFullySatisfied()) {
                 this.fieldIndexSatisfiesQuery = true;
             }
@@ -1605,10 +1572,12 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
         return groupingTransform;
     }
     
-    protected ActiveQueryLog getActiveQueryLog() {
+    /*protected ActiveQueryLog getActiveQueryLog() {
         if (this.activeQueryLog == null) {
             this.activeQueryLog = ActiveQueryLog.getInstance(getActiveQueryLogName());
         }
         return this.activeQueryLog;
     }
+    *
+     */
 }

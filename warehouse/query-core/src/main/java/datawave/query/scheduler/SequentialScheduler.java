@@ -21,7 +21,7 @@ import org.apache.log4j.Logger;
 /**
  * 
  */
-public class SequentialScheduler extends Scheduler {
+public class SequentialScheduler extends Scheduler<Entry<Key,Value>> {
     private static final Logger log = ThreadConfigurableLogger.getLogger(SequentialScheduler.class);
     
     protected final ShardQueryConfiguration config;

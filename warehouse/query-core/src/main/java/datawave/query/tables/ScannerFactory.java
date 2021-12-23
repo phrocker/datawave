@@ -1,11 +1,6 @@
 package datawave.query.tables;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.Set;
-
+import com.google.common.base.Preconditions;
 import datawave.ingest.data.config.ingest.AccumuloHelper;
 import datawave.mr.bulk.BulkInputFormat;
 import datawave.mr.bulk.MultiRfileInputformat;
@@ -16,18 +11,14 @@ import datawave.query.util.QueryScannerHelper;
 import datawave.webservice.common.connection.WrappedConnector;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.configuration.GenericQueryConfiguration;
-
-import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.ScannerBase;
-import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
 
-import com.google.common.base.Preconditions;
+import java.util.*;
 
 /**
  * 
@@ -113,7 +104,7 @@ public class ScannerFactory {
     public synchronized BatchScanner newScanner(String tableName, Set<Authorizations> auths, int threads, Query query, boolean reportErrors)
                     throws TableNotFoundException {
         if (open) {
-            BatchScanner bs = QueryScannerHelper.createBatchScanner(cxn, tableName, auths, threads, query, reportErrors);
+            BatchScanner bs = QueryScannerHelper.createBatchScanner(cxn, tableName, auths, threads, query, reportErrors, false);
             log.debug("Created scanner " + System.identityHashCode(bs));
             if (log.isTraceEnabled()) {
                 log.trace("Adding instance " + bs.hashCode());
@@ -124,7 +115,22 @@ public class ScannerFactory {
             throw new IllegalStateException("Factory has been locked. No new scanners can be created.");
         }
     }
-    
+
+    public synchronized BatchScanner newScanner(String tableName, Set<Authorizations> auths, int threads, Query query, boolean reportErrors, boolean customScanner)
+            throws TableNotFoundException {
+        if (open) {
+            BatchScanner bs = QueryScannerHelper.createBatchScanner(cxn, tableName, auths, threads, query, reportErrors, customScanner);
+            log.debug("Created scanner " + System.identityHashCode(bs));
+            if (log.isTraceEnabled()) {
+                log.trace("Adding instance " + bs.hashCode());
+            }
+            instances.add(bs);
+            return bs;
+        } else {
+            throw new IllegalStateException("Factory has been locked. No new scanners can be created.");
+        }
+    }
+
     public BatchScanner newScanner(String tableName, Set<Authorizations> auths, Query query) throws TableNotFoundException {
         return newScanner(tableName, auths, 1, query);
     }

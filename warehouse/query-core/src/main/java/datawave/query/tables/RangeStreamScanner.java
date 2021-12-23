@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import com.google.common.base.Throwables;
@@ -376,7 +377,9 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
         try {
             if (null != stats)
                 stats.getTimer(TIMERS.HASNEXT).resume();
-            
+            if (log.isTraceEnabled()){
+                log.trace("Looking for current entry in hasnext with a wait of " + getPollTime());
+            }
             while (null == currentEntry && (!finished || !resultQueue.isEmpty() || flushNeeded())) {
                 
                 try {
@@ -394,8 +397,14 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                 if (currentEntry == null && (!finished && resultQueue.isEmpty())) {
                     submitTask();
                 } else if (flushNeeded()) {
+                    if (log.isTraceEnabled()){
+                        log.trace("Attempting to flush");
+                    }
                     flush();
                 }
+            }
+            if (log.isTraceEnabled()){
+                log.trace("Found current entry or null");
             }
         } finally {
             if (null != stats) {
@@ -415,12 +424,14 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
     
     private void submitTask() {
         // wait on results. submit the task if we can
+        if (log.isTraceEnabled())
+            log.trace("Submitting tasks");
         Future future = myExecutor.submit(this);
-        try {
-            future.get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
+        while(resultQueue.isEmpty() && !future.isDone() && !future.isCancelled()){
+            LockSupport.parkNanos(100);
         }
+        if (log.isTraceEnabled())
+            log.trace("Tasks are submitted");
     }
     
     /*
@@ -516,14 +527,20 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                         }
                         lastSeenKey = kvIter.next().getKey();
                     } else {
-                        
+                        if (log.isTraceEnabled()) {
+                            log.trace("it's a new day! no longer matching");
+                            log.trace("adding " + currentKeyValue.getKey() + " to queue because it matches " + currentDay);
+                        }
                         int dequeueCount = dequeue();
                         retrievalCount += dequeueCount;
                         int queueSize = currentQueue.size();
                         dequeue(true);
                         currentDay = null;
-                        
-                        if (dequeueCount != queueSize || retrievalCount <= Math.ceil(maxResults * 1.5)) {
+                        //dequeueCount != queueSize || retrievalCount <= Math.ceil(maxResults * 1.5)
+                        if (retrievalCount >= Math.ceil(maxResults * 1.5)) {
+                            if (log.isTraceEnabled()) {
+                                log.trace("breaking because " + dequeueCount + "!= " + queueSize + " " + retrievalCount + " <= " + maxResults*1.5);
+                            }
                             break;
                         }
                     }
@@ -662,12 +679,20 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
     }
     
     protected boolean flushNeeded() {
-        readLock.lock();
+
         try {
-            return !currentQueue.isEmpty();
-        } finally {
-            readLock.unlock();
+            if (readLock.tryLock(2,TimeUnit.MILLISECONDS)) {
+                try {
+                    return !currentQueue.isEmpty();
+                } finally {
+                    readLock.unlock();
+                }
+            }
+        } catch (InterruptedException e) {
+            log.error(e);
+            throw new RuntimeException(e);
         }
+        return false;
     }
     
     /**

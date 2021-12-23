@@ -109,19 +109,22 @@ public class CreateUidsIterator implements SortedKeyValueIterator<Key,Value>, Op
             long count = 0L;
             boolean ignore = false;
             if (collapseUids) {
+                count=1;
                 ignore = true;
             }
             while (src.hasTop() && sameShard(reference, src.getTopKey())) {
                 Key nextTop = src.getTopKey();
-                Tuple3<Long,Boolean,List<String>> uidInfo = parseUids(nextTop, src.getTopValue());
-                count += uidInfo.first();
-                ignore |= uidInfo.second();
-                if (!ignore)
-                    for (String uid : uidInfo.third()) {
-                        if (log.isTraceEnabled())
-                            log.trace("Adding uid " + StringUtils.split(uid, '\u0000')[1]);
-                        uids.add(uid);
-                    }
+                if (!collapseUids) {
+                    Tuple3<Long, Boolean, List<String>> uidInfo = parseUids(nextTop, src.getTopValue());
+                    count += uidInfo.first();
+                    ignore |= uidInfo.second();
+                    if (!ignore)
+                        for (String uid : uidInfo.third()) {
+                            if (log.isTraceEnabled())
+                                log.trace("Adding uid " + StringUtils.split(uid, '\u0000')[1]);
+                            uids.add(uid);
+                        }
+                }
                 src.next();
             }
             if (ignore) {

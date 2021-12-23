@@ -541,7 +541,7 @@ public class ScannerSession extends AbstractExecutionThreadService implements It
             boolean accepted = false;
             while (!accepted) {
                 try {
-                    accepted = resultQueue.offer(myEntry, 200, TimeUnit.MILLISECONDS);
+                    accepted = resultQueue.offer(myEntry, 10, TimeUnit.MILLISECONDS);
                 } catch (InterruptedException e) {
                     // keep trying
                 }

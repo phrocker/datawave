@@ -1,6 +1,8 @@
 package datawave.query.iterator;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.base.CharMatcher;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -62,11 +64,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.MalformedURLException;
@@ -84,6 +82,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -97,6 +96,12 @@ public class QueryOptions implements OptionDescriber {
     private static final Logger log = Logger.getLogger(QueryOptions.class);
     
     protected static Cache<String,FileSystem> fileSystemCache = CacheBuilder.newBuilder().concurrencyLevel(10).maximumSize(100).build();
+
+
+    protected static LoadingCache<String, TypeMetadata> metadataLoadingCache = Caffeine.newBuilder()
+            .expireAfterWrite(1, TimeUnit.HOURS)
+            .maximumSize(100)
+            .build( x -> new TypeMetadata(x));
     
     public static final Charset UTF8 = StandardCharsets.UTF_8;
     
@@ -142,7 +147,7 @@ public class QueryOptions implements OptionDescriber {
     public static final String START_TIME = "start.time";
     public static final String END_TIME = "end.time";
     public static final String YIELD_THRESHOLD_MS = "yield.threshold.ms";
-    
+    public static final String SET_TYPE_STRING = "set.type.string";
     public static final String FILTER_MASKED_VALUES = "filter.masked.values";
     public static final String INCLUDE_DATATYPE = "include.datatype";
     public static final String INCLUDE_RECORD_ID = "include.record.id";
@@ -389,7 +394,8 @@ public class QueryOptions implements OptionDescriber {
      * The name of the {@link datawave.query.tracking.ActiveQueryLog} instance to use.
      */
     protected String activeQueryLogName;
-    
+    protected boolean setTypeString;
+
     public void deepCopy(QueryOptions other) {
         this.options = other.options;
         this.query = other.query;
@@ -1002,6 +1008,7 @@ public class QueryOptions implements OptionDescriber {
         options.put(PROJECTION_FIELDS, "Attributes to return to the client");
         options.put(BLACKLISTED_FIELDS, "Attributes to *not* return to the client");
         options.put(FILTER_MASKED_VALUES, "Filter the masked values when both the masked and unmasked variants are in the result set.");
+        options.put(SET_TYPE_STRING, "Set type, string or serialized HashSet");
         options.put(INCLUDE_DATATYPE, "Include the data type as a field in the document.");
         options.put(INCLUDE_RECORD_ID, "Include the record id as a field in the document.");
         options.put(COLLECT_TIMING_DETAILS, "Collect timing details about the underlying iterators");
@@ -1208,11 +1215,24 @@ public class QueryOptions implements OptionDescriber {
         this.evaluationFilter = null;
         this.getDocumentKey = GetStartKey.instance();
         this.mustUseFieldIndex = false;
+        this.setTypeString = true;
         
         if (options.containsKey(FILTER_MASKED_VALUES)) {
             this.filterMaskedValues = Boolean.parseBoolean(options.get(FILTER_MASKED_VALUES));
         }
-        
+
+        if (options.containsKey(SET_TYPE_STRING)) {
+            this.setTypeString = Boolean.parseBoolean(options.get(SET_TYPE_STRING));
+        }
+
+
+        if (options.containsKey(INCLUDE_DATATYPE)) {
+            this.includeDatatype = Boolean.parseBoolean(options.get(INCLUDE_DATATYPE));
+            if (this.includeDatatype) {
+                this.datatypeKey = options.getOrDefault(DATATYPE_FIELDNAME, DEFAULT_DATATYPE_FIELDNAME);
+            }
+        }
+
         if (options.containsKey(INCLUDE_DATATYPE)) {
             this.includeDatatype = Boolean.parseBoolean(options.get(INCLUDE_DATATYPE));
             if (this.includeDatatype) {
@@ -1263,14 +1283,26 @@ public class QueryOptions implements OptionDescriber {
         }
         
         if (options.containsKey(INDEX_ONLY_FIELDS)) {
-            this.indexOnlyFields = buildFieldSetFromString(options.get(INDEX_ONLY_FIELDS));
+            try {
+                this.indexOnlyFields = buildFieldSetFromString(options.get(INDEX_ONLY_FIELDS),this.setTypeString);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
         } else if (!this.fullTableScanOnly) {
             log.error("A list of index only fields must be provided when running an optimized query");
             return false;
         }
         
         if (options.containsKey(INDEXED_FIELDS)) {
-            this.indexedFields = buildFieldSetFromString(options.get(INDEXED_FIELDS));
+            try {
+                this.indexedFields = buildFieldSetFromString(options.get(INDEXED_FIELDS),this.setTypeString);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
         }
         
         this.fiAggregator = new IdentityAggregator(getNonEventFields(), getEvaluationFilter(), getEvaluationFilter() != null ? getEvaluationFilter()
@@ -1655,7 +1687,7 @@ public class QueryOptions implements OptionDescriber {
     }
     
     public static TypeMetadata buildTypeMetadata(String data) {
-        return new TypeMetadata(data);
+        return metadataLoadingCache.get(data);
     }
     
     /**
@@ -1734,7 +1766,21 @@ public class QueryOptions implements OptionDescriber {
         
         return new String(Base64.encodeBase64(byteStream.toByteArray()));
     }
-    
+
+    public static String buildFieldSetStringFromSet(Set<String> fields) throws IOException {
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(out);
+        oos.writeObject(new HashSet<>(fields));
+        oos.close();
+        String retstr = java.util.Base64.getEncoder().encodeToString(out.toByteArray());
+        System.out.println("Serializing " + fields + " into " + retstr);
+        return retstr;
+        
+
+    }
+
+
     public static String buildFieldStringFromSet(Collection<String> fields) {
         StringBuilder sb = new StringBuilder();
         for (String field : fields) {
@@ -1747,15 +1793,25 @@ public class QueryOptions implements OptionDescriber {
         
         return sb.toString();
     }
-    
-    public static Set<String> buildFieldSetFromString(String fieldStr) {
-        Set<String> fields = new HashSet<>();
-        for (String field : StringUtils.split(fieldStr, ',')) {
-            if (!org.apache.commons.lang.StringUtils.isBlank(field)) {
-                fields.add(field);
+
+    public static Set<String> buildFieldSetFromString(String fieldStr, boolean setTypeString) throws IOException, ClassNotFoundException {
+        if (!setTypeString) {
+            if (fieldStr.isEmpty()) {
+                return new HashSet<>();
             }
+          //ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(fieldStr.getBytes(StandardCharsets.UTF_8)));
+            ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(java.util.Base64.getDecoder().decode(fieldStr)));
+            return (HashSet<String>) ois.readObject();
         }
-        return fields;
+        else {
+            Set<String> fields = new HashSet<>();
+            for (String field : StringUtils.split(fieldStr, ',')) {
+                if (!org.apache.commons.lang.StringUtils.isBlank(field)) {
+                    fields.add(field);
+                }
+            }
+            return fields;
+        }
     }
     
     public static String buildIgnoredColumnFamiliesString(Collection<String> colFams) {
