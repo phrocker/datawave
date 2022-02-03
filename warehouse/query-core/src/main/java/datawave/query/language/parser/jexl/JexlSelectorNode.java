@@ -98,11 +98,7 @@ public class JexlSelectorNode extends JexlNode {
                         sb.append(BACKSLASH);
                     }
                     
-                    if (chars[x] == BACKSLASH) {
-                        sb.append(BACKSLASH);
-                    } else {
-                        sb.append(chars[x]);
-                    }
+                    sb.append(chars[x]);
                 }
             } else if (currChar == '*') {
                 sb.append(".*?");
