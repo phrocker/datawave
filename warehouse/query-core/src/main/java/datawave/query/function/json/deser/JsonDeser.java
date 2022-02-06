@@ -15,6 +15,12 @@ import java.util.Map;
 
 public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.google.gson.JsonDeserializer<Document>{
 
+    /**
+     * Typed conversion of the JSON array.
+     * @param arrayAttr array attribute containing multiple Attribute instances.
+     * @param name name of the Attributes collection
+     * @param jsonDocument json document in which we emplace the new JsonArray.
+     */
     private static void addJsonObject(Attribute<?> arrayAttr,String name, JsonArray jsonDocument){
         if (arrayAttr instanceof TypeAttribute){
             if (((TypeAttribute)arrayAttr).getType() instanceof NumberType){
@@ -30,6 +36,12 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
         }
     }
 
+    /**
+     * Adds a new JsonElement to the jsonDocument.
+     * @param attr attribute to convert
+     * @param name name of the attribute
+     * @param jsonDocument json document.
+     */
     private static void addJsonObject(Attribute<?> attr,String name, JsonObject jsonDocument){
         if (attr instanceof Attributes){
             // we have an array
@@ -49,7 +61,13 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
         }
     }
 
-
+    /**
+     * Serialize the document into a JsonDocument
+     * @param document Datawave document
+     * @param type type object
+     * @param jsonSerializationContext serializer
+     * @return JsonElement reflecting the new JsonDocument
+     */
     public JsonElement serialize(Document document, Type type, JsonSerializationContext jsonSerializationContext) {
         JsonObject jsonDocument = new JsonObject();
 
@@ -63,22 +81,46 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
         return jsonDocument;
     }
 
-    private static void populateAttribute(JsonElement element,String name, Document doc){
+    /**
+     * Converts the provided element to an attribute with the document
+     * @param element json element we are populating into the Document
+     */
+    private static TypeAttribute<?> elementToAttribute(JsonElement element){
         Key key = new Key();
+        TypeAttribute<?> attr = null;
         if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()){
             NumberType type = new NumberType(element.getAsString());
-            TypeAttribute<?> attr = new TypeAttribute<>(type,key,true);
-            doc.put(name,attr);
+            attr = new TypeAttribute<>(type,key,true);
         }
         else{
             NoOpType type = new NoOpType(element.getAsString());
-            TypeAttribute<?> attr = new TypeAttribute<>(type,key,true);
-            doc.put(name,attr);
+            attr = new TypeAttribute<>(type,key,true);
         }
+        return attr;
     }
 
-    private static void populateAttributes(JsonArray array,String name, Document doc){
+    /**
+     * Converts the provided element to an attribute with the document
+     * @param element json element we are populating into the Document
+     * @param name name of the typed attribute
+     * @param doc document to emplace the JsonElement attribute.
+     */
+    private static void populateAttribute(JsonElement element,String name, Document doc){
+        doc.put(name,elementToAttribute(element));
+    }
 
+    /**
+     * Populate an array of Attributes
+     * @param array JsonArray
+     * @param name name of the Attributes
+     * @param doc document to emplace the attributes.
+     */
+    private static void populateAttributes(JsonArray array,String name, Document doc){
+        final Attributes attrs = new Attributes(true);
+        array.iterator().forEachRemaining( x -> {
+            attrs.add(elementToAttribute(x));
+        });
+        doc.put(name,attrs);
     }
     @Override
     public Document deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {

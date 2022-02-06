@@ -10,6 +10,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Json Document Deserializer leveraging JsonDeser to convert the object from JSON to a
+ * typed Document Object.
+ */
 public class JsonDeserializer extends DocumentDeserializer{
 
     static GsonBuilder gsonBuilder = new GsonBuilder();

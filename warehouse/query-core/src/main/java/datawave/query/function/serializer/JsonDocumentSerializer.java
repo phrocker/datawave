@@ -13,6 +13,9 @@ import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.Map;
 
+/**
+ * Json Document Serializer converts the POJO using gsonBuilder to a json string.
+ */
 public class JsonDocumentSerializer extends DocumentSerializer {
 
     static GsonBuilder gsonBuilder = new GsonBuilder();
@@ -27,8 +30,8 @@ public class JsonDocumentSerializer extends DocumentSerializer {
     
     @Override
     public byte[] serialize(Document doc) {
-        Gson gson = gsonBuilder.create();
-        StringWriter writer = new StringWriter();
+        final Gson gson = gsonBuilder.create();
+        final StringWriter writer = new StringWriter();
         gson.toJson(doc,writer);
         return writer.toString().getBytes();
     }
