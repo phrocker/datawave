@@ -7,8 +7,10 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import datawave.data.type.NoOpType;
 import datawave.query.DocumentSerialization;
+import datawave.query.attributes.Attribute;
 import datawave.query.attributes.Document;
 import datawave.query.attributes.TypeAttribute;
+import datawave.query.function.KryoCVAwareSerializableSerializer;
 import datawave.query.function.json.deser.JsonDeser;
 import org.apache.accumulo.core.client.*;
 import org.apache.accumulo.core.clientImpl.*;
@@ -68,7 +70,7 @@ public class DocumentScan implements Iterator<Document> {
     private List<Document> batch;
     private static final List<Document> LAST_BATCH = new ArrayList<>();
     private final Object nextLock = new Object();
-    static final transient Kryo kryo = new Kryo();
+    static final transient ThreadLocal<Kryo> kryo = new ThreadLocal<Kryo>();
     static final JsonDeser jsonDeser = new JsonDeser();
     static final JsonParser jsonParser = new JsonParser();
     private long failSleepTime = 100;
@@ -745,8 +747,16 @@ public class DocumentScan implements Iterator<Document> {
             offset = kv.value.arrayOffset() + kv.value.position();
         }
         if (DocumentSerialization.ReturnType.kryo == returnType) {
-            Input input = new Input(array,offset,size);
-            document = kryo.readObject(input, Document.class);
+            if (kryo.get() == null){
+                kryo.set(new Kryo());
+                kryo.get().addDefaultSerializer(Attribute.class, new KryoCVAwareSerializableSerializer(true));
+            }
+            else{
+               // kryo.get().reset();
+            }
+            //Input input = new Input(array,offset+3,size-3);
+            Input input = new Input(DocumentSerialization.consumeHeader(array,offset,size));
+            document = kryo.get().readObject(input, Document.class);
 
             if (null == document) {
                 throw new RuntimeException("Deserialized null Document");

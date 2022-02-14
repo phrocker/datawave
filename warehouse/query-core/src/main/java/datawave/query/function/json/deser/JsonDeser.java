@@ -93,8 +93,17 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
             attr = new TypeAttribute<>(type,key,true);
         }
         else{
-            NoOpType type = new NoOpType(element.getAsString());
-            attr = new TypeAttribute<>(type,key,true);
+            NoOpType type = null;
+            if (element instanceof JsonObject){
+                JsonObject obj = (JsonObject)element;
+                Map.Entry<String,JsonElement> ret = obj.entrySet().iterator().next();
+                type = new NoOpType(ret.getValue().getAsString());
+            }
+            else {
+                type = new NoOpType(element.getAsString());
+
+            }
+            attr = new TypeAttribute<>(type, key, true);
         }
         return attr;
     }
