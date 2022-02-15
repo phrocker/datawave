@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -61,13 +62,13 @@ public class DocumentScannerImpl extends ScannerOptions implements BatchScanner 
         this.queueCapacity=queueCapacity;
         this.maxTabletsPerRequest=maxTabletsPerRequest;
         this.maxTabletThreshold=maxTabletThreshold;
-        queryThreadPool = (ThreadPoolExecutor)Executors.newFixedThreadPool(numQueryThreads); /*
+        queryThreadPool = (ThreadPoolExecutor)Executors.newFixedThreadPool(numQueryThreads,
                 new ThreadFactory() {
                     @Override
                     public Thread newThread(Runnable r) {
-                        return new Thread("batch scanner " + batchReaderInstance + "-");
+                        return new Thread("Document scanner " + batchReaderInstance + "-");
                     }
-                });*/
+                });
         // Call shutdown on this thread pool in case the caller does not call close().
         cleanable = CleanerUtil.shutdownThreadPoolExecutor(queryThreadPool, closed, log);
     }

@@ -12,15 +12,37 @@ import datawave.query.attributes.Document;
 import datawave.query.attributes.TypeAttribute;
 import datawave.query.function.KryoCVAwareSerializableSerializer;
 import datawave.query.function.json.deser.JsonDeser;
-import org.apache.accumulo.core.client.*;
-import org.apache.accumulo.core.clientImpl.*;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.SampleNotPresentException;
+import org.apache.accumulo.core.client.TableDeletedException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.TimedOutException;
+import org.apache.accumulo.core.clientImpl.AccumuloServerException;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ScannerOptions;
+import org.apache.accumulo.core.clientImpl.Tables;
+import org.apache.accumulo.core.clientImpl.TabletLocator;
+import org.apache.accumulo.core.clientImpl.TabletType;
+import org.apache.accumulo.core.clientImpl.ThriftScanner;
+import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
+import org.apache.accumulo.core.clientImpl.TimeoutTabletLocator;
+import org.apache.accumulo.core.clientImpl.Translator;
+import org.apache.accumulo.core.clientImpl.Translators;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.*;
+import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
+import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
+import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
+import org.apache.accumulo.core.dataImpl.thrift.TColumn;
+import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
+import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
+import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.master.state.tables.TableState;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -77,8 +99,8 @@ public class DocumentScan implements Iterator<Document> {
 
     private volatile Throwable fatalException = null;
 
-    //private Map<String, TimeoutTracker> timeoutTrackers;
-    //private Set<String> timedoutServers;
+    private Map<String, TimeoutTracker> timeoutTrackers;
+    private Set<String> timedoutServers;
     private final long timeout;
 
     private TabletLocator locator;
@@ -108,6 +130,8 @@ public class DocumentScan implements Iterator<Document> {
         this.maxTabletsPerThread = maxTabletsPerThread;
         this.maxTabletThreshold=maxTabletThreshold;
         this.locator = new TimeoutTabletLocator(timeout, context, tableId);
+        this.timeoutTrackers = Collections.synchronizedMap(new HashMap());
+        this.timedoutServers = Collections.synchronizedSet(new HashSet());
 
         this.timeout = timeout;
         if (options.getFetchedColumns().size() > 0) {
@@ -121,7 +145,7 @@ public class DocumentScan implements Iterator<Document> {
 
         ResultReceiver rr = printOutput ? entries -> {
             try {
-                System.out.println("Received " + entries.size() + " " + resultsQueue.size());
+                log.trace("Received " + entries.size() + " " + resultsQueue.size());
                 resultsQueue.put(entries);
             } catch (InterruptedException e) {
                 if (this.queryThreadPool.isShutdown())
@@ -321,6 +345,54 @@ public class DocumentScan implements Iterator<Document> {
         return Tables.getPrintableTableInfoFromId(context, tableId);
     }
 
+    private static class TimeoutTracker {
+        String server;
+        Set<String> badServers;
+        long timeOut;
+        long activityTime;
+        Long firstErrorTime;
+
+        TimeoutTracker(String server, Set<String> badServers, long timeOut) {
+            this(timeOut);
+            this.server = server;
+            this.badServers = badServers;
+        }
+
+        TimeoutTracker(long timeOut) {
+            this.firstErrorTime = null;
+            this.timeOut = timeOut;
+        }
+
+        void startingScan() {
+            this.activityTime = System.currentTimeMillis();
+        }
+
+        void check() throws IOException {
+            if (System.currentTimeMillis() - this.activityTime > this.timeOut) {
+                this.badServers.add(this.server);
+                throw new IOException("Time exceeded " + (System.currentTimeMillis() - this.activityTime) + " " + this.server);
+            }
+        }
+
+        void madeProgress() {
+            this.activityTime = System.currentTimeMillis();
+            this.firstErrorTime = null;
+        }
+
+        void errorOccured() {
+            if (this.firstErrorTime == null) {
+                this.firstErrorTime = this.activityTime;
+            } else if (System.currentTimeMillis() - this.firstErrorTime > this.timeOut) {
+                this.badServers.add(this.server);
+            }
+
+        }
+
+        public long getTimeOut() {
+            return this.timeOut;
+        }
+    }
+
     private class QueryTask implements Runnable {
 
         private String tsLocation;
@@ -353,16 +425,13 @@ public class DocumentScan implements Iterator<Document> {
             Map<KeyExtent,List<Range>> unscanned = new HashMap<>();
             Map<KeyExtent,List<Range>> tsFailures = new HashMap<>();
             try {
-                /*
                 TimeoutTracker timeoutTracker = timeoutTrackers.get(tsLocation);
                 if (timeoutTracker == null) {
                     timeoutTracker = new TimeoutTracker(tsLocation, timedoutServers, timeout);
                     timeoutTrackers.put(tsLocation, timeoutTracker);
                 }
-
-                 */
                 doLookup(context, tsLocation, tabletsRanges, tsFailures, unscanned, receiver, translatedColumns,
-                        options, sharedByteBuffers,authorizations, returnType,docRawFields);
+                        options, sharedByteBuffers,authorizations,timeoutTracker, returnType,docRawFields);
                 if (tsFailures.size() > 0) {
                     locator.invalidateCache(tsFailures.keySet());
                     synchronized (failures) {
@@ -456,17 +525,17 @@ public class DocumentScan implements Iterator<Document> {
 
     private void doLookups(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
                            final ResultReceiver receiver, List<TColumn> translatedColumns) {
-/*
+
         if (timedoutServers.containsAll(binnedRanges.keySet())) {
             // all servers have timed out
             throw new TimedOutException(timedoutServers);
-        }*/
+        }
         // when there are lots of threads and a few tablet servers
         // it is good to break request to tablet servers up, the
         // following code determines if this is the case
         int maxTabletsPerRequest = Integer.MAX_VALUE;
         sharedByteBuffers = ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations());
-        System.out.println("maxTabletsPerRequest for " + numThreads + " " + binnedRanges.size());
+        log.trace("maxTabletsPerRequest for " + numThreads + " " + binnedRanges.size());
         int totalNumberOfTablets = 0;
         if (numThreads / binnedRanges.size() > 1) {
             for (Entry<String,Map<KeyExtent,List<Range>>> entry : binnedRanges.entrySet()) {
@@ -474,7 +543,7 @@ public class DocumentScan implements Iterator<Document> {
             }
 
             maxTabletsPerRequest = totalNumberOfTablets / (numThreads);
-            System.out.println("maxTabletsPerRequest should be " + maxTabletsPerRequest + " " + totalNumberOfTablets);
+            log.trace("maxTabletsPerRequest should be " + maxTabletsPerRequest + " " + totalNumberOfTablets);
             if (maxTabletsPerRequest == 0) {
                 maxTabletsPerRequest = 1;
             }
@@ -484,15 +553,14 @@ public class DocumentScan implements Iterator<Document> {
 
         if (maxTabletsPerThread > 0) {
             if (totalNumberOfTablets >= maxTabletThreshold) {
-                System.out.println("maxTabletsPerRequest should be " + maxTabletsPerThread +  " " + totalNumberOfTablets);
+                log.trace("maxTabletsPerRequest should be " + maxTabletsPerThread +  " " + totalNumberOfTablets);
                 maxTabletsPerRequest = maxTabletsPerThread;
             } else {
-                System.out.println("maxTabletsPerRequest left at " + maxTabletsPerRequest + " because the threshold is " + maxTabletThreshold + "  on " + totalNumberOfTablets );
+                log.trace("maxTabletsPerRequest left at " + maxTabletsPerRequest + " because the threshold is " + maxTabletThreshold + "  on " + totalNumberOfTablets );
             }
         }
 
         Map<KeyExtent,List<Range>> failures = new HashMap<>();
-/*
         if (timedoutServers.size() > 0) {
             // go ahead and fail any timed out servers
             for (Iterator<Entry<String,Map<KeyExtent,List<Range>>>> iterator =
@@ -503,7 +571,7 @@ public class DocumentScan implements Iterator<Document> {
                     iterator.remove();
                 }
             }
-        }*/
+        }
 
         // randomize tabletserver order... this will help when there are multiple
         // batch readers and writers running against accumulo
@@ -587,7 +655,7 @@ public class DocumentScan implements Iterator<Document> {
                          Map<KeyExtent,List<Range>> failures, Map<KeyExtent,List<Range>> unscanned,
                          ResultReceiver receiver, List<TColumn> columns, ScannerOptions options,
                          List<ByteBuffer> sharedByteBuffers,
-                         Authorizations authorizations /* , TimeoutTracker timeoutTracker */, DocumentSerialization.ReturnType returnType, boolean docRawFields)
+                         Authorizations authorizations  , TimeoutTracker timeoutTracker , DocumentSerialization.ReturnType returnType, boolean docRawFields)
             throws IOException, AccumuloSecurityException, AccumuloServerException {
 
         if (requested.size() == 0) {
@@ -603,14 +671,14 @@ public class DocumentScan implements Iterator<Document> {
             unscanned.put(new KeyExtent(entry.getKey()), ranges);
         }
 
-//        timeoutTracker.startingScan();
+        timeoutTracker.startingScan();
         TTransport transport = null;
         try {
             final HostAndPort parsedServer = HostAndPort.fromString(server);
             final TabletClientService.Client client;
-    //        if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis())
-  //              client = ThriftUtil.getTServerClient(parsedServer, context, timeoutTracker.getTimeOut());
-//            else
+            if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis())
+                client = ThriftUtil.getTServerClient(parsedServer, context, timeoutTracker.getTimeOut());
+            else
                 client = ThriftUtil.getTServerClient(parsedServer, context);
             MyScannerOptions opts = new MyScannerOptions(options);
             try {
@@ -643,21 +711,15 @@ public class DocumentScan implements Iterator<Document> {
                             (scanResult.more ? "scanID=" + imsr.scanID : ""),
                             String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
                 }
-/*
-                ArrayList<Document> entries = new ArrayList<>(scanResult.results.size());
 
-                for (TKeyValue kv : scanResult.results) {
-
-                    entries.add( getDocument(returnType,docRawFields,kv));
-                            //new SimpleImmutableEntry<>(new Key(kv.key), new Value(kv.value.array(),false)));
-                }*/
+                if (scanResult.results.size() > 0 || scanResult.fullScans.size() > 0)
+                    timeoutTracker.madeProgress();
 
                 if (scanResult.results.size() > 0)
                     receiver.receive(scanResult.results.parallelStream().map( x -> {
                         return getDocument(returnType,docRawFields,x);
                     }).collect(Collectors.toList()));
-  //              if (entries.size() > 0 || scanResult.fullScans.size() > 0)
-//                    timeoutTracker.madeProgress();
+
 
                 trackScanning(failures, unscanned, scanResult);
 
@@ -665,7 +727,7 @@ public class DocumentScan implements Iterator<Document> {
 
                 while (scanResult.more) {
 
-                    //timeoutTracker.check();
+                    timeoutTracker.check();
 
                     if (timer != null) {
                         log.trace("tid={} oid={} Continuing multi scan, scanid={}",
@@ -682,16 +744,7 @@ public class DocumentScan implements Iterator<Document> {
                                 scanResult.results.size(), (scanResult.more ? " scanID=" + imsr.scanID : ""),
                                 String.format("%.3f secs", timer.scale(TimeUnit.SECONDS)));
                     }
-                    /*
-                    entries = new ArrayList<>(scanResult.results.size());
-                    for (TKeyValue kv : scanResult.results) {
-                        entries.add( getDocument(returnType,docRawFields,kv));
-                        //entries.add(new SimpleImmutableEntry<>(new Key(kv.key), new Value(kv.value.array(),false)));
-                    }
 
-                    if (entries.size() > 0)
-                        receiver.receive(entries);
-                    */
                     if (scanResult.results.size() > 0)
                         receiver.receive(scanResult.results.parallelStream().map( x -> {
                             return getDocument(returnType,docRawFields,x);
@@ -708,7 +761,7 @@ public class DocumentScan implements Iterator<Document> {
             }
         } catch (TTransportException e) {
             log.debug("Server : {} msg : {}", server, e.getMessage());
-        //    timeoutTracker.errorOccured();
+            timeoutTracker.errorOccured();
             throw new IOException(e);
         } catch (ThriftSecurityException e) {
             log.debug("Server : {} msg : {}", server, e.getMessage(), e);
@@ -730,7 +783,7 @@ public class DocumentScan implements Iterator<Document> {
             throw new SampleNotPresentException(message, e);
         } catch (TException e) {
             log.debug("Server : {} msg : {}", server, e.getMessage(), e);
-           // timeoutTracker.errorOccured();
+            timeoutTracker.errorOccured();
             throw new IOException(e);
         } finally {
             ThriftTransportPool.getInstance().returnTransport(transport);
@@ -751,10 +804,7 @@ public class DocumentScan implements Iterator<Document> {
                 kryo.set(new Kryo());
                 kryo.get().addDefaultSerializer(Attribute.class, new KryoCVAwareSerializableSerializer(true));
             }
-            else{
-               // kryo.get().reset();
-            }
-            //Input input = new Input(array,offset+3,size-3);
+
             Input input = new Input(DocumentSerialization.consumeHeader(array,offset,size));
             document = kryo.get().readObject(input, Document.class);
 
