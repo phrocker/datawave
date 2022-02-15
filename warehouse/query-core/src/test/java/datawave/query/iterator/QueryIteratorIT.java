@@ -275,18 +275,15 @@ public class QueryIteratorIT extends EasyMockSupport {
     @Test
     public void indexOnly_documentSpecific_secondEvent_test() throws IOException {
         // build the seek range for a document specific pull
-        replayAll();
-        for (int i=0; i < 10000; i++) {
-            Range seekRange = getDocumentRange("123.345.456");
-            String query = "INDEX_ONLY_FIELD1 == 'apple'";
-            indexOnly_test(seekRange, query, false, addEvent(11, "123.345.457"), Collections.EMPTY_LIST);
-        }
+        Range seekRange = getDocumentRange("123.345.456");
+        String query = "INDEX_ONLY_FIELD1 == 'apple'";
+        indexOnly_test(seekRange, query, false, addEvent(11, "123.345.457"), Collections.EMPTY_LIST);
+
     }
     
     @Test
     public void indexOnly_shardRange_secondEvent_test() throws IOException {
         // build the seek range for a document specific pull\
-        replayAll();
         //for (int i=0; i < 20000; i++) {
             Range seekRange = getShardRange();
             String query = "INDEX_ONLY_FIELD1 == 'apple'";
@@ -1132,12 +1129,11 @@ public class QueryIteratorIT extends EasyMockSupport {
         options.put(CONTAINS_INDEX_ONLY_TERMS, "true");
         options.put(TRACK_SIZES, "false");
         
+        replayAll();
 
-        for(int i=0; i < 50000; i++) {
-            iterator.init(baseIterator, options, environment);
-            iterator.seek(seekRange, Collections.EMPTY_LIST, true);
-        }
-        
+        iterator.init(baseIterator, options, environment);
+        iterator.seek(seekRange, Collections.EMPTY_LIST, true);
+
         verifyAll();
         
         List<Map.Entry<Key,Map<String,List<String>>>> hits = new ArrayList<>();
