@@ -62,13 +62,7 @@ public class DocumentScannerImpl extends ScannerOptions implements BatchScanner 
         this.queueCapacity=queueCapacity;
         this.maxTabletsPerRequest=maxTabletsPerRequest;
         this.maxTabletThreshold=maxTabletThreshold;
-        queryThreadPool = (ThreadPoolExecutor)Executors.newFixedThreadPool(numQueryThreads,
-                new ThreadFactory() {
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        return new Thread("Document scanner " + batchReaderInstance + "-");
-                    }
-                });
+        queryThreadPool = (ThreadPoolExecutor)Executors.newFixedThreadPool(numQueryThreads);
         // Call shutdown on this thread pool in case the caller does not call close().
         cleanable = CleanerUtil.shutdownThreadPoolExecutor(queryThreadPool, closed, log);
     }

@@ -152,8 +152,6 @@ public class DocumentLogic extends BaseQueryLogic<Document> {
             log.trace("Running with " + config.getAuthorizations() + " and " + config.getNumQueryThreads() + " threads: " + qd);
         }
 
-        System.out.println("Creating document scanner with " + qd.getRanges().size() + " ranges");
-        //qd.getRanges().forEach(System.out::println);
         bs.setRanges(qd.getRanges());
 
         for (IteratorSetting cfg : qd.getSettings()) {
