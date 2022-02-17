@@ -18,6 +18,8 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockSupport;
 import org.junit.After;
@@ -78,7 +80,7 @@ public class QueryIteratorIT extends EasyMockSupport {
     @Before
     public void setup() throws IOException {
         //iterator = new QueryIterator();
-        iterator = new FieldIndexOnlyDocumentIterator();
+        iterator = new QueryIterator();
         options = new HashMap<>();
         tempPath = temporaryFolder.newFolder().toPath();
         
@@ -95,7 +97,7 @@ public class QueryIteratorIT extends EasyMockSupport {
         ObjectOutputStream oos = new ObjectOutputStream(new ByteArrayOutputStream());
         oos.writeObject(buildFieldSetFromString("EVENT_FIELD1,EVENT_FIELD4,EVENT_FIELD6,TF_FIELD0,TF_FIELD1,TF_FIELD2,INDEX_ONLY_FIELD1,INDEX_ONLY_FIELD2,INDEX_ONLY_FIELD3"));
         options.put(INDEXED_FIELDS,
-                out.toString());
+                "EVENT_FIELD1,EVENT_FIELD4,EVENT_FIELD6,TF_FIELD0,TF_FIELD1,TF_FIELD2,INDEX_ONLY_FIELD1,INDEX_ONLY_FIELD2,INDEX_ONLY_FIELD3");
         
         // set the unindexed fields list
         options.put(NON_INDEXED_DATATYPES, DEFAULT_DATATYPE + ":EVENT_FIELD2,EVENT_FIELD3,EVENT_FIELD5");

@@ -245,8 +245,6 @@ public class FieldIndexOnlyDocumentIterator extends QueryIterator {
     
     // this method will prune any ivarator cache directories that do not have a valid configuration.
     private void pruneIvaratorCacheDirs() throws InterruptedIOException {
-        return;
-        /*
         if (ivaratorCacheDirConfigs.isEmpty()) {
             return;
         }
@@ -262,8 +260,6 @@ public class FieldIndexOnlyDocumentIterator extends QueryIterator {
         } else {
             ivaratorCacheDirConfigs = Collections.EMPTY_LIST;
         }
-        */
-
     }
     
     private boolean hasValidBasePath(IvaratorCacheDirConfig config) throws InterruptedIOException {

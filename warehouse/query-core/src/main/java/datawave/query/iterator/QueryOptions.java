@@ -394,7 +394,7 @@ public class QueryOptions implements OptionDescriber {
      * The name of the {@link datawave.query.tracking.ActiveQueryLog} instance to use.
      */
     protected String activeQueryLogName;
-    protected boolean setTypeString;
+    protected boolean setTypeString=true;
 
     public void deepCopy(QueryOptions other) {
         this.options = other.options;
@@ -1774,7 +1774,6 @@ public class QueryOptions implements OptionDescriber {
         oos.writeObject(new HashSet<>(fields));
         oos.close();
         String retstr = java.util.Base64.getEncoder().encodeToString(out.toByteArray());
-        System.out.println("Serializing " + fields + " into " + retstr);
         return retstr;
         
 
