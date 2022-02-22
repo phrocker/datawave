@@ -3,6 +3,10 @@ package datawave.query.tables;
 import datawave.query.DocumentSerialization;
 import datawave.query.config.DocumentQueryConfiguration;
 import datawave.query.config.ShardQueryConfiguration;
+import datawave.query.tables.document.batch.DocumentScannerHelper;
+import datawave.query.tables.document.batch.DocumentScannerImpl;
+import datawave.query.tables.document.pushdown.DocumentPushdownScannerHelper;
+import datawave.query.tables.document.pushdown.DocumentPushdownScannerImpl;
 import datawave.webservice.common.connection.WrappedConnector;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.configuration.GenericQueryConfiguration;
@@ -38,6 +42,17 @@ public class MyScannerFactory extends ScannerFactory{
         }
     }
 
+
+    public synchronized DocumentPushdownScannerImpl newDocumentPushdownScanner(String tableName, Set<Authorizations> auths, int threads, Query query, boolean docRawFields, DocumentSerialization.ReturnType returnType, int queueCapacity, int maxTabletsPerRequest, int maxTabletThreshold) throws TableNotFoundException {
+        DocumentPushdownScannerImpl bs = DocumentPushdownScannerHelper.createDocumentBatchScanner(this.cxn, tableName, auths, threads, query, docRawFields, returnType, queueCapacity, maxTabletsPerRequest, maxTabletThreshold);
+        log.debug("Created scanner " + System.identityHashCode(bs));
+        if (log.isTraceEnabled()) {
+            log.trace("Adding instance " + bs.hashCode());
+        }
+
+        this.instances.add(bs);
+        return bs;
+    }
 
 
     public synchronized DocumentScannerImpl newDocumentScanner(String tableName, Set<Authorizations> auths, int threads, Query query, boolean docRawFields, DocumentSerialization.ReturnType returnType, int queueCapacity, int maxTabletsPerRequest, int maxTabletThreshold) throws TableNotFoundException {

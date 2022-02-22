@@ -39,6 +39,7 @@ import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -92,6 +93,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
     protected String seekShard = null;
 
     protected ScannerFactory scannerFactory;
+    private Future<RangeStreamScanner> currentFuture =null;
 
     @Override
     protected String serviceName() {
@@ -211,28 +213,71 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
      * @return the shard we seek'd to.
      */
     public String seek(String seekShard) {
+        dequeue(true);
         if (currentEntry == null && resultQueue.isEmpty() && finished) {
+            if (log.isTraceEnabled()){
+                log.trace("Ending early for " + seekShard);
+            }
             return null;
         }
+        if (log.isTraceEnabled()){
 
+            if (!resultQueue.isEmpty()){
+                log.trace("Advancing queue resultqueue " + resultQueue.peek() + " " + seekShard);
+            }
+            else{
+                log.trace("Advancing queue " + currentEntry + " " + seekShard);
+            }
+        }
         String seekedShard = advanceQueues(seekShard);
+        if (log.isTraceEnabled()){
+            log.trace("Seek'd shard is " + seekedShard);
+        }
         if (seekedShard == null) {
 
+            if (null != currentFuture) {
+                currentFuture.cancel(true);
+                try {
+                    currentFuture.get();
+                } catch (InterruptedException | CancellationException e) {
+                } catch (ExecutionException e) {
+                }
+                writeLock.lock();
+                writeLock.unlock();
+                if (log.isTraceEnabled()){
+                    log.trace("Canceling for " + lastRange + " " + currentFuture.isCancelled());
+                }
+            }
             this.seekShard = seekShard;
             this.seeking = true;
 
             // Clear queues before calling findTop().
             this.currentEntry = null;
+            if (log.isTraceEnabled()){
+                log.trace("Clearing resultQueue " + seekShard + " " +  (resultQueue.size() > 0 ? resultQueue.peek().getKey() : " no resultqueue"));
+            }
             this.resultQueue.clear();
             this.currentQueue.clear();
 
             // Call to hasNext() with empty queues and a null currentEntry triggers a new run of the iterator.
             if (hasNext()) {
                 // Check to see if the shard exists within the queues.
+
+                if (log.isTraceEnabled()){
+                    log.trace("Continuing after calling hasnext on new range ");
+                }
                 seekedShard = advanceQueues(seekShard);
             } else {
+                if (log.isTraceEnabled()){
+                    log.trace("Returning null on seek " + seekedShard + " " + seekShard);
+                }
                 return null;
             }
+        }
+        if (log.isTraceEnabled()){
+
+            log.trace("sought " + seekedShard + " on " + seekShard);
+
         }
         return seekedShard;
     }
@@ -248,6 +293,9 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
 
         // CASE 0: Check the currentEntry first.
         String topShard = currentEntryMatchesShard(seekShard);
+        if (log.isTraceEnabled()){
+            log.trace("Advancing to " + topShard + " from " + seekShard);
+        }
         if (topShard != null) {
             return topShard;
         }
@@ -257,6 +305,9 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
 
             // If the top shard is a day and we are seeking to a shard within the day, return the shard.
             String resultQShard = shardFromKey(resultQueue.peek().getKey());
+            if (log.isTraceEnabled()){
+                log.trace("resultQShard is " + resultQShard + " from " + seekShard + " on " + resultQueue.peek().getKey());
+            }
             if (resultQShard.length() == 8 && seekShard.startsWith(resultQShard)) {
                 return resultQShard;
             }
@@ -279,6 +330,9 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
             String lastShard = shardFromKey(currentQueue.peekLast().getKey());
             if (ShardEquality.greaterThan(firstShard, seekShard) && ShardEquality.lessThan(lastShard, seekShard)) {
                 // Advance currentQueue to the specified shard.
+                if (log.isTraceEnabled()){
+                    log.trace("Clearing queue");
+                }
                 resultQueue.clear();
                 return advanceQueueToShard(currentQueue, seekShard);
             }
@@ -312,7 +366,9 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                 return null;
 
             topShard = shardFromKey(top.getKey());
-
+            if (log.isTraceEnabled()){
+                log.trace("advancing " + topShard + " " + shard);
+            }
             if (ShardEquality.greaterThanOrEqual(topShard, shard)) {
                 // Stop advancing if the peeked shard is greater than or equal to the seek shard.
                 advancing = false;
@@ -320,7 +376,10 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                 // Check for special case where the top shard is a day.
                 advancing = false;
             } else {
-                queue.poll();
+                Entry<Key,Value> kv = queue.poll();
+                if (log.isTraceEnabled() && kv != null){
+                    log.trace("Popped " + kv);
+                }
             }
         }
         return topShard;
@@ -339,6 +398,10 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
         }
 
         String topShard = shardFromKey(currentEntry.getKey());
+        
+        if (log.isTraceEnabled()){
+            log.trace("top shard is " + topShard + " " + seekShard);
+        }
 
         // Is the current entry an exact match?
         if (topShard.equals(seekShard))
@@ -385,6 +448,9 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                      */
                     currentEntry = resultQueue.poll(getPollTime(), TimeUnit.MILLISECONDS);
 
+                    if (log.isTraceEnabled()) {
+                        log.trace("Found intermediate current entry or null " + currentEntry);
+                    }
                 } catch (InterruptedException e) {
                     log.error(e);
                     throw new RuntimeException(e);
@@ -401,7 +467,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                 }
             }
             if (log.isTraceEnabled()) {
-                log.trace("Found current entry or null");
+                log.trace("Found current entry or null " + currentEntry);
             }
         } finally {
             if (null != stats) {
@@ -416,21 +482,27 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                 Throwables.propagate(uncaughtExceptionHandler.getThrowable());
             }
         }
+        if (log.isTraceEnabled()) {
+            log.trace("Exiting current entry or null " + currentEntry);
+        }
         return (null != currentEntry);
     }
 
     private void submitTask() {
         // wait on results. submit the task if we can
+
         if (log.isTraceEnabled())
-            log.trace("Submitting tasks");
-        Future future = myExecutor.submit(this);
-        while (resultQueue.isEmpty() && !future.isDone() && !future.isCancelled()) {
+            log.trace("Submitting tasks for" + currentRange);
+        currentFuture = myExecutor.submit(this);
+        while (resultQueue.isEmpty() && !currentFuture.isDone() && !currentFuture.isCancelled()) {
             try {
-                future.get(100, TimeUnit.NANOSECONDS);
+                currentFuture.get(100, TimeUnit.NANOSECONDS);
             } catch (InterruptedException | ExecutionException e) {
                 throw new RuntimeException(e);
             } catch (TimeoutException e) {
                 continue;
+            } catch (CancellationException e){
+                break;
             }
         }
         if (log.isTraceEnabled())
@@ -479,7 +551,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
 
         writeLock.lock();
         try {
-            while (kvIter.hasNext()) {
+            while (kvIter.hasNext() && !Thread.interrupted()) {
                 Entry<Key,Value> currentKeyValue = kvIter.peek();
 
                 // become a pass-through if we've seen an unexpected key.
@@ -491,7 +563,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                 if (null == currentDay) {
                     if (log.isTraceEnabled()) {
                         log.trace("it's a new day!");
-                        log.trace("adding " + currentKeyValue.getKey() + " to queue because it matches" + currentDay);
+                        log.trace("adding " + currentKeyValue.getKey() + " to queue because currentDay is " + currentDay);
                     }
 
                     currentDay = getDay(currentKeyValue.getKey());
@@ -503,7 +575,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                     String nextKeysDay = getDay(currentKeyValue.getKey());
                     if (currentDay.equals(nextKeysDay)) {
                         if (log.isTraceEnabled()) {
-                            log.trace("adding " + currentKeyValue.getKey() + " to queue because it matches" + currentDay);
+                            log.trace("adding " + currentKeyValue.getKey() + " to queue because " + nextKeysDay + " it matches" + currentDay);
                         }
 
                         IndexInfo info = readInfoFromValue(currentKeyValue.getValue());
@@ -532,10 +604,12 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                     } else {
                         if (log.isTraceEnabled()) {
                             log.trace("it's a new day! no longer matching");
-                            log.trace("adding " + currentKeyValue.getKey() + " to queue because it matches " + currentDay);
+                            log.trace("adding " + currentKeyValue.getKey() + " to queue because it is a new day,  " + currentDay);
                         }
+
                         retrievalCount += dequeue(true);
                         currentDay = null;
+                       // currentQueue.add(trimTrailingUnderscore(currentKeyValue));
                         /**
                          * The original logic here was meant to enforce fairness. The concept was aged, but viewed dequeueCount != the current queue size and
                          * retrieval count being less than max results as a reflection of "less activity" and thus we could spend time on other threads. This
@@ -546,13 +620,14 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                          * for this thread will still have results ( potentially ) increasing the load on accumulo through index scans. The change, coupled with
                          * synchronization changes in RangeStreamScanner allows QueryData objects to be produced earlier and thus moving through all possible
                          * ranges faster.
-                         */
+
                         if (retrievalCount >= Math.ceil(maxResults * 1.5)) {
                             if (log.isTraceEnabled()) {
                                 log.trace("breaking because " + retrievalCount + " >= " + maxResults * 1.5);
                             }
                             break;
                         }
+                         */
                     }
                 }
             }
@@ -650,10 +725,13 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                             log.trace("Failed adding " + resultQueue.size() + " " + forceAll);
                         if (forceAll)
                             continue;
+                    }else{
+                        if (log.isTraceEnabled())
+                            log.trace("Added " + top + " to resultqueue");
                     }
 
                     break;
-                } while (!finished && forceAll);
+                } while (!Thread.interrupted() && !finished && forceAll);
             }
 
             if (!result && !(!finished && forceAll)) {
@@ -662,7 +740,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                 currentQueue.add(top);
             } else {
                 if (log.isTraceEnabled())
-                    log.trace("missing " + top.getKey() + " true? " + result);
+                    log.trace("missing " + top.getKey() + " true? " + result + " " + finished + " " + forceAll);
             }
 
             if (log.isTraceEnabled())
@@ -818,6 +896,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
             } else {
                 // adjust the end key range.
                 if (seeking) {
+
                     currentRange = buildSeekRange(seekShard, currentRange);
                     seeking = false;
                 } else {

@@ -1,4 +1,4 @@
-package datawave.query.tables;
+package datawave.query.tables.document.pushdown;
 
 
 import com.esotericsoftware.kryo.Kryo;
@@ -61,10 +61,24 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Semaphore;
@@ -72,9 +86,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-public class DocumentScan implements Iterator<Document> {
+public class DocumentPushdownScan implements Iterator<Document> {
 
-    private static final Logger log = LoggerFactory.getLogger(DocumentScan.class);
+    private static final Logger log = LoggerFactory.getLogger(DocumentPushdownScan.class);
 
     private final ClientContext context;
     private final TableId tableId;
@@ -114,9 +128,9 @@ public class DocumentScan implements Iterator<Document> {
 
 
 
-    public DocumentScan(ClientContext context, TableId tableId,
-                        Authorizations authorizations, ArrayList<Range> ranges, int numThreads,
-                        ExecutorService queryThreadPool, ScannerOptions scannerOptions, long timeout, boolean printOutput, DocumentSerialization.ReturnType returnType, boolean docRawFields, int queueCapacity, int maxTabletsPerThread, int maxTabletThreshold) {
+    public DocumentPushdownScan(ClientContext context, TableId tableId,
+                                Authorizations authorizations, ArrayList<Range> ranges, int numThreads,
+                                ExecutorService queryThreadPool, ScannerOptions scannerOptions, long timeout, boolean printOutput, DocumentSerialization.ReturnType returnType, boolean docRawFields, int queueCapacity, int maxTabletsPerThread, int maxTabletThreshold) {
 
         this.context = context;
         this.tableId = tableId;
@@ -238,6 +252,10 @@ public class DocumentScan implements Iterator<Document> {
             throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
         List<Column> columns = new ArrayList<>(options.getFetchedColumns());
         ranges = Range.mergeOverlapping(ranges);
+
+        if (log.isTraceEnabled()){
+            log.trace("After merging overlapping ranges we now have " + ranges.size() + " ranges");
+        }
 
         Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 
@@ -441,7 +459,7 @@ public class DocumentScan implements Iterator<Document> {
 
             } catch (IOException e) {
                 e.printStackTrace();
-                if (!DocumentScan.this.queryThreadPool.isShutdown()) {
+                if (!DocumentPushdownScan.this.queryThreadPool.isShutdown()) {
                     synchronized (failures) {
                         failures.putAll(tsFailures);
                         failures.putAll(unscanned);

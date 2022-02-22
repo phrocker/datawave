@@ -2223,7 +2223,8 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
             TraceStopwatch stopwatch = config.getTimers().newStartedStopwatch("DefaultQueryPlanner - Begin stream of ranges from inverted index");
             
             RangeStream stream = initializeRangeStream(config, scannerFactory, metadataHelper);
-            
+
+            config.setTransformedQuery(JexlStringBuildingVisitor.buildQuery(queryTree));
             ranges = stream.streamPlans(queryTree);
             
             if (log.isTraceEnabled()) {

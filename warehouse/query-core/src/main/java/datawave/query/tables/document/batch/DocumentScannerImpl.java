@@ -1,7 +1,8 @@
-package datawave.query.tables;
+package datawave.query.tables.document.batch;
 
 import datawave.query.DocumentSerialization;
 import datawave.query.attributes.Document;
+import datawave.query.tables.CleanerUtil;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
@@ -19,7 +20,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;

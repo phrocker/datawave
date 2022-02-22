@@ -31,6 +31,7 @@ import datawave.query.jexl.visitors.ExecutableDeterminationVisitor.STATE;
 import datawave.query.model.QueryModel;
 import datawave.query.planner.comparator.DefaultQueryPlanComparator;
 import datawave.query.planner.comparator.GeoWaveQueryPlanComparator;
+import datawave.query.planner.document.batch.DocumentQueryPlanner;
 import datawave.query.planner.pushdown.PushDownVisitor;
 import datawave.query.planner.pushdown.rules.PushDownRule;
 import datawave.query.planner.rules.NodeTransformRule;

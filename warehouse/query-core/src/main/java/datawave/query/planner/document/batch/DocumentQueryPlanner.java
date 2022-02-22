@@ -1,4 +1,4 @@
-package datawave.query.planner;
+package datawave.query.planner.document.batch;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
@@ -32,6 +32,12 @@ import datawave.query.jexl.functions.QueryFunctions;
 import datawave.query.jexl.visitors.*;
 import datawave.query.jexl.visitors.ExecutableDeterminationVisitor.STATE;
 import datawave.query.model.QueryModel;
+import datawave.query.planner.MetadataHelperQueryModelProvider;
+import datawave.query.planner.QueryModelProvider;
+import datawave.query.planner.QueryOptionsSwitch;
+import datawave.query.planner.QueryPlan;
+import datawave.query.planner.QueryPlanner;
+import datawave.query.planner.ThreadedRangeBundler;
 import datawave.query.planner.comparator.DefaultQueryPlanComparator;
 import datawave.query.planner.comparator.GeoWaveQueryPlanComparator;
 import datawave.query.planner.pushdown.PushDownVisitor;
@@ -2153,6 +2159,7 @@ public class DocumentQueryPlanner extends QueryPlanner implements Cloneable {
 
             RangeStream stream = initializeRangeStream(config, scannerFactory, metadataHelper);
 
+            config.setTransformedQuery(JexlStringBuildingVisitor.buildQuery(queryTree));
             ranges = stream.streamPlans(queryTree);
 
             if (log.isTraceEnabled()) {

@@ -357,7 +357,7 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
     /**
      * Query itertor class name
      */
-    private String queryIteratorClazz="";
+    private String queryIteratorClazz = "";
 
     private boolean forceAllTypes=false;
 
@@ -370,6 +370,7 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
 
     private int queueCapacity=0;
     private int maxTabletsPerRequest=0;
+    private String transformedQuery="";
 
     /**
      * Default constructor
@@ -1790,7 +1791,17 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
     public void setQuery(Query query) {
         this.query = query;
     }
-    
+
+    public String getTransformedQuery() {
+        return transformedQuery;
+    }
+
+    public void setTransformedQuery(String transformedQuery) {
+        this.transformedQuery = transformedQuery;
+    }
+
+
+
     public boolean isCompressServerSideResults() {
         return compressServerSideResults;
     }

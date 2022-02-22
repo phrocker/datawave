@@ -1,4 +1,4 @@
-package datawave.query.tables;
+package datawave.query.tables.document.batch;
 
 import com.google.common.base.Function;
 import com.google.common.cache.Cache;
@@ -28,8 +28,12 @@ import datawave.query.language.parser.QueryParser;
 import datawave.query.language.tree.QueryNode;
 import datawave.query.model.QueryModel;
 import datawave.query.planner.*;
-import datawave.query.scheduler.DocumentScheduler;
+import datawave.query.planner.document.batch.DocumentQueryPlanner;
+import datawave.query.scheduler.document.batch.DocumentScheduler;
 import datawave.query.scheduler.Scheduler;
+import datawave.query.tables.MyScannerFactory;
+import datawave.query.tables.ScannerFactory;
+import datawave.query.tables.ScannerSession;
 import datawave.query.tables.stats.ScanSessionStats;
 import datawave.query.transformer.EventQueryDataDecoratorTransformer;
 import datawave.query.util.*;

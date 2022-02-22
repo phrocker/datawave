@@ -1,20 +1,25 @@
-package datawave.query.scheduler;
+package datawave.query.scheduler.document.batch;
 
 import datawave.query.attributes.Document;
 import datawave.query.config.DocumentQueryConfiguration;
 import datawave.query.config.ShardQueryConfiguration;
-import datawave.query.tables.DocumentLogic;
-import datawave.query.tables.DocumentScannerImpl;
+import datawave.query.iterator.QueryIterator;
+import datawave.query.scheduler.Scheduler;
+import datawave.query.tables.document.batch.DocumentLogic;
+import datawave.query.tables.document.batch.DocumentScannerImpl;
 import datawave.query.tables.MyScannerFactory;
 import datawave.query.tables.ScannerFactory;
 import datawave.query.tables.stats.ScanSessionStats;
 import datawave.webservice.common.logging.ThreadConfigurableLogger;
 import datawave.webservice.query.configuration.QueryData;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -128,8 +133,23 @@ public class DocumentScheduler extends Scheduler<Document> {
                     if (null != qd.getRanges())
                         rangesSeen += qd.getRanges().size();
                     count.incrementAndGet();
-                    if (null == newQueryData)
+                    if (null == newQueryData) {
                         newQueryData = new QueryData(qd);
+                        newQueryData.setQuery(config.getTransformedQuery());
+
+                        List<IteratorSetting> newSettings = new ArrayList<>();
+                        for (IteratorSetting setting : newQueryData.getSettings()) {
+                            IteratorSetting newSetting = new IteratorSetting(setting.getPriority(), setting.getName(), setting.getIteratorClass());
+                            newSetting.addOptions(setting.getOptions());
+                            if (newSetting.getOptions().containsKey(QueryIterator.QUERY)) {
+                                newSetting.addOption(QueryIterator.QUERY, config.getTransformedQuery());
+                            }
+                            newSettings.add(newSetting);
+
+                        }
+
+                        newQueryData.setSettings(newSettings);
+                    }
                     else {
                         newQueryData.getRanges().addAll(qd.getRanges());
                     }

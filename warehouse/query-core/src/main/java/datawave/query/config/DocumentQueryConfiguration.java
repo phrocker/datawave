@@ -14,7 +14,8 @@ import datawave.query.iterator.QueryIterator;
 import datawave.query.iterator.ivarator.IvaratorCacheDirConfig;
 import datawave.query.jexl.JexlASTHelper;
 import datawave.query.model.QueryModel;
-import datawave.query.tables.DocumentLogic;
+import datawave.query.tables.document.batch.DocumentLogic;
+import datawave.query.tables.document.pushdown.DocumentPushdownLogic;
 import datawave.query.tld.TLDQueryIterator;
 import datawave.query.util.QueryStopwatch;
 import datawave.util.TableName;
@@ -596,6 +597,36 @@ public class DocumentQueryConfiguration extends ShardQueryConfiguration implemen
         return config;
     }
 
+    /**
+     * Factory method that creates a DocumentQueryConfiguration deep copy from a DocumentLogic
+     *
+     * @param DocumentLogic
+     *            - a configured DocumentLogic
+     * @return - a DocumentQueryConfiguration
+     */
+    public static DocumentQueryConfiguration create(DocumentPushdownLogic DocumentLogic) {
+
+        DocumentQueryConfiguration config = create((DocumentQueryConfiguration) DocumentLogic.getConfig());
+
+        // Lastly, honor overrides passed in via query parameters
+        Set<QueryImpl.Parameter> parameterSet = config.getQuery().getParameters();
+        for (QueryImpl.Parameter parameter : parameterSet) {
+            String name = parameter.getParameterName();
+            String value = parameter.getParameterValue();
+            if (name.equals(QueryParameters.HIT_LIST)) {
+                config.setHitList(Boolean.parseBoolean(value));
+            }
+            if (name.equals(QueryParameters.DATE_INDEX_TIME_TRAVEL)) {
+                config.setDateIndexTimeTravel(Boolean.parseBoolean(value));
+            }
+            if (name.equals(QueryParameters.PARAMETER_MODEL_NAME)) {
+                config.setMetadataTableName(value);
+            }
+        }
+
+        return config;
+    }
+
 
     /**
      * Factory method that creates a DocumentQueryConfiguration from a DocumentLogic and a Query
@@ -607,6 +638,21 @@ public class DocumentQueryConfiguration extends ShardQueryConfiguration implemen
      * @return - a DocumentQueryConfiguration
      */
     public static DocumentQueryConfiguration create(DocumentLogic DocumentLogic, Query query) {
+        DocumentQueryConfiguration config = create(DocumentLogic);
+        config.setQuery(query);
+        return config;
+    }
+
+    /**
+     * Factory method that creates a DocumentQueryConfiguration from a DocumentLogic and a Query
+     *
+     * @param DocumentLogic
+     *            - a configured DocumentLogic
+     * @param query
+     *            - a configured Query object
+     * @return - a DocumentQueryConfiguration
+     */
+    public static DocumentQueryConfiguration create(DocumentPushdownLogic DocumentLogic, Query query) {
         DocumentQueryConfiguration config = create(DocumentLogic);
         config.setQuery(query);
         return config;

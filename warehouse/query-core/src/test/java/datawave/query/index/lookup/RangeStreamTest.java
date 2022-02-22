@@ -29,6 +29,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.commons.jexl2.parser.ASTJexlScript;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -1182,6 +1184,7 @@ public class RangeStreamTest {
     // (A && B)
     @Test
     public void testIntersection_HighAndLowCardinality_withSeek() throws Exception {
+        Logger.getLogger("datawave.query").setLevel(Level.TRACE);
         String originalQuery = "(FOO == 'lowest_card' && FOO == 'highest_card')";
         ASTJexlScript script = JexlASTHelper.parseJexlQuery(originalQuery);
         

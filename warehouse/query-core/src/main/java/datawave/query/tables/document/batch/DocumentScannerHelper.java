@@ -1,4 +1,4 @@
-package datawave.query.tables;
+package datawave.query.tables.document.batch;
 
 import datawave.query.DocumentSerialization;
 import datawave.query.iterator.QueryInformationIterator;

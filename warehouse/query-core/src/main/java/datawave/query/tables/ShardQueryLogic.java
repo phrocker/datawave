@@ -241,7 +241,10 @@ public class ShardQueryLogic extends BaseQueryLogic<Entry<Key,Value>> {
         if (log.isTraceEnabled()) {
             log.trace("Running with " + config.getAuthorizations() + " and " + config.getNumQueryThreads() + " threads: " + qd);
         }
-        
+
+        if (log.isTraceEnabled()) {
+            log.trace("Running with " + config.getAuthorizations() + " and " + config.getNumQueryThreads() + " threads: " + qd.getRanges().size());
+        }
         bs.setRanges(qd.getRanges());
         
         for (IteratorSetting cfg : qd.getSettings()) {
@@ -557,7 +560,7 @@ public class ShardQueryLogic extends BaseQueryLogic<Entry<Key,Value>> {
         this.iterator = this.scheduler.iterator();
         
         if (!config.isSortedUIDs()) {
-            //this.iterator = new DedupingIterator(this.iterator);
+            this.iterator = new DedupingIterator(this.iterator);
         }
         
         stopwatch.stop();
