@@ -213,7 +213,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
      * @return the shard we seek'd to.
      */
     public String seek(String seekShard) {
-        dequeue(true);
+        //dequeue(true);
         if (currentEntry == null && resultQueue.isEmpty() && finished) {
             if (log.isTraceEnabled()){
                 log.trace("Ending early for " + seekShard);
@@ -547,16 +547,21 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
             }
         }
         // produces stats for us, so we don't have to!
-        DescriptiveStatistics stats = new DescriptiveStatistics();
+        //DescriptiveStatistics stats = new DescriptiveStatistics();
 
         writeLock.lock();
         try {
-            while (kvIter.hasNext() && !Thread.interrupted()) {
+
+            while (kvIter.hasNext() && !Thread.currentThread().isInterrupted()) {
                 Entry<Key,Value> currentKeyValue = kvIter.peek();
 
                 // become a pass-through if we've seen an unexpected key.
                 if (seenUnexpectedKey) {
-                    currentQueue.add(trimTrailingUnderscore(currentKeyValue));
+                    if (log.isTraceEnabled()) {
+                        log.trace("Breaking because we've seen an unexpected key");
+                    }
+                    resultQueue.offer(trimTrailingUnderscore(currentKeyValue));
+
                     break;
                 }
 
@@ -568,7 +573,8 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
 
                     currentDay = getDay(currentKeyValue.getKey());
 
-                    currentQueue.add(trimTrailingUnderscore(currentKeyValue));
+
+                    resultQueue.offer(trimTrailingUnderscore(currentKeyValue));
 
                     lastSeenKey = kvIter.next().getKey();
                 } else {
@@ -578,90 +584,19 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                             log.trace("adding " + currentKeyValue.getKey() + " to queue because " + nextKeysDay + " it matches" + currentDay);
                         }
 
-                        IndexInfo info = readInfoFromValue(currentKeyValue.getValue());
+                        resultQueue.offer(trimTrailingUnderscore(currentKeyValue));
 
-                        if (log.isTraceEnabled()) {
-                            log.trace("adding count of " + info.count());
-                        }
-
-                        stats.addValue(info.count());
-
-                        if (currentQueue.size() <= shardsPerDayThreshold || stats.getPercentile(50) < MAX_MEDIAN) {
-
-                            if (log.isTraceEnabled()) {
-                                log.trace("adding our stats are " + stats.getPercentile(50) + " on " + currentQueue.size());
-                            }
-
-                            currentQueue.add(trimTrailingUnderscore(currentKeyValue));
-
-                        } else {
-                            if (log.isTraceEnabled()) {
-                                log.trace("breaking because our stats are " + stats.getPercentile(50) + " on " + currentQueue.size());
-                            }
-                            break;
-                        }
                         lastSeenKey = kvIter.next().getKey();
                     } else {
-                        if (log.isTraceEnabled()) {
-                            log.trace("it's a new day! no longer matching");
-                            log.trace("adding " + currentKeyValue.getKey() + " to queue because it is a new day,  " + currentDay);
-                        }
 
-                        retrievalCount += dequeue(true);
                         currentDay = null;
-                       // currentQueue.add(trimTrailingUnderscore(currentKeyValue));
-                        /**
-                         * The original logic here was meant to enforce fairness. The concept was aged, but viewed dequeueCount != the current queue size and
-                         * retrieval count being less than max results as a reflection of "less activity" and thus we could spend time on other threads. This
-                         * isn't always a correct assumption. A more simple method is to "switch" when retrieval count for this thread is more than the max
-                         * results. That will support a methodology of fairness without causing starvation.
-                         *
-                         * The problem the prior logic enforces is that ThreadedRangeBundlerIterator becomes serialized and slowed. Further, the AccumuloScanner
-                         * for this thread will still have results ( potentially ) increasing the load on accumulo through index scans. The change, coupled with
-                         * synchronization changes in RangeStreamScanner allows QueryData objects to be produced earlier and thus moving through all possible
-                         * ranges faster.
 
-                        if (retrievalCount >= Math.ceil(maxResults * 1.5)) {
-                            if (log.isTraceEnabled()) {
-                                log.trace("breaking because " + retrievalCount + " >= " + maxResults * 1.5);
-                            }
-                            break;
-                        }
-                         */
                     }
                 }
             }
 
-            if (currentQueue.size() >= shardsPerDayThreshold && stats.getPercentile(50) > MAX_MEDIAN) {
+             retrievalCount += dequeue();
 
-                Entry<Key,Value> top = currentQueue.poll();
-
-                Key topKey = top.getKey();
-                if (log.isTraceEnabled())
-                    log.trace(topKey + " for " + currentDay + " exceeds limit of " + shardsPerDayThreshold + " with " + currentQueue.size());
-                Key newKey = new Key(topKey.getRow(), topKey.getColumnFamily(), new Text(currentDay), topKey.getColumnVisibility(), topKey.getTimestamp());
-
-                Value newValue = writeInfoToValue();
-
-                myEntry = Maps.immutableEntry(newKey, newValue);
-                lastSeenKey = newKey;
-
-                try {
-                    if (!resultQueue.offer(myEntry, 1, TimeUnit.SECONDS)) {
-                        if (log.isTraceEnabled()) {
-                            log.trace("could not add day! converting " + myEntry + " to " + prevDay);
-                        }
-                        prevDay = myEntry;
-                    }
-                } catch (InterruptedException exception) {
-                    prevDay = myEntry;
-                }
-
-                currentQueue.clear();
-
-            } else {
-                retrievalCount += dequeue();
-            }
         } finally {
             writeLock.unlock();
         }
@@ -721,30 +656,30 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                     result = resultQueue.offer(top);
 
                     if (!result) {
-                        if (log.isTraceEnabled())
-                            log.trace("Failed adding " + resultQueue.size() + " " + forceAll);
+                       // if (log.isTraceEnabled())
+//                            log.trace("Failed adding " + resultQueue.size() + " " + forceAll);
                         if (forceAll)
                             continue;
-                    }else{
+                    }/*else{
                         if (log.isTraceEnabled())
                             log.trace("Added " + top + " to resultqueue");
-                    }
+                    }*/
 
                     break;
-                } while (!Thread.interrupted() && !finished && forceAll);
+                } while (!Thread.currentThread().isInterrupted() && !finished && forceAll);
             }
 
             if (!result && !(!finished && forceAll)) {
-                if (log.isTraceEnabled())
-                    log.trace("Adding " + top.getKey() + " back ");
+//                if (log.isTraceEnabled())
+ //                   log.trace("Adding " + top.getKey() + " back ");
                 currentQueue.add(top);
-            } else {
+            } /*else {
                 if (log.isTraceEnabled())
                     log.trace("missing " + top.getKey() + " true? " + result + " " + finished + " " + forceAll);
-            }
+            }*/
 
-            if (log.isTraceEnabled())
-                log.trace("Last key is " + lastSeenKey);
+  //          if (log.isTraceEnabled())
+//                log.trace("Last key is " + lastSeenKey);
 
             count++;
         }
@@ -758,16 +693,16 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
 
     @Override
     protected void flush() {
-        writeLock.lock();
+        /*writeLock.lock();
         try {
             dequeue(false);
         } finally {
             writeLock.unlock();
-        }
+        }*/
     }
 
     protected boolean flushNeeded() {
-
+        /*
         try {
             if (readLock.tryLock(2, TimeUnit.MILLISECONDS)) {
                 try {
@@ -779,7 +714,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
         } catch (InterruptedException e) {
             log.error(e);
             throw new RuntimeException(e);
-        }
+        }*/
         return false;
     }
 
