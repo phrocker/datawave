@@ -31,18 +31,21 @@ public class KryoDocumentDeserializer extends DocumentDeserializer implements Se
     @Override
     public Document deserialize(InputStream data) {
         Input input = new Input(data);
-//
-//        DocumentPayload documentPayload = new DocumentPayload(new TreeMap<String,Attribute<?>>());
-//
-//        DocumentPayloadKryo.Deserializer documentPayloadKryoDeserializer =
-//                new DocumentPayloadKryo.Deserializer(kryo, documentPayload);
-//        documentPayloadKryoDeserializer.accept(input);
-//
-//        Document document = new Document();
-//        document._getDictionary().putAll(documentPayload.getDictionary());
-//        document.setTimestamp(documentPayload.getShardTimestamp());
 
-        Document document = kryo.readObject(input, Document.class);
+//        Document document2 = kryo.readObject(input, Document.class);
+
+        Input input2 = new Input(data);
+        Document document = new Document();
+        DocumentPayload documentPayload = new DocumentPayload(document);
+
+        DocumentPayloadKryo.Deserializer documentPayloadKryoDeserializer =
+                new DocumentPayloadKryo.Deserializer(kryo, documentPayload);
+        documentPayloadKryoDeserializer.accept(input2);
+
+         document._getDictionary().putAll(documentPayload.getDictionary());
+        document.setTimestamp(documentPayload.getShardTimestamp());
+
+
 
         if (null == document) {
             throw new RuntimeException("Deserialized null Document");

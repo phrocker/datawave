@@ -54,6 +54,7 @@ public class KryoDocumentSerializer extends DocumentSerializer {
 
         DocumentPayloadKryo.Serializer documentPayloadKryoSerializer =
                 new DocumentPayloadKryo.Serializer(kryo, output2);
+
         documentPayloadKryoSerializer.accept(new DocumentPayload(doc));
 
         output2.close();
@@ -62,7 +63,7 @@ public class KryoDocumentSerializer extends DocumentSerializer {
         byte[] ba = baos.toByteArray();
 
 
-        return baos.toByteArray();
+        return baos2.toByteArray();
     }
     
 }
