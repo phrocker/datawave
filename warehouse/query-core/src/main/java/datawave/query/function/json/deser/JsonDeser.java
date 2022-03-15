@@ -1,14 +1,17 @@
 package datawave.query.function.json.deser;
 
 import com.google.gson.*;
+import datawave.data.type.BaseType;
 import datawave.data.type.NoOpType;
 import datawave.data.type.NumberType;
 import datawave.query.attributes.Attribute;
 import datawave.query.attributes.Attributes;
 import datawave.query.attributes.Document;
+import datawave.query.attributes.HitTermType;
 import datawave.query.attributes.TypeAttribute;
 import org.apache.accumulo.core.data.Key;
 import org.apache.log4j.Logger;
+
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -24,6 +27,22 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
      * @param jsonObject json object
      */
     private static void addAttributeData(Attribute<?> attr,String name, JsonObject jsonObject) {
+        if (attr instanceof TypeAttribute){
+            datawave.data.type.Type t = ((TypeAttribute)attr).getType();
+            if (t.getClass() != NoOpType.class)
+                jsonObject.addProperty("type.metadata",t.getClass().getCanonicalName());
+            if (t instanceof HitTermType){
+                System.out.println("oh");
+            }
+        }
+
+
+        jsonObject.addProperty(name,attr.getData().toString());
+
+    }
+
+    private static void addAttributeData(TypeAttribute<?> attr,String name, JsonObject jsonObject) {
+        jsonObject.addProperty("type.metadata",attr.getType().getClass().getCanonicalName());
         jsonObject.addProperty(name,attr.getData().toString());
 
     }
@@ -105,7 +124,9 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
             addAttributeMetadata(attr,name,jsonDocument);
         }
         else{
-            addAttribute(attr,name,jsonDocument);
+            JsonObject newobj = new JsonObject();
+            addAttribute(attr,name,newobj);
+            jsonDocument.add(name,newobj);
         }
 
     }
@@ -145,12 +166,19 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
             attr = new TypeAttribute<>(type,key,true);
         }
         else{
-            NoOpType type = null;
+            BaseType<?> type = null;
+            String typeString = "";
             if (element instanceof JsonObject){
                 JsonObject obj = (JsonObject)element;
                 if ( obj.has("key") ){ // it has metadata
                     JsonObject jsonKey = obj.getAsJsonObject("key");
                     key = new Key(jsonKey.get("row").getAsString(),jsonKey.get("cf").getAsString(),jsonKey.get("cq").getAsString(),jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
+                    obj.remove("key");
+                }
+                if (obj.has("type.metadata")){
+                    typeString = obj.get("type.metadata").getAsString();
+
+                    obj.remove("type.metadata");
                 }
                 Map.Entry<String,JsonElement> ret = obj.entrySet().stream().filter( entry ->{
                     String str = entry.getKey();
@@ -161,7 +189,21 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
                     attr = new TypeAttribute<>(primitiveType,key,true);
                 }
                 else {
-                    type = new NoOpType(ret.getValue().getAsString());
+                    if (typeString.isEmpty())
+                        type = new NoOpType(ret.getValue().getAsString());
+                    else{
+                        try {
+
+                            type = Class.forName(typeString).asSubclass(BaseType.class).getConstructor(String.class).newInstance(ret.getValue().getAsString());
+                        }catch(Exception e){
+                            try {
+                                type = Class.forName(typeString).asSubclass(BaseType.class).getConstructor().newInstance();
+                                type.setDelegateFromString(ret.getValue().getAsString());
+                            }catch(Exception e1){
+                                throw new RuntimeException(e1);
+                            }
+                        }
+                    }
                     attr = new TypeAttribute<>(type, key, true);
                 }
             }
