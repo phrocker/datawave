@@ -34,23 +34,19 @@ public class DocumentPayloadKryo {
         }
 
         public void accept(DocumentPayload documentPayload) {
-//            kryo.writeReferenceOrNull(output, documentPayload, false);
-//            output.writeByte(1);
             output.writeInt(documentPayload.getCount(), true);
             output.writeBoolean(documentPayload.isTrackSizes());
             output.writeLong(documentPayload.getSize(), true);
 
             output.writeInt(documentPayload.getDictionary().size(), true);
 
-            for (Map.Entry<String,Attribute<? extends Comparable<?>>> entry : documentPayload.getDictionary().entrySet()) {
-                // Write out the field name
-                // writeAscii fails to be read correctly if the value has only one character
-                // need to use writeString here
-                output.writeString(entry.getKey());
+            AttributeKryo.Serializer serializer =
+                    new AttributeKryo.Serializer(kryo, output);
 
-                Attribute<?> attribute = entry.getValue();
-                output.writeString(attribute.getClass().getName());
-                attribute.write(kryo, output, reducedSize);
+            for (Map.Entry<String,Attribute<? extends Comparable<?>>> entry : documentPayload.getDictionary().entrySet()) {
+
+                serializer.accept(entry);
+
             }
             output.writeLong(documentPayload.getShardTimestamp());
         }
@@ -76,41 +72,11 @@ public class DocumentPayloadKryo {
             int numAttrs = input.readInt(true);
 
 
+            AttributeKryo.Deserializer deser = new AttributeKryo.Deserializer(kryo, documentPayload);
             for (int i = 0; i < numAttrs; i++) {
 
+                deser.accept(input);
 
-                String fieldName = input.readString();
-
-                // Get the class name for the concrete Attribute
-                String attrClassName = input.readString();
-                Class<?> clz;
-
-                // Get the Class for the name of the class of the concrete Attribute
-                try {
-                    clz = Class.forName(attrClassName);
-                } catch (ClassNotFoundException e) {
-                    throw new RuntimeException(e);
-                }
-
-                Attribute<?> attr;
-                if (Attribute.class.isAssignableFrom(clz)) {
-                    // Get an instance of the concrete Attribute
-                    try {
-                        Constructor<?> ctor = (Constructor<?>)clz.getDeclaredConstructor(new Class[0]);
-                        ctor.setAccessible(true);
-                        attr = (Attribute<?>) ctor.newInstance();
-                    } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                        throw new RuntimeException(e);
-                     }
-
-                } else {
-                    throw new ClassCastException("Found class that was not an instance of Attribute");
-                }
-                // Reload the attribute
-                attr.read(kryo, input);
-
-                // Add the attribute back to the Map
-                this.dictionary.put(fieldName, attr);
             }
             long shardTimestamp = input.readLong();
 

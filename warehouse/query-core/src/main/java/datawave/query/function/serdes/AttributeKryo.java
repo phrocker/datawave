@@ -6,17 +6,21 @@ import com.esotericsoftware.kryo.io.Output;
 import datawave.query.attributes.Attribute;
 import datawave.query.attributes.DocumentPayload;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 
 public class AttributeKryo {
 
     protected Kryo kryo;
+    boolean reducedSize;
 
     protected AttributeKryo(Kryo kryo) {
         this.kryo = kryo;
     }
-    public static class Serializer extends AttributeKryo implements Consumer<Attribute<?>> {
+    public static class Serializer extends AttributeKryo implements Consumer<Map.Entry<String,Attribute<? extends Comparable<?>>>> {
 
         protected Output output;
         public Serializer(Kryo kryo, Output output) {
@@ -24,14 +28,21 @@ public class AttributeKryo {
             this.output = output;
         }
 
-        public void accept(Attribute<?> attribute) {
-            output.writeBoolean(attribute.isMetadataSet());
-            if (attribute.isMetadataSet()) {
-                byte[] cvBytes = attribute.getColumnVisibility().getExpression();
-                output.writeInt(cvBytes.length, true);
-                output.writeBytes(cvBytes);
-                output.writeLong(attribute.getTimestamp());
-            }
+        public void accept(Map.Entry<String,Attribute<? extends Comparable<?>>> entry) {
+
+            output.writeString(entry.getKey());
+
+            Attribute<?> attribute = entry.getValue();
+            output.writeString(attribute.getClass().getName());
+            attribute.write(kryo, output, reducedSize);
+
+//            output.writeBoolean(attribute.isMetadataSet());
+//            if (attribute.isMetadataSet()) {
+//                byte[] cvBytes = attribute.getColumnVisibility().getExpression();
+//                output.writeInt(cvBytes.length, true);
+//                output.writeBytes(cvBytes);
+//                output.writeLong(attribute.getTimestamp());
+//            }
         }
     }
 
@@ -64,8 +75,10 @@ public class AttributeKryo {
             if (Attribute.class.isAssignableFrom(clz)) {
                 // Get an instance of the concrete Attribute
                 try {
-                    attr = (Attribute<?>) clz.newInstance();
-                } catch (InstantiationException | IllegalAccessException e) {
+                    Constructor<?> ctor = (Constructor<?>)clz.getDeclaredConstructor(new Class[0]);
+                    ctor.setAccessible(true);
+                    attr = (Attribute<?>) ctor.newInstance();
+                } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                     throw new RuntimeException(e);
                 }
 
