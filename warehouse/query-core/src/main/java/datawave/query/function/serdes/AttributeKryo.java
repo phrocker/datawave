@@ -35,14 +35,6 @@ public class AttributeKryo {
             Attribute<?> attribute = entry.getValue();
             output.writeString(attribute.getClass().getName());
             attribute.write(kryo, output, reducedSize);
-
-//            output.writeBoolean(attribute.isMetadataSet());
-//            if (attribute.isMetadataSet()) {
-//                byte[] cvBytes = attribute.getColumnVisibility().getExpression();
-//                output.writeInt(cvBytes.length, true);
-//                output.writeBytes(cvBytes);
-//                output.writeLong(attribute.getTimestamp());
-//            }
         }
     }
 
@@ -92,21 +84,5 @@ public class AttributeKryo {
             this.documentPayload.getDictionary().put(fieldName, attr);
         }
 
-//        protected void readMetadata(Kryo kryo, Input input) {
-//            if (input.readBoolean()) {
-//                int size = input.readInt(true);
-//
-//                this.setMetadata(new ColumnVisibility(input.readBytes(size)), input.readLong());
-//            } else {
-//                this.clearMetadata();
-//            }
-//        }
-
     }
-
-
-
-
-
-
 }
