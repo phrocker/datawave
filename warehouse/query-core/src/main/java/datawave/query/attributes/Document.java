@@ -57,7 +57,19 @@ public class Document extends AttributeBag<Document> implements Serializable {
     public MarkingFunctions getMarkingFunctions() {
         return MarkingFunctions.Factory.createMarkingFunctions();
     }
-    
+
+    public int getCount() {
+        return _count;
+    }
+
+    public long getBytes() {
+        return _bytes;
+    }
+
+    public boolean isTrackSizes() {
+        return trackSizes;
+    }
+
     public Map<String,String> getMarkings() {
         try {
             MarkingFunctions markingFunctions = MarkingFunctions.Factory.createMarkingFunctions();
@@ -106,7 +118,7 @@ public class Document extends AttributeBag<Document> implements Serializable {
         return Collections.unmodifiableMap(this.dict);
     }
     
-    private TreeMap<String,Attribute<? extends Comparable<?>>> _getDictionary() {
+    public TreeMap<String,Attribute<? extends Comparable<?>>> _getDictionary() {
         return dict;
     }
     
@@ -826,7 +838,7 @@ public class Document extends AttributeBag<Document> implements Serializable {
         
         this.invalidateMetadata();
     }
-    
+
     @Override
     public Document copy() {
         Document d = new Document(this.getMetadata(), this.isToKeep(), trackSizes);

@@ -1,11 +1,14 @@
 package datawave.query.function.serializer;
 
 import java.io.ByteArrayOutputStream;
+import java.util.TreeMap;
 
 import datawave.query.attributes.Attribute;
 import datawave.query.attributes.Document;
+import datawave.query.attributes.DocumentPayload;
 import datawave.query.function.KryoCVAwareSerializableSerializer;
 
+import datawave.query.function.serdes.DocumentPayloadKryo;
 import org.apache.log4j.Logger;
 
 import com.esotericsoftware.kryo.Kryo;
@@ -40,12 +43,27 @@ public class KryoDocumentSerializer extends DocumentSerializer {
         baos.reset();
         
         Output output = new Output(baos);
-        
         kryo.writeObject(output, doc);
         
         output.close();
-        
-        return baos.toByteArray();
+
+
+
+        ByteArrayOutputStream baos2 = new ByteArrayOutputStream(4096);
+        Output output2 = new Output(baos2);
+
+        DocumentPayloadKryo.Serializer documentPayloadKryoSerializer =
+                new DocumentPayloadKryo.Serializer(kryo, output2);
+
+        documentPayloadKryoSerializer.accept(new DocumentPayload(doc));
+
+        output2.close();
+
+        byte[] ba2 = baos2.toByteArray();
+        byte[] ba = baos.toByteArray();
+
+
+        return baos2.toByteArray();
     }
     
 }
