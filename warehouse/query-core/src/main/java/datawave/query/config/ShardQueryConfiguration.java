@@ -2276,7 +2276,6 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
     public void setNoExpansionFields(Set<String> noExpansionFields) {
         this.noExpansionFields = noExpansionFields;
     }
-    // new additions
 
     public String getQueryIteratorClass() { return queryIteratorClazz; }
 
