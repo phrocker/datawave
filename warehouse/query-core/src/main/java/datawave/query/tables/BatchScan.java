@@ -8,12 +8,14 @@ import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.*;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -567,11 +569,11 @@ public class BatchScan implements Iterator<Entry<Key,Value>> {
         TTransport transport = null;
         try {
             final HostAndPort parsedServer = HostAndPort.fromString(server);
-            final TabletClientService.Client client;
+            final TabletScanClientService.Client client;
     //        if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis())
   //              client = ThriftUtil.getTServerClient(parsedServer, context, timeoutTracker.getTimeOut());
 //            else
-                client = ThriftUtil.getTServerClient(parsedServer, context);
+                client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
             MyScannerOptions opts = new MyScannerOptions(options);
             try {
 
