@@ -20,6 +20,7 @@ import datawave.query.exceptions.DatawaveFatalQueryException;
 import datawave.query.iterator.NestedIterator;
 import datawave.query.iterator.logic.OrIterator;
 import datawave.query.jexl.functions.EventFieldAggregator;
+import datawave.query.jexl.functions.FieldIndexTermAggregator;
 import datawave.query.jexl.functions.JexlFunctionArgumentDescriptorFactory;
 import datawave.query.jexl.functions.TermFrequencyAggregator;
 import datawave.query.jexl.nodes.QueryPropertyMarker;
@@ -1269,7 +1270,7 @@ public class IteratorBuildingVisitor extends BaseVisitor {
         // this list only match the target field
         Set<String> toAggregate = indexOnlyFields.contains(identifier) ? Collections.singleton(identifier) : Collections.emptySet();
         
-        return new TermFrequencyAggregator(toAggregate, filter, maxNextCount);
+        return new FieldIndexTermAggregator(toAggregate, filter, maxNextCount);
     }
     
     protected ChainableEventDataQueryFilter createWrappedTermFrequencyFilter(String identifier, JexlNode node, EventDataQueryFilter existing) {

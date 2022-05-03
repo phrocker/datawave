@@ -335,10 +335,16 @@ public class ContentIndexingColumnBasedHandlerTest {
             return false;
         }
     }
-    
+
+    private void testProcessing(TestContentIndexingColumnBasedHandler handler, String fieldname, String valueList,
+                                Multimap<String,NormalizedContentInterface> expectedFields, Multimap<String,NormalizedContentInterface> expectedIndex,
+                                Multimap<String,NormalizedContentInterface> expectedReverse, Multimap<String,Pair<String,Integer>> expectedTfValues, boolean tokenTest) throws Exception {
+        testProcessing(handler,fieldname,valueList,expectedFields,expectedIndex,expectedReverse,expectedTfValues,tokenTest,false);
+    }
+
     private void testProcessing(TestContentIndexingColumnBasedHandler handler, String fieldname, String valueList,
                     Multimap<String,NormalizedContentInterface> expectedFields, Multimap<String,NormalizedContentInterface> expectedIndex,
-                    Multimap<String,NormalizedContentInterface> expectedReverse, Multimap<String,Pair<String,Integer>> expectedTfValues, boolean tokenTest)
+                    Multimap<String,NormalizedContentInterface> expectedReverse, Multimap<String,Pair<String,Integer>> expectedTfValues, boolean tokenTest, boolean isFieldIndex)
                     throws Exception {
         
         NormalizedContentInterface field = new NormalizedFieldAndValue(fieldname, valueList);
@@ -365,16 +371,16 @@ public class ContentIndexingColumnBasedHandlerTest {
         handler.flushTokenOffsetCache(event, tfEntries);
         
         StringBuilder errorMessage = new StringBuilder();
-        boolean found = assertExpectedTfRecords(expectedTfValues, tfEntries, errorMessage);
+        boolean found = assertExpectedTfRecords(expectedTfValues, tfEntries, errorMessage,isFieldIndex);
         Assert.assertTrue(errorMessage.toString() + "\nActual" + tfEntries.toString(), found);
         
         errorMessage = new StringBuilder();
-        found = assertExpectedCountTfRecord(expectedTfValues, tfEntries, errorMessage);
+        found = assertExpectedCountTfRecord(expectedTfValues, tfEntries, errorMessage, isFieldIndex);
         Assert.assertTrue(errorMessage.toString() + "\nActual" + tfEntries.toString(), found);
     }
     
     private boolean assertExpectedTfRecords(Multimap<String,Pair<String,Integer>> expectedTfValues, Multimap<BulkIngestKey,Value> tfEntries,
-                    StringBuilder errorMessage) {
+                    StringBuilder errorMessage, boolean isFieldIndex) {
         for (Map.Entry<String,Pair<String,Integer>> entry : expectedTfValues.entries()) {
             Text expectedColf = new Text(TF);
             
@@ -401,7 +407,7 @@ public class ContentIndexingColumnBasedHandlerTest {
     }
     
     private boolean assertExpectedCountTfRecord(Multimap<String,Pair<String,Integer>> expectedTfValues, Multimap<BulkIngestKey,Value> tfEntries,
-                    StringBuilder errorMessage) {
+                    StringBuilder errorMessage, boolean isFieldIndex) {
         int count = expectedTfValues.size();
         Text expectedColf = new Text(TEST_TYPE + INTRA_COL_DELIMETER + TEST_UUID);
         Text expectedColq = new Text("TERM_COUNT" + INTRA_COL_DELIMETER + count);

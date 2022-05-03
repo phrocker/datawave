@@ -3,6 +3,7 @@ package datawave.query.iterator.builder;
 import java.util.Set;
 
 import datawave.query.iterator.NestedIterator;
+import datawave.query.iterator.logic.FieldIndexTermFrequencyIterator;
 import datawave.query.iterator.logic.IndexIteratorBridge;
 import datawave.query.iterator.logic.TermFrequencyIndexIterator;
 import datawave.query.jexl.functions.TermFrequencyAggregator;
@@ -122,7 +123,7 @@ public class TermFrequencyIndexBuilder implements IteratorBuilder {
     @SuppressWarnings("unchecked")
     public NestedIterator<Key> build() {
         if (notNull(field, range, source, datatypeFilter, timeFilter)) {
-            IndexIteratorBridge itr = new IndexIteratorBridge(new TermFrequencyIndexIterator(range, source, this.timeFilter, this.typeMetadata,
+            IndexIteratorBridge itr = new IndexIteratorBridge(new FieldIndexTermFrequencyIterator(range, source, this.timeFilter, this.typeMetadata,
                             this.fieldsToAggregate == null ? false : this.fieldsToAggregate.contains(field), this.datatypeFilter, termFrequencyAggregator),
                             getNode(), getField());
             field = null;

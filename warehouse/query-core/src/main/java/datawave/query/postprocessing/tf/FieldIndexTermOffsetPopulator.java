@@ -1,5 +1,38 @@
 package datawave.query.postprocessing.tf;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.Sets;
+import com.google.common.collect.TreeMultimap;
+import com.google.protobuf.InvalidProtocolBufferException;
+import datawave.core.iterators.FieldIndexTermWeightIterator;
+import datawave.core.iterators.TermFrequencyIterator;
+import datawave.data.type.NoOpType;
+import datawave.data.type.Type;
+import datawave.ingest.protobuf.TermWeight;
+import datawave.ingest.protobuf.TermWeightPosition;
+import datawave.query.Constants;
+import datawave.query.attributes.Content;
+import datawave.query.attributes.Document;
+import datawave.query.data.parsers.DatawaveKey;
+import datawave.query.jexl.functions.ContentFunctions;
+import datawave.query.jexl.functions.TermFrequencyList;
+import datawave.query.jexl.visitors.LiteralNodeSubsetVisitor;
+import datawave.query.predicate.EventDataQueryFilter;
+import datawave.util.StringUtils;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.commons.jexl2.parser.ASTJexlScript;
+import org.apache.commons.jexl2.parser.JexlNode;
+import org.apache.commons.jexl2.parser.ParseException;
+import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -11,64 +44,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import datawave.core.iterators.TermFrequencyIterator;
-import datawave.data.type.NoOpType;
-import datawave.data.type.Type;
-import datawave.ingest.protobuf.TermWeight;
-import datawave.ingest.protobuf.TermWeightPosition;
-import datawave.query.jexl.functions.TermFrequencyList;
-import datawave.query.predicate.EventDataQueryFilter;
-import datawave.query.Constants;
-import datawave.query.attributes.Content;
-import datawave.query.attributes.Document;
-import datawave.query.jexl.functions.ContentFunctions;
-import datawave.query.jexl.visitors.LiteralNodeSubsetVisitor;
+public class FieldIndexTermOffsetPopulator extends TermOffsetPopulator{
+    private static final Logger log = Logger.getLogger(FieldIndexTermOffsetPopulator.class);
 
-import datawave.util.StringUtils;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.commons.jexl2.parser.ASTJexlScript;
-import org.apache.commons.jexl2.parser.JexlNode;
-import org.apache.commons.jexl2.parser.ParseException;
-import org.apache.hadoop.io.Text;
-import org.apache.log4j.Logger;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
-import com.google.common.collect.Sets;
-import com.google.common.collect.TreeMultimap;
-import com.google.protobuf.InvalidProtocolBufferException;
-
-public class TermOffsetPopulator {
-    private static final Logger log = Logger.getLogger(TermOffsetPopulator.class);
-
-    protected static final Set<String> phraseFunctions;
-    
-    static {
-        Set<String> _phraseFunctions = Sets.newHashSet();
-        _phraseFunctions.add(ContentFunctions.CONTENT_WITHIN_FUNCTION_NAME);
-        _phraseFunctions.add(ContentFunctions.CONTENT_ADJACENT_FUNCTION_NAME);
-        _phraseFunctions.add(ContentFunctions.CONTENT_PHRASE_FUNCTION_NAME);
-        _phraseFunctions.add(ContentFunctions.CONTENT_SCORED_PHRASE_FUNCTION_NAME);
-        phraseFunctions = Collections.unmodifiableSet(_phraseFunctions);
-    }
-    
-    protected Multimap<String,String> termFrequencyFieldValues;
-    protected EventDataQueryFilter evaluationFilter;
-    protected SortedKeyValueIterator<Key,Value> source;
-    protected Document document;
-    protected Set<String> contentExpansionFields;
-    
-    public TermOffsetPopulator(Multimap<String,String> termFrequencyFieldValues, Set<String> contentExpansionFields, EventDataQueryFilter evaluationFilter,
-                    SortedKeyValueIterator<Key,Value> source) {
-        this.termFrequencyFieldValues = termFrequencyFieldValues;
-        this.contentExpansionFields = contentExpansionFields;
-        this.source = source;
-        this.evaluationFilter = evaluationFilter;
+    public FieldIndexTermOffsetPopulator(Multimap<String,String> termFrequencyFieldValues, Set<String> contentExpansionFields, EventDataQueryFilter evaluationFilter,
+                                         SortedKeyValueIterator<Key,Value> source) {
+        super(termFrequencyFieldValues,contentExpansionFields,evaluationFilter,source);
     }
     
     public Document document() {
@@ -79,20 +60,57 @@ public class TermOffsetPopulator {
         return termFrequencyFieldValues;
     }
     
-    protected Range getRange(Set<Key> keys) {
+    // merge two maps presuming both came from getContextMap()
+    @SuppressWarnings("unchecked")
+    public static Map<String,Object> mergeContextMap(Map<String,Object> map1, Map<String,Object> map2) {
+        Map<String,Object> map = new HashMap<>();
+        Map<String,TermFrequencyList> termOffsetMap = Maps.newHashMap();
+        
+        Map<String,TermFrequencyList> termOffsetMap1 = (Map<String,TermFrequencyList>) (map1.get(Constants.TERM_OFFSET_MAP_JEXL_VARIABLE_NAME));
+        Map<String,TermFrequencyList> termOffsetMap2 = (Map<String,TermFrequencyList>) (map2.get(Constants.TERM_OFFSET_MAP_JEXL_VARIABLE_NAME));
+        
+        if (termOffsetMap1 == null) {
+            if (termOffsetMap2 != null) {
+                termOffsetMap.putAll(termOffsetMap2);
+            }
+        } else {
+            termOffsetMap.putAll(termOffsetMap1);
+            if (termOffsetMap2 != null) {
+                for (Entry<String,TermFrequencyList> entry : termOffsetMap2.entrySet()) {
+                    String key = entry.getKey();
+                    TermFrequencyList list1 = termOffsetMap.get(key);
+                    TermFrequencyList list2 = entry.getValue();
+                    if (list1 == null) {
+                        termOffsetMap.put(key, list2);
+                    } else if (list2 != null) {
+                        termOffsetMap.put(key, TermFrequencyList.merge(list1, list2));
+                    }
+                }
+            }
+        }
+        
+        // Load the actual map into map that will be put into the JexlContext
+        map.put(Constants.TERM_OFFSET_MAP_JEXL_VARIABLE_NAME, termOffsetMap);
+        
+        return map;
+    }
+    
+    protected Collection<Range> getRanges(Set<Key> keys) {
+        Collection<Range> ranges = new ArrayList<>();
         // building a range from the beginning of the term frequencies for the first datatype\0uid
         // to the end of the term frequencies for the last datatype\0uid
-        List<String> dataTypeUids = new ArrayList<>();
-        Text row = null;
-        for (Key key : keys) {
-            row = key.getRow();
-            dataTypeUids.add(key.getColumnFamily().toString());
+        for(Entry<String,String> ent : termFrequencyFieldValues.entries()) {
+            List<String> dataTypeUids = new ArrayList<>();
+            // termFrequencyFieldValues
+            for(Key key :keys) {
+                Text cf = new Text(Constants.FI_PREFIX_WITH_NULL + ent.getKey());
+                Text cq = new Text(ent.getValue() + Constants.NULL + key.getColumnFamily());
+                Key startKey = new Key(key.getRow(), cf, cq);
+
+                ranges.add(new Range(startKey, true, startKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL), true));
+            }
         }
-        Collections.sort(dataTypeUids);
-        
-        Key startKey = new Key(row, Constants.TERM_FREQUENCY_COLUMN_FAMILY, new Text(dataTypeUids.get(0)));
-        Key endKey = new Key(row, Constants.TERM_FREQUENCY_COLUMN_FAMILY, new Text(dataTypeUids.get(dataTypeUids.size() - 1) + '\1'));
-        return new Range(startKey, true, endKey, true);
+        return ranges;
     }
     
     public Map<String,Object> getContextMap(Key key) {
@@ -113,88 +131,96 @@ public class TermOffsetPopulator {
     public Map<String,Object> getContextMap(Key docKey, Set<Key> keys, Set<String> fields) {
         document = new Document();
         
-        TermFrequencyIterator tfSource;
+        FieldIndexTermWeightIterator tfSource;
         // Do not prune if no fields exist or if the tf fields would prune to nothing. TODO skip tf entirely if this would prune to zero
         if (fields == null || fields.isEmpty() || fields.size() == termFrequencyFieldValues.keySet().size()) {
-            tfSource = new TermFrequencyIterator(termFrequencyFieldValues, keys);
+            tfSource = new FieldIndexTermWeightIterator(termFrequencyFieldValues, keys);
         } else {
             // There are fields to remove, reduce the search space and continue
             Multimap<String,String> tfFVs = HashMultimap.create(termFrequencyFieldValues);
             fields.forEach(tfFVs::removeAll);
-            tfSource = new TermFrequencyIterator(tfFVs, keys);
+            tfSource = new FieldIndexTermWeightIterator(tfFVs, keys);
             
             if (tfFVs.size() == 0) {
                 log.error("Created a TFIter with no field values. Orig fields: " + termFrequencyFieldValues.keySet() + " fields to remove: " + fields);
             }
         }
-        
-        Range range = getRange(keys);
-        try {
-            tfSource.init(source, null, null);
-            tfSource.seek(getRange(keys), null, false);
-        } catch (IOException e) {
-            log.error("Seek to the range failed: " + range, e);
-        }
-        
+
+        final Map<String,TermFrequencyList> termOffsetMap = Maps.newHashMap();
+
+
         // set the document context on the filter
         if (evaluationFilter != null) {
             evaluationFilter.startNewDocument(docKey);
         }
-        
-        Map<String,TermFrequencyList> termOffsetMap = Maps.newHashMap();
-        
-        while (tfSource.hasTop()) {
-            Key key = tfSource.getTopKey();
-            FieldValue fv = FieldValue.getFieldValue(key);
-            
-            // add the zone and term to our internal document
-            Content attr = new Content(fv.getValue(), source.getTopKey(), evaluationFilter == null || evaluationFilter.keep(key));
-            
-            // no need to apply the evaluation filter here as the TermFrequencyIterator above is already doing more filtering than we can do here.
-            // So this filter is simply extraneous. However if the an EventDataQueryFilter implementation gets smarter somehow, then it can be added back in
-            // here.
-            // For example the AncestorQueryLogic may require this....
-            // if (evaluationFilter == null || evaluationFilter.apply(Maps.immutableEntry(key, StringUtils.EMPTY_STRING))) {
-            
-            this.document.put(fv.getField(), attr);
-            
-            TreeMultimap<TermFrequencyList.Zone,TermWeightPosition> offsets = TreeMultimap.create();
+
+        termFrequencyFieldValues.entries().parallelStream().forEach( entry ->{
+
+                });
+        Collection<Range> ranges = getRanges(keys);
+        for(Range range : ranges) {
             try {
-                TermWeight.Info twInfo = TermWeight.Info.parseFrom(tfSource.getTopValue().get());
-                
-                // if no content expansion fields then assume every field is permitted for unfielded content functions
-                TermFrequencyList.Zone twZone = new TermFrequencyList.Zone(fv.getField(),
-                                (contentExpansionFields == null || contentExpansionFields.isEmpty() || contentExpansionFields.contains(fv.getField())),
-                                TermFrequencyList.getEventId(key));
-                
-                TermWeightPosition.Builder position = new TermWeightPosition.Builder();
-                for (int i = 0; i < twInfo.getTermOffsetCount(); i++) {
-                    position.setTermWeightOffsetInfo(twInfo, i);
-                    offsets.put(twZone, position.build());
-                    position.reset();
+                tfSource.init(source, null, null);
+                tfSource.seek(range, null, false);
+            } catch (IOException e) {
+                log.error("Seek to the range failed: " + range, e);
+            }
+
+
+            while (tfSource.hasTop()) {
+                Key key = tfSource.getTopKey();
+                DatawaveKey dwKey = new DatawaveKey(key);
+                //FieldValue fv = FieldValue.getFieldValue(key);
+
+                // add the zone and term to our internal document
+                Content attr = new Content(dwKey.getFieldValue(), source.getTopKey(), evaluationFilter == null || evaluationFilter.keep(key));
+
+                // no need to apply the evaluation filter here as the TermFrequencyIterator above is already doing more filtering than we can do here.
+                // So this filter is simply extraneous. However if the an EventDataQueryFilter implementation gets smarter somehow, then it can be added back in
+                // here.
+                // For example the AncestorQueryLogic may require this....
+                // if (evaluationFilter == null || evaluationFilter.apply(Maps.immutableEntry(key, StringUtils.EMPTY_STRING))) {
+
+                this.document.put(dwKey.getFieldName(), attr);
+
+                TreeMultimap<TermFrequencyList.Zone, TermWeightPosition> offsets = TreeMultimap.create();
+                try {
+                    TermWeight.Info twInfo = TermWeight.Info.parseFrom(tfSource.getTopValue().get());
+
+                    // if no content expansion fields then assume every field is permitted for unfielded content functions
+                    TermFrequencyList.Zone twZone = new TermFrequencyList.Zone(dwKey.getFieldName(),
+                            (contentExpansionFields == null || contentExpansionFields.isEmpty() || contentExpansionFields.contains(dwKey.getFieldName())),
+                            dwKey.getUid());
+
+                    TermWeightPosition.Builder position = new TermWeightPosition.Builder();
+                    for (int i = 0; i < twInfo.getTermOffsetCount(); i++) {
+                        position.setTermWeightOffsetInfo(twInfo, i);
+                        offsets.put(twZone, position.build());
+                        position.reset();
+                    }
+
+                } catch (InvalidProtocolBufferException e) {
+                    log.error("Could not deserialize TermWeight protocol buffer for: " + source.getTopKey());
+
+                    return null;
                 }
-                
-            } catch (InvalidProtocolBufferException e) {
-                log.error("Could not deserialize TermWeight protocol buffer for: " + source.getTopKey());
-                
-                return null;
-            }
-            
-            // First time looking up this term in a field
-            TermFrequencyList tfl = termOffsetMap.get(fv.getValue());
-            if (null == tfl) {
-                termOffsetMap.put(fv.getValue(), new TermFrequencyList(offsets));
-            } else {
-                // Merge in the offsets for the current field+term with all previous
-                // offsets from other fields in the same term
-                tfl.addOffsets(offsets);
-            }
-            
-            try {
-                tfSource.next();
-            } catch (IOException ioe) {
-                log.error("Next failed: " + range, ioe);
-                break;
+
+                // First time looking up this term in a field
+                TermFrequencyList tfl = termOffsetMap.get(dwKey.getFieldValue());
+                if (null == tfl) {
+                    termOffsetMap.put(dwKey.getFieldValue(), new TermFrequencyList(offsets));
+                } else {
+                    // Merge in the offsets for the current field+term with all previous
+                    // offsets from other fields in the same term
+                    tfl.addOffsets(offsets);
+                }
+
+                try {
+                    tfSource.next();
+                } catch (IOException ioe) {
+                    log.error("Next failed: " + range, ioe);
+                    break;
+                }
             }
         }
         
@@ -218,7 +244,7 @@ public class TermOffsetPopulator {
         
         Multimap<String,Function> functionsInNamespace = Multimaps.index(visitor.functions().get(ContentFunctions.CONTENT_FUNCTION_NAMESPACE), Function::name);
         
-        return Multimaps.filterKeys(functionsInNamespace, TermOffsetPopulator::isContentFunctionTerm);
+        return Multimaps.filterKeys(functionsInNamespace, FieldIndexTermOffsetPopulator::isContentFunctionTerm);
     }
     
     /**
@@ -323,7 +349,7 @@ public class TermOffsetPopulator {
     public static Multimap<String,String> getTermFrequencyFieldValues(ASTJexlScript query, Set<String> contentExpansionFields, Set<String> termFrequencyFields,
                     Multimap<String,Class<? extends Type<?>>> dataTypes) {
         
-        Multimap<String,Function> functions = TermOffsetPopulator.getContentFunctions(query);
+        Multimap<String,Function> functions = FieldIndexTermOffsetPopulator.getContentFunctions(query);
         
         if (!functions.isEmpty()) {
             Multimap<String,String> queryFieldValues = LiteralNodeSubsetVisitor.getLiterals(termFrequencyFields, query);
@@ -440,45 +466,10 @@ public class TermOffsetPopulator {
         }
         
         public static FieldValue getFieldValue(Key key) {
-            return getFieldValue(key.getColumnQualifier());
+            DatawaveKey dwKey = new DatawaveKey(key);
+            return new FieldValue(dwKey.getFieldName(), dwKey.getFieldValue());
         }
-        
-        public static FieldValue getFieldValue(Text cqText) {
-            if (cqText == null) {
-                return null;
-            }
-            return getFieldValue(cqText.toString());
-        }
-        
-        public static FieldValue getFieldValue(String cq) {
-            if (cq == null) {
-                return null;
-            }
-            
-            // pull apart the cq
-            String[] cqParts = StringUtils.split(cq, '\0');
-            
-            // if we do not even have the first datatype\0uid, then lets find it
-            if (cqParts.length <= 2) {
-                return null;
-            }
-            
-            // get the value and field
-            String value = "";
-            String field = "";
-            if (cqParts.length >= 4) {
-                field = cqParts[cqParts.length - 1];
-                value = cqParts[2];
-                // in case the value had null characters therein
-                for (int i = 3; i < (cqParts.length - 1); i++) {
-                    value = value + '\0' + cqParts[i];
-                }
-            } else if (cqParts.length == 3) {
-                value = cqParts[2];
-            }
-            
-            return new FieldValue(field, value);
-        }
+
         
     }
 }

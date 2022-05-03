@@ -137,7 +137,6 @@ public class TokenizationHelper {
     
     public static final String MAX_URL_DECODES = ".token.interfield.position.increment";
     private int maxUrlDecodes = 2;
-    
     public TokenizationHelper(DataTypeHelper helper, Configuration conf) throws IllegalArgumentException {
         analyzerClassName = conf.get(helper.getType().typeName() + ANALYZER_CLASS, analyzerClassName);
         stopWordList = conf.get(helper.getType().typeName() + STOP_WORD_LIST, stopWordList);

@@ -39,7 +39,7 @@ public class TFFactory {
             }
             
         }
-        
+
         return getFunction(query, contentExpansionFields, termFrequencyFields, fieldMappings, equality, evaluationFilter, sourceCopy, tfIndexOnlyFields);
     }
     
@@ -61,7 +61,7 @@ public class TFFactory {
         if (termFrequencyFieldValues.isEmpty()) {
             return new EmptyTermFrequencyFunction();
         } else {
-            return new TermOffsetFunction(new TermOffsetPopulator(termFrequencyFieldValues, contentExpansionFields, evaluationFilter, sourceDeepCopy),
+            return new FieldIndexTermOffsetFunction(new FieldIndexTermOffsetPopulator(termFrequencyFieldValues, contentExpansionFields, evaluationFilter, sourceDeepCopy),
                             tfIndexOnlyFields);
         }
     }

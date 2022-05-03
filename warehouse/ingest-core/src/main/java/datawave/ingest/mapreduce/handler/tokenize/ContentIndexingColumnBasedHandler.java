@@ -62,7 +62,7 @@ import com.google.common.collect.Multimap;
 public abstract class ContentIndexingColumnBasedHandler<KEYIN> extends AbstractColumnBasedHandler<KEYIN> implements TermFrequencyIngestHelperInterface {
     
     private static final Logger log = Logger.getLogger(ContentIndexingColumnBasedHandler.class);
-    
+
     public abstract AbstractContentIngestHelper getContentIndexingDataTypeHelper();
     
     // helper
@@ -106,6 +106,8 @@ public abstract class ContentIndexingColumnBasedHandler<KEYIN> extends AbstractC
     private boolean tokenizerTimeWarned = false;
     
     private int termPosition = 0;
+
+    private boolean writeToFieldIndex = false;
     
     @Override
     public void setup(TaskAttemptContext context) {
@@ -134,6 +136,8 @@ public abstract class ContentIndexingColumnBasedHandler<KEYIN> extends AbstractC
         tokenHelper.configureSearchUtil(searchUtilReverse);
         
         tokenOffsetCache = new BoundedOffsetQueue<>(tokenHelper.getTokenOffsetCacheMaxSize());
+
+        writeToFieldIndex = conf.getBoolean(helper.getType().typeName() + ".content.field.index.write",false);
         
         // Conditionally create an NGrams factory
         if (this.getBloomFiltersEnabled()) {
@@ -176,8 +180,13 @@ public abstract class ContentIndexingColumnBasedHandler<KEYIN> extends AbstractC
                     NormalizedFieldAndValue nfv = new NormalizedFieldAndValue(offsets.termAndZone.zone, offsets.termAndZone.term);
                     
                     byte[] fieldVisibility = getVisibility(event, nfv);
-                    
-                    createTermFrequencyIndex(event, values, this.shardId, nfv, offsets.offsets, fieldVisibility);
+
+                    if (writeToFieldIndex) {
+                        createFieldIndexWIthTermWeight(event, values, this.shardId, nfv, offsets.offsets, fieldVisibility);
+                    }
+                    else{
+                        createTermFrequencyIndex(event, values, this.shardId, nfv, offsets.offsets, fieldVisibility);
+                    }
                     termCount++;
                 }
                 
@@ -569,6 +578,38 @@ public abstract class ContentIndexingColumnBasedHandler<KEYIN> extends AbstractC
                         ExtendedDataTypeHandler.TERM_FREQUENCY_COLUMN_FAMILY.getBytes(), colq.toString().getBytes(), visibility, event.getDate(),
                         helper.getDeleteMode()));
         
+        values.put(bKey, value);
+    }
+
+    /**
+     * Creates a Term Frequency index key in the "tf" column family.
+     *
+     * @param event
+     * @param values
+     * @param shardId
+     * @param nfv
+     * @param offsets
+     * @param visibility
+     * @throws IOException
+     * @throws InterruptedException
+     */
+    protected void createFieldIndexWIthTermWeight(RawRecordContainer event, Multimap<BulkIngestKey,Value> values, byte[] shardId, NormalizedFieldAndValue nfv,
+                                            List<Integer> offsets, byte[] visibility) throws IOException, InterruptedException {
+
+        TermWeight.Info.Builder builder = TermWeight.Info.newBuilder();
+        for (Integer offset : offsets) {
+            builder.addTermOffset(offset);
+        }
+        Value value = new Value(builder.build().toByteArray());
+
+        StringBuilder colq = new StringBuilder(this.eventDataTypeName.length() + this.eventUid.length() + nfv.getIndexedFieldValue().length() + 3);
+        colq.append(this.eventDataTypeName).append('\u0000').append(this.eventUid).append('\u0000').append(nfv.getIndexedFieldValue()).append('\u0000')
+                .append(nfv.getIndexedFieldName());
+
+        BulkIngestKey bKey = new BulkIngestKey(new Text(this.getShardTableName()), new Key(shardId,
+                ExtendedDataTypeHandler.TERM_FREQUENCY_COLUMN_FAMILY.getBytes(), colq.toString().getBytes(), visibility, event.getDate(),
+                helper.getDeleteMode()));
+
         values.put(bKey, value);
     }
     
