@@ -5,11 +5,9 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import datawave.data.type.NoOpType;
 import datawave.query.DocumentSerialization;
 import datawave.query.attributes.Attribute;
 import datawave.query.attributes.Document;
-import datawave.query.attributes.TypeAttribute;
 import datawave.query.function.KryoCVAwareSerializableSerializer;
 import datawave.query.function.json.deser.JsonDeser;
 import datawave.query.tables.serialization.JsonDocument;
@@ -45,12 +43,13 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.rpc.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.TSampleNotPresentException;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -751,11 +750,11 @@ public class DocumentScan implements Iterator<SerializedDocumentIfc> {
         TTransport transport = null;
         try {
             final HostAndPort parsedServer = HostAndPort.fromString(server);
-            final TabletClientService.Client client;
+            final TabletScanClientService.Client client;
             if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis())
-                client = ThriftUtil.getTServerClient(parsedServer, context, timeoutTracker.getTimeOut());
+                client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN,parsedServer, context, timeoutTracker.getTimeOut());
             else
-                client = ThriftUtil.getTServerClient(parsedServer, context);
+                client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN,parsedServer, context);
             MyScannerOptions opts = new MyScannerOptions(options);
             try {
 
@@ -885,11 +884,11 @@ public class DocumentScan implements Iterator<SerializedDocumentIfc> {
         TTransport transport = null;
         try {
             final HostAndPort parsedServer = HostAndPort.fromString(server);
-            final TabletClientService.Client client;
+            final TabletScanClientService.Client client;
             if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis())
-                client = ThriftUtil.getTServerClient(parsedServer, context, timeoutTracker.getTimeOut());
+                client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN,parsedServer, context, timeoutTracker.getTimeOut());
             else
-                client = ThriftUtil.getTServerClient(parsedServer, context);
+                client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN,parsedServer, context);
             MyScannerOptions opts = new MyScannerOptions(options);
             try {
 

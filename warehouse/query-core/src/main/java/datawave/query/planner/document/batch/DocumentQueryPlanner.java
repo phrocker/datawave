@@ -657,9 +657,9 @@ public class DocumentQueryPlanner extends QueryPlanner implements Cloneable {
 
         // count the terms
         int termCount = TermCountingVisitor.countTerms(queryTree);
-        if (termCount > config.getMaxTermThreshold()) {
+        if (termCount > config.getInitialMaxTermThreshold()) {
             PreConditionFailedQueryException qe = new PreConditionFailedQueryException(DatawaveErrorCode.QUERY_TERM_THRESHOLD_EXCEEDED, MessageFormat.format(
-                    "{0} > {1}, last operation: {2}", termCount, config.getMaxTermThreshold(), lastOperation));
+                    "{0} > {1}, last operation: {2}", termCount, config.getInitialMaxTermThreshold(), lastOperation));
             throw new DatawaveFatalQueryException(qe);
         }
 

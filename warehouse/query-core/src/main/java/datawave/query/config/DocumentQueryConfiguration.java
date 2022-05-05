@@ -355,7 +355,7 @@ public class DocumentQueryConfiguration extends ShardQueryConfiguration implemen
 
     private boolean docRawFields = false;
 
-    private int queueCapacity=0;
+    private int queueCapacity=1000;
     private int maxTabletsPerRequest=0;
     private int maxTabletThreshold=5000;
     private boolean pushdownLogic=false;
