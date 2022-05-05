@@ -72,6 +72,16 @@ public final class QueryTestTableHelper {
         
         createTables();
     }
+
+    public QueryTestTableHelper(AccumuloClient client, Logger log, RebuildingScannerTestHelper.TEARDOWN teardown, RebuildingScannerTestHelper.INTERRUPT interrupt)
+            throws AccumuloSecurityException, AccumuloException, TableExistsException, TableNotFoundException {
+        // create mock instance and connector
+
+        this.client = client;
+        this.log = log;
+
+        createTables();
+    }
     
     public void dumpTables(Authorizations auths) {
         try {
