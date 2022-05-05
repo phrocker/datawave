@@ -10,6 +10,7 @@ import datawave.data.type.Type;
 import datawave.helpers.PrintUtility;
 import datawave.ingest.data.TypeRegistry;
 import datawave.ingest.protobuf.Uid;
+import datawave.ingest.table.config.ShardTableConfigHelper;
 import datawave.marking.MarkingFunctions;
 import datawave.query.attributes.Attribute;
 import datawave.query.attributes.Attributes;
@@ -19,7 +20,10 @@ import datawave.query.attributes.TypeAttribute;
 import datawave.query.function.JexlEvaluation;
 import datawave.query.function.deserializer.KryoDocumentDeserializer;
 import datawave.query.planner.DefaultQueryPlanner;
+import datawave.query.planner.document.batch.DocumentQueryPlanner;
 import datawave.query.tables.ShardQueryLogic;
+import datawave.query.tables.document.batch.DocumentLogic;
+import datawave.query.tables.serialization.SerializedDocumentIfc;
 import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.MetadataHelperFactory;
 import datawave.security.util.ScannerHelper;
@@ -30,18 +34,29 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.clientImpl.ClientConfConverter;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.singletons.SingletonReservation;
+import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -78,7 +93,31 @@ public class IfThisTestFailsThenHitTermsAreBroken {
     @ClassRule
     // Temporary folders are not successfully deleted in this test with @Rule for some reason, but they are with @ClassRule.
     public static TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    private static final Logger logger = Logger.getLogger(IfThisTestFailsThenHitTermsAreBroken.class);
+    private static MiniAccumuloCluster mac;
+
+    private Configuration conf;
+    private TableOperations tops;
     
+    @BeforeClass
+    public static void startCluster() throws Exception {
+        File macDir = new File(System.getProperty("user.dir") + "/target/mac/" + IfThisTestFailsThenHitTermsAreBroken.class.getName());
+        if (macDir.exists())
+            FileUtils.deleteDirectory(macDir);
+        macDir.mkdirs();
+        mac = new MiniAccumuloCluster(new MiniAccumuloConfig(macDir, "pass"));
+        mac.start();
+    }
+
+
+
+    @AfterClass
+    public static void shutdown() throws Exception {
+        mac.stop();
+    }
+
+
     enum WhatKindaRange {
         SHARD, DOCUMENT
     }
@@ -91,7 +130,7 @@ public class IfThisTestFailsThenHitTermsAreBroken {
     
     protected Set<Authorizations> authSet = Collections.singleton(auths);
     
-    protected ShardQueryLogic logic = null;
+    protected DocumentLogic logic = null;
     
     protected KryoDocumentDeserializer deserializer;
     
@@ -133,16 +172,32 @@ public class IfThisTestFailsThenHitTermsAreBroken {
         TypeRegistry.reset();
         System.clearProperty("type.metadata.dir");
     }
-    
+
+
+
+    private static void recreateTable(TableOperations tops, String table) throws Exception {
+        if (tops.exists(table)) {
+            tops.delete(table);
+        }
+        tops.create(table);
+    }
     @Before
     public void setup() throws Exception {
+
+        conf = new Configuration();
+
+        tops = mac.getConnector("root", "pass").tableOperations();
+        mac.getConnector("root", "pass").securityOperations().changeUserAuthorizations("root",new Authorizations("A","B","C","D","T","U","V","W","X","Y","Z"));
+        ClientInfo info = ClientInfo.from(mac.getClientProperties());
+        client = new ClientContext(SingletonReservation.noop(), info, ClientConfConverter.toAccumuloConf(info.getProperties()), Threads.UEH);
+
         TimeZone.setDefault(TimeZone.getTimeZone("GMT"));
         File tempDir = temporaryFolder.newFolder();
         System.setProperty("type.metadata.dir", tempDir.getAbsolutePath());
         System.setProperty("dw.metadatahelper.all.auths", "A,B,C,D,T,U,V,W,X,Y,Z");
         log.info("using tempFolder " + tempDir);
         
-        logic = new ShardQueryLogic();
+        logic = new DocumentLogic();
         logic.setMetadataTableName(QueryTestTableHelper.MODEL_TABLE_NAME);
         logic.setTableName(TableName.SHARD);
         logic.setIndexTableName(TableName.SHARD_INDEX);
@@ -150,7 +205,7 @@ public class IfThisTestFailsThenHitTermsAreBroken {
         logic.setMaxResults(5000);
         logic.setMaxWork(25000);
         logic.setModelTableName(QueryTestTableHelper.MODEL_TABLE_NAME);
-        logic.setQueryPlanner(new DefaultQueryPlanner());
+        logic.setQueryPlanner(new DocumentQueryPlanner());
         logic.setIncludeGroupingContext(true);
         logic.setMarkingFunctions(new MarkingFunctions.Default());
         logic.setMetadataHelperFactory(new MetadataHelperFactory());
@@ -186,7 +241,7 @@ public class IfThisTestFailsThenHitTermsAreBroken {
         
         log.debug("query: " + settings.getQuery());
         log.debug("logic: " + settings.getQueryLogicName());
-        
+
         GenericQueryConfiguration config = logic.initialize(client, settings, authSet);
         logic.setupQuery(config);
         
@@ -194,11 +249,11 @@ public class IfThisTestFailsThenHitTermsAreBroken {
         HashSet<String> resultSet;
         resultSet = new HashSet<>();
         Set<Document> docs = new HashSet<>();
-        for (Entry<Key,Value> entry : logic) {
+        for (SerializedDocumentIfc entry : logic) {
+
+            Document d = entry.getAs(Document.class);
             
-            Document d = deserializer.apply(entry).getValue();
-            
-            log.debug(entry.getKey() + " => " + d);
+            //log.debug(entry.getKey() + " => " + d);
             
             Attribute<?> attr = d.get("UUID.0");
             
@@ -276,8 +331,7 @@ public class IfThisTestFailsThenHitTermsAreBroken {
     @Test
     public void testWithShardRange() throws Exception {
         
-        QueryTestTableHelper qtth = new QueryTestTableHelper(IfThisTestFailsThenHitTermsAreBroken.class.toString(), log);
-        client = qtth.client;
+        QueryTestTableHelper qtth = new QueryTestTableHelper(client, log);
         
         MoreTestData.writeItAll(client, WhatKindaRange.SHARD);
         if (log.isDebugEnabled()) {
@@ -292,9 +346,8 @@ public class IfThisTestFailsThenHitTermsAreBroken {
     
     @Test
     public void testWithDocumentRange() throws Exception {
-        
-        QueryTestTableHelper qtth = new QueryTestTableHelper(IfThisTestFailsThenHitTermsAreBroken.class.toString(), log);
-        client = qtth.client;
+
+        QueryTestTableHelper qtth = new QueryTestTableHelper(client, log);
         
         MoreTestData.writeItAll(client, WhatKindaRange.DOCUMENT);
         if (log.isDebugEnabled()) {

@@ -483,7 +483,7 @@ public class ShardQueryLogic extends BaseQueryLogic<Entry<Key,Value>> {
         if (log.isTraceEnabled())
             log.trace("prepareMetadataHelper with " + client);
         MetadataHelper helper = metadataHelperFactory.createMetadataHelper(client, metadataTableName, auths, rawTypes);
-        helper.setEvaluationOnlyFields(config.getEvaluationOnlyFields());
+        //helper.setEvaluationOnlyFields(config.getEvaluationOnlyFields());
         return helper;
     }
     
