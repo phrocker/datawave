@@ -143,11 +143,11 @@ import java.util.concurrent.TimeUnit;
  * 
  * @see datawave.query.enrich
  */
-public abstract class ShardedQueryBaseLogic<T,J extends ShardQueryConfiguration> extends BaseQueryLogic<T> {
+public abstract class ShardedBaseQueryLogic<T,J extends ShardQueryConfiguration> extends BaseQueryLogic<T> {
 
     public static final String NULL_BYTE = "\0";
     public static final Class<? extends ShardQueryConfiguration> tableConfigurationType = ShardQueryConfiguration.class;
-    protected static final Logger log = ThreadConfigurableLogger.getLogger(ShardedQueryBaseLogic.class);
+    protected static final Logger log = ThreadConfigurableLogger.getLogger(ShardedBaseQueryLogic.class);
     static final ListeningExecutorService reloader = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(1));
     protected  static Cache<String,QueryModel> queryModelMap = CacheBuilder.newBuilder().maximumSize(100).concurrencyLevel(100)
                     .expireAfterAccess(24, TimeUnit.HOURS).build();
@@ -177,7 +177,7 @@ public abstract class ShardedQueryBaseLogic<T,J extends ShardQueryConfiguration>
     /**
      * Basic constructor
      */
-    public ShardedQueryBaseLogic() {
+    public ShardedBaseQueryLogic() {
         super();
         if (log.isTraceEnabled())
             log.trace("Creating ShardQueryBaseLogic: " + System.identityHashCode(this));
@@ -189,7 +189,7 @@ public abstract class ShardedQueryBaseLogic<T,J extends ShardQueryConfiguration>
      * @param other
      *            - another ShardQueryLogic object
      */
-    public ShardedQueryBaseLogic(ShardedQueryBaseLogic other) {
+    public ShardedBaseQueryLogic(ShardedBaseQueryLogic other) {
         super(other);
 
         this.setQuerySyntaxParsers(other.getQuerySyntaxParsers());
@@ -400,7 +400,7 @@ public abstract class ShardedQueryBaseLogic<T,J extends ShardQueryConfiguration>
         if (log.isTraceEnabled())
             log.trace("prepareMetadataHelper with " + client);
         MetadataHelper helper = metadataHelperFactory.createMetadataHelper(client, metadataTableName, auths, rawTypes);
-        //helper.setEvaluationOnlyFields(config.getEvaluationOnlyFields());
+        helper.setEvaluationOnlyFields(config.getEvaluationOnlyFields());
         return helper;
     }
     

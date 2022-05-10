@@ -43,9 +43,7 @@ import java.util.concurrent.ExecutionException;
 /**
  * Extended Query Planner from the base sharded query logic
  **/
-public class ShardQueryLogic extends ShardedQueryBaseLogic<Entry<Key,Value>, ShardQueryConfiguration> {
-    
-    private ShardQueryConfiguration config;
+public class ShardQueryLogic extends ShardedBaseQueryLogic<Entry<Key,Value>, ShardQueryConfiguration> {
 
     /**
      * Basic constructor
