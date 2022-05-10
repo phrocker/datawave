@@ -12,7 +12,7 @@ import datawave.query.scheduler.Scheduler;
 import datawave.query.scheduler.document.pushdown.DocumentPushdownScheduler;
 import datawave.query.tables.MyScannerFactory;
 import datawave.query.tables.ScannerFactory;
-import datawave.query.tables.ShardedQueryBaseLogic;
+import datawave.query.tables.ShardedBaseQueryLogic;
 import datawave.query.tables.serialization.SerializedDocumentIfc;
 import datawave.query.transformer.EventQueryDataDecoratorTransformer;
 import datawave.query.transformer.JsonDocumentTransformer;
@@ -36,11 +36,9 @@ import java.util.Set;
 /**
  * Extends the premises defined in shard query logic
  */
-public class DocumentLogic extends ShardedQueryBaseLogic<SerializedDocumentIfc, DocumentQueryConfiguration> {
+public class DocumentLogic extends ShardedBaseQueryLogic<SerializedDocumentIfc, DocumentQueryConfiguration> {
 
     protected static final Logger log = ThreadConfigurableLogger.getLogger(DocumentLogic.class);
-
-    private DocumentQueryConfiguration config;
 
     /**
      * Basic constructor
