@@ -8,6 +8,7 @@ import datawave.query.DocumentSerialization;
 import datawave.query.attributes.Document;
 import datawave.query.config.DocumentQueryConfiguration;
 import datawave.query.tables.document.batch.DocumentScan;
+import datawave.query.tables.document.batch.DocumentScannerBase;
 import datawave.query.tables.document.batch.DocumentScannerHelper;
 import datawave.query.tables.document.batch.DocumentScannerImpl;
 import datawave.query.tables.serialization.SerializedDocumentIfc;
@@ -72,7 +73,7 @@ public class DocumentRunningResource extends DocumentResource {
     /**
      * Base scanner.
      */
-    protected DocumentScannerImpl baseScanner = null;
+    protected DocumentScannerBase baseScanner = null;
 
     /**
      * Available.
@@ -126,14 +127,14 @@ public class DocumentRunningResource extends DocumentResource {
         hashCode += new HashCodeBuilder().append(tableName).append(auths).append(ranges).toHashCode();
 
 
-        baseScanner = DocumentScannerHelper.createDocumentBatchScanner(getClient(),tableName,auths,2,null,false, config.getReturnType(),config.getQueueCapacity(),config.getMaxTabletsPerRequest(),config.getMaxTabletThreshold());
+        baseScanner = DocumentScannerHelper.createDocumentBatchScanner(getClient(),tableName,auths,config.getNumQueryThreads(),null,false, config.getReturnType(),config.getQueueCapacity(),config.getMaxTabletsPerRequest(),config.getMaxTabletThreshold());
         //int numQueryThreads, Query query, boolean docRawFields, DocumentSerialization.ReturnType returnType, int queueCapacity, int maxTabletsPerRequest, int maxTabletThreshold
         if (baseScanner != null) {
             if (baseScanner instanceof Scanner) {
                 ((Scanner) baseScanner).setRange(currentRange.iterator().next());
             }else
             {
-                ((DocumentScannerImpl) baseScanner).setRange(currentRange.iterator().next());
+                baseScanner.setRange(currentRange.iterator().next());
             }
         }
         
