@@ -1,5 +1,6 @@
 package datawave.query.tables.document.batch;
 
+import datawave.accumulo.inmemory.InMemoryAccumuloClient;
 import datawave.query.DocumentSerialization;
 import datawave.query.iterator.QueryInformationIterator;
 import datawave.query.util.QueryInformation;
@@ -8,6 +9,9 @@ import datawave.security.util.AuthorizationsMinimizer;
 import datawave.webservice.common.connection.ScannerBaseDelegate;
 import datawave.webservice.query.Query;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -20,17 +24,32 @@ import java.util.Iterator;
 
 public class DocumentScannerHelper {
 
-    public static DocumentScannerImpl createDocumentBatchScanner(AccumuloClient client, String tableName, Collection<Authorizations> authorizations, int numQueryThreads, Query query, boolean docRawFields, DocumentSerialization.ReturnType returnType, int queueCapacity, int maxTabletsPerRequest, int maxTabletThreshold) throws TableNotFoundException {
-        DocumentScannerImpl batchScanner = null;
+    public static DocumentScannerBase createDocumentBatchScanner(AccumuloClient client, String tableName, Collection<Authorizations> authorizations, int numQueryThreads, Query query, boolean docRawFields, DocumentSerialization.ReturnType returnType, int queueCapacity, int maxTabletsPerRequest, int maxTabletThreshold) throws TableNotFoundException {
+        DocumentScannerBase batchScanner = null;
         if (authorizations != null && !authorizations.isEmpty()) {
             Iterator<Authorizations> iter = AuthorizationsMinimizer.minimize(authorizations).iterator();
-            batchScanner = new DocumentScannerImpl((ClientContext)client, TableId.of((String)((ClientContext)client).tableOperations().tableIdMap().get(tableName)), tableName, (Authorizations)iter.next(), numQueryThreads, returnType, docRawFields, queueCapacity, maxTabletsPerRequest, maxTabletThreshold);
+            try {
+                batchScanner = getScanner(client,tableName,iter,numQueryThreads,query,docRawFields,returnType,queueCapacity, maxTabletsPerRequest,maxTabletThreshold);
+            } catch (AccumuloException e) {
+                throw new RuntimeException(e);
+            } catch (AccumuloSecurityException e) {
+                throw new RuntimeException(e);
+            }
             addVisibilityFilters(iter, batchScanner);
             if (null != query)
                 batchScanner.addScanIterator(getQueryInfoIterator(query, false));
             return batchScanner;
         } else {
             throw new IllegalArgumentException("Authorizations must not be empty.");
+        }
+    }
+
+    public static DocumentScannerBase getScanner(AccumuloClient client, String tableName, Iterator<Authorizations> iter, int numQueryThreads, Query query, boolean docRawFields, DocumentSerialization.ReturnType returnType, int queueCapacity, int maxTabletsPerRequest, int maxTabletThreshold) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+        if (client instanceof InMemoryAccumuloClient){
+            return new InMemoryDocumentScannerImpl((ClientContext) client, TableId.of((String) ((ClientContext) client).tableOperations().tableIdMap().get(tableName)), tableName, (Authorizations) iter.next(), numQueryThreads, returnType, docRawFields);
+        }
+        else {
+            return new DocumentScannerImpl((ClientContext) client, TableId.of((String) ((ClientContext) client).tableOperations().tableIdMap().get(tableName)), tableName, (Authorizations) iter.next(), numQueryThreads, returnType, docRawFields, queueCapacity, maxTabletsPerRequest, maxTabletThreshold);
         }
     }
 

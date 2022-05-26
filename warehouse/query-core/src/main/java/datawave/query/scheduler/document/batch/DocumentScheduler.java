@@ -7,6 +7,7 @@ import datawave.query.iterator.QueryIterator;
 import datawave.query.scheduler.Scheduler;
 import datawave.query.tables.DocumentBatchScannerSession;
 import datawave.query.tables.document.batch.DocumentLogic;
+import datawave.query.tables.document.batch.DocumentScannerBase;
 import datawave.query.tables.document.batch.DocumentScannerImpl;
 import datawave.query.tables.MyScannerFactory;
 import datawave.query.tables.ScannerFactory;
@@ -86,7 +87,7 @@ public class DocumentScheduler extends Scheduler<SerializedDocumentIfc> {
      * @see Scheduler#createBatchScanner(ShardQueryConfiguration, datawave.query.tables.ScannerFactory, datawave.webservice.query.configuration.QueryData)
      */
     @Override
-    public DocumentScannerImpl createBatchScanner(ShardQueryConfiguration config, ScannerFactory scannerFactory, QueryData qd) throws TableNotFoundException {
+    public DocumentScannerBase createBatchScanner(ShardQueryConfiguration config, ScannerFactory scannerFactory, QueryData qd) throws TableNotFoundException {
         return DocumentLogic.createDocumentScanner(DocumentQueryConfiguration.class.cast(config), MyScannerFactory.class.cast(scannerFactory), qd, config.getReturnType());
     }
 
@@ -97,7 +98,7 @@ public class DocumentScheduler extends Scheduler<SerializedDocumentIfc> {
 
         protected Iterator<QueryData> queries = null;
         protected SerializedDocumentIfc currentDocument = null;
-        protected DocumentScannerImpl currentBS = null;
+        protected DocumentScannerBase currentBS = null;
         protected Iterator<SerializedDocumentIfc> currentIter = null;
         protected DocumentBatchScannerSession session = null;
 

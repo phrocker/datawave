@@ -1,9 +1,14 @@
 package datawave.query.tables.document.batch;
 
+import datawave.core.iterators.DatawaveFieldIndexCachingIteratorJexl;
 import datawave.query.DocumentSerialization;
 import datawave.query.tables.CleanerUtil;
 import datawave.query.tables.serialization.SerializedDocumentIfc;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -25,29 +30,26 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-public class DocumentScannerImpl extends DocumentScannerBase {
-    private static final Logger log = LoggerFactory.getLogger(DocumentScannerImpl.class);
-    private static final AtomicInteger nextBatchReaderInstance = new AtomicInteger(1);
+public class InMemoryDocumentScannerImpl extends DocumentScannerBase {
 
-    private final int batchReaderInstance = nextBatchReaderInstance.getAndIncrement();
+
+    private static final Logger log = LoggerFactory.getLogger(InMemoryDocumentScannerImpl.class);
     private final TableId tableId;
     private final String tableName;
     private final int numThreads;
-    private final ThreadPoolExecutor queryThreadPool;
     private final ClientContext context;
     private final Authorizations authorizations;
     private final AtomicBoolean closed = new AtomicBoolean(false);
-    private final Cleaner.Cleanable cleanable;
     private final DocumentSerialization.ReturnType returnType;
     private final boolean docRawFields;
-    private final int queueCapacity;
-    private final int maxTabletThreshold;
+    private final BatchScanner scanner;
     private int maxTabletsPerRequest=0;
 
+    private ArrayList<Range> ranges = null;
+    private Collection<IteratorSetting> iteratorSettings = new ArrayList<>();
 
-
-    public DocumentScannerImpl(ClientContext context, TableId tableId,
-                               String tableName, Authorizations authorizations, int numQueryThreads, DocumentSerialization.ReturnType ret, boolean docRawFields, int queueCapacity, int maxTabletsPerRequest, int maxTabletThreshold) {
+    public InMemoryDocumentScannerImpl(ClientContext context, TableId tableId,
+                                       String tableName, Authorizations authorizations, int numQueryThreads, DocumentSerialization.ReturnType ret, boolean docRawFields) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
         checkArgument(context != null, "context is null");
         checkArgument(tableId != null, "tableId is null");
         checkArgument(authorizations != null, "authorizations is null");
@@ -58,22 +60,16 @@ public class DocumentScannerImpl extends DocumentScannerBase {
         this.numThreads = numQueryThreads;
         this.returnType = ret;
         this.docRawFields=docRawFields;
-        this.queueCapacity=queueCapacity;
-        this.maxTabletsPerRequest=maxTabletsPerRequest;
-        this.maxTabletThreshold=maxTabletThreshold;
-        queryThreadPool = (ThreadPoolExecutor)Executors.newFixedThreadPool(numQueryThreads);
-        // Call shutdown on this thread pool in case the caller does not call close().
-        cleanable = CleanerUtil.shutdownThreadPoolExecutor(queryThreadPool, closed, log);
+        this.scanner = context.createBatchScanner(tableName, authorizations,numQueryThreads);
     }
 
     @Override
     public void close() {
-        if (closed.compareAndSet(false, true)) {
-            // Shutdown the pool
-            queryThreadPool.shutdownNow();
-            // deregister the cleaner, will not call shutdownNow() because closed is now true
-            cleanable.clean();
+        if (!closed.get()){
+            scanner.close();
+            closed.set(true);
         }
+
     }
 
     @Override
@@ -99,6 +95,10 @@ public class DocumentScannerImpl extends DocumentScannerBase {
         throw new UnsupportedOperationException("use getDocumentIterator");
     }
 
+    public synchronized void addScanIterator(IteratorSetting si) {
+        this.iteratorSettings.add(si);
+        super.addScanIterator(si);
+    }
     public Iterator<SerializedDocumentIfc> getDocumentIterator() {
         if (ranges == null) {
             throw new IllegalStateException("ranges not set");
@@ -107,9 +107,18 @@ public class DocumentScannerImpl extends DocumentScannerBase {
         if (closed.get()) {
             throw new IllegalStateException("batch reader closed");
         }
+        scanner.setRanges(ranges);
+        iteratorSettings.forEach( setting -> scanner.addScanIterator(setting));
+        return scanner.stream().map(
+                keyValue -> {
+                    return DocumentKeyConversion.getDocument(returnType, docRawFields, keyValue);
+                }
+        ).iterator();
 
-        return new DocumentScan(context, tableId, authorizations, ranges,
-                numThreads, queryThreadPool, this, timeOut, log.isTraceEnabled(), returnType, docRawFields, queueCapacity,maxTabletsPerRequest, maxTabletThreshold);
     }
 
+    public void setRange(Range next) {
+        this.ranges = new ArrayList<>();
+        this.ranges.add(next);
+    }
 }
