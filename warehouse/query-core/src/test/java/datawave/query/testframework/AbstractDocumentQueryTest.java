@@ -22,6 +22,7 @@ import datawave.query.planner.QueryPlanner;
 import datawave.query.tables.CountingShardQueryLogic;
 import datawave.query.tables.ShardQueryLogic;
 import datawave.query.tables.ShardedBaseQueryLogic;
+import datawave.query.tables.document.batch.DocumentLogic;
 import datawave.query.testframework.QueryLogicTestHarness.DocumentChecker;
 import datawave.query.transformer.ShardQueryCountTableTransformer;
 import datawave.query.util.DateIndexHelperFactory;
@@ -92,13 +93,13 @@ import java.util.stream.Collectors;
  * <li>hadoop.home.dir => target directory</li>
  * </ul>
  */
-public abstract class AbstractFunctionalQuery extends AbstractBaseQueryFramework<ShardQueryLogic> {
+public abstract class AbstractDocumentQueryTest extends AbstractBaseQueryFramework<DocumentLogic> {
 
-    protected AbstractFunctionalQuery(RawDataManager mgr) {
+    protected AbstractDocumentQueryTest(RawDataManager mgr) {
         super(mgr);
     }
 
-    protected ShardQueryLogic createQueryLogic(){
-        return new ShardQueryLogic();
+    protected DocumentLogic createQueryLogic(){
+        return new DocumentLogic();
     }
 }

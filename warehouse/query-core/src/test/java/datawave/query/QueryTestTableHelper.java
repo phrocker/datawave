@@ -8,6 +8,7 @@ import datawave.ingest.table.config.MetadataTableConfigHelper;
 import datawave.ingest.table.config.ShardTableConfigHelper;
 import datawave.ingest.table.config.TableConfigHelper;
 import datawave.query.tables.ShardQueryLogic;
+import datawave.query.tables.ShardedBaseQueryLogic;
 import datawave.util.TableName;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -186,7 +187,7 @@ public final class QueryTestTableHelper {
         }
     }
     
-    public static void configureLogicToScanTables(ShardQueryLogic logic) {
+    public static void configureLogicToScanTables(ShardedBaseQueryLogic logic) {
         logic.setMetadataTableName(METADATA_TABLE_NAME);
         logic.setDateIndexTableName(TableName.DATE_INDEX);
         logic.setTableName(TableName.SHARD);

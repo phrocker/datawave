@@ -24,6 +24,14 @@ import datawave.query.planner.document.batch.DocumentQueryPlanner;
 import datawave.query.tables.ShardQueryLogic;
 import datawave.query.tables.document.batch.DocumentLogic;
 import datawave.query.tables.serialization.SerializedDocumentIfc;
+import datawave.query.testframework.AbstractDocumentQueryTest;
+import datawave.query.testframework.AccumuloSetup;
+import datawave.query.testframework.CitiesDataType;
+import datawave.query.testframework.DataTypeHadoopConfig;
+import datawave.query.testframework.FieldConfig;
+import datawave.query.testframework.FileType;
+import datawave.query.testframework.GenericCityFields;
+import datawave.query.testframework.RawDataManager;
 import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.MetadataHelperFactory;
 import datawave.security.util.ScannerHelper;
@@ -88,33 +96,36 @@ import java.util.concurrent.TimeUnit;
  * If this test fails, then hit terms are broken... maybe... probably...
  * 
  */
-public class IfThisTestFailsThenHitTermsAreBroken {
-    
+public class IfThisTestFailsThenHitTermsAreBroken extends AbstractDocumentQueryTest {
+
     @ClassRule
-    // Temporary folders are not successfully deleted in this test with @Rule for some reason, but they are with @ClassRule.
-    public static TemporaryFolder temporaryFolder = new TemporaryFolder();
+    public static AccumuloSetup accumuloSetup = new AccumuloSetup();
+
 
     private static final Logger logger = Logger.getLogger(IfThisTestFailsThenHitTermsAreBroken.class);
-    private static MiniAccumuloCluster mac;
 
     private Configuration conf;
-    private TableOperations tops;
-    
+    private KryoDocumentDeserializer deserializer;
+
+    public IfThisTestFailsThenHitTermsAreBroken(){
+        super(CitiesDataType.getManager());
+
+    }
     @BeforeClass
-    public static void startCluster() throws Exception {
-        File macDir = new File(System.getProperty("user.dir") + "/target/mac/" + IfThisTestFailsThenHitTermsAreBroken.class.getName());
-        if (macDir.exists())
-            FileUtils.deleteDirectory(macDir);
-        macDir.mkdirs();
-        mac = new MiniAccumuloCluster(new MiniAccumuloConfig(macDir, "pass"));
-        mac.start();
+    public static void filterSetup() throws Exception {
+        FieldConfig generic = new GenericCityFields();
+        generic.addReverseIndexField(CitiesDataType.CityField.STATE.name());
+        generic.addReverseIndexField(CitiesDataType.CityField.CONTINENT.name());
+        DataTypeHadoopConfig dataType = new CitiesDataType(CitiesDataType.CityEntry.generic, generic);
+        accumuloSetup.setData(FileType.CSV, dataType);
+        client = accumuloSetup.loadTables(log);
+
     }
 
-
-
-    @AfterClass
-    public static void shutdown() throws Exception {
-        mac.stop();
+    @Override
+    protected void testInit() {
+        this.auths = CitiesDataType.getTestAuths();
+        this.documentKey = CitiesDataType.CityField.EVENT_ID.name();
     }
 
 
@@ -124,15 +135,6 @@ public class IfThisTestFailsThenHitTermsAreBroken {
     
     private static final Logger log = Logger.getLogger(IfThisTestFailsThenHitTermsAreBroken.class);
     
-    protected static AccumuloClient client = null;
-    
-    protected Authorizations auths = new Authorizations("A");
-    
-    protected Set<Authorizations> authSet = Collections.singleton(auths);
-    
-    protected DocumentLogic logic = null;
-    
-    protected KryoDocumentDeserializer deserializer;
     
     private final DateFormat format = new SimpleDateFormat("yyyyMMdd");
     
@@ -185,11 +187,6 @@ public class IfThisTestFailsThenHitTermsAreBroken {
 
         conf = new Configuration();
 
-        tops = mac.getConnector("root", "pass").tableOperations();
-        mac.getConnector("root", "pass").securityOperations().changeUserAuthorizations("root",new Authorizations("A","B","C","D","T","U","V","W","X","Y","Z"));
-        ClientInfo info = ClientInfo.from(mac.getClientProperties());
-        client = new ClientContext(SingletonReservation.noop(), info, ClientConfConverter.toAccumuloConf(info.getProperties()), Threads.UEH);
-
         TimeZone.setDefault(TimeZone.getTimeZone("GMT"));
         File tempDir = temporaryFolder.newFolder();
         System.setProperty("type.metadata.dir", tempDir.getAbsolutePath());
@@ -237,13 +234,13 @@ public class IfThisTestFailsThenHitTermsAreBroken {
         settings.setParameters(extraParms);
         settings.setId(UUID.randomUUID());
         settings.setParameters(extraParms);
-        
+
         log.debug("query: " + settings.getQuery());
         log.debug("logic: " + settings.getQueryLogicName());
 
         GenericQueryConfiguration config = logic.initialize(client, settings, authSet);
         logic.setupQuery(config);
-        
+
         HashSet<String> expectedSet = new HashSet<>(expected);
         HashSet<String> resultSet;
         resultSet = new HashSet<>();

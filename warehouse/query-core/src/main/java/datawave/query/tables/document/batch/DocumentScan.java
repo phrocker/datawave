@@ -109,9 +109,6 @@ public class DocumentScan implements Iterator<SerializedDocumentIfc> {
     private List<SerializedDocumentIfc> batch;
     private static final List<SerializedDocumentIfc> LAST_BATCH = new ArrayList<>();
     private final Object nextLock = new Object();
-    static final transient ThreadLocal<Kryo> kryo = new ThreadLocal<Kryo>();
-    static final JsonDeser jsonDeser = new JsonDeser();
-    static final JsonParser jsonParser = new JsonParser();
     private long failSleepTime = 100;
 
     private volatile Throwable fatalException = null;
@@ -793,7 +790,7 @@ public class DocumentScan implements Iterator<SerializedDocumentIfc> {
 
                 if (scanResult.results.size() > 0)
                     receiver.receive(scanResult.results.parallelStream().map( x -> {
-                        return getDocument(returnType,docRawFields,x);
+                        return DocumentKeyConversion.getDocument(returnType,docRawFields,x);
                     }).collect(Collectors.toList()));
 
 
@@ -823,7 +820,7 @@ public class DocumentScan implements Iterator<SerializedDocumentIfc> {
 
                     if (scanResult.results.size() > 0)
                         receiver.receive(scanResult.results.parallelStream().map( x -> {
-                            return getDocument(returnType,docRawFields,x);
+                            return DocumentKeyConversion.getDocument(returnType,docRawFields,x);
                         }).collect(Collectors.toList()));
 
 
@@ -929,7 +926,7 @@ public class DocumentScan implements Iterator<SerializedDocumentIfc> {
 
                 if (scanResult.results.size() > 0)
                     receiver.receive(scanResult.results.parallelStream().map( x -> {
-                        return getDocument(returnType,docRawFields,x);
+                        return DocumentKeyConversion.getDocument(returnType,docRawFields,x);
                     }).collect(Collectors.toList()));
 
 
@@ -957,7 +954,7 @@ public class DocumentScan implements Iterator<SerializedDocumentIfc> {
 
                     if (scanResult.results.size() > 0)
                         receiver.receive(scanResult.results.parallelStream().map( x -> {
-                            return getDocument(returnType,docRawFields,x);
+                            return DocumentKeyConversion.getDocument(returnType,docRawFields,x);
                         }).collect(Collectors.toList()));
 
                 }
@@ -990,57 +987,6 @@ public class DocumentScan implements Iterator<SerializedDocumentIfc> {
             timeoutTracker.errorOccured();
             throw new IOException(e);
         }
-    }
-
-    static SerializedDocumentIfc getDocument(DocumentSerialization.ReturnType returnType,boolean docRawFields, TKeyValue kv){
-        SerializedDocumentIfc document = null;
-        byte [] array = kv.value.array();
-        int offset = 0;
-        int size = array.length;
-        if (  !org.apache.thrift.TBaseHelper.wrapsFullArray(kv.value)){
-            size = kv.value.remaining();
-            offset = kv.value.arrayOffset() + kv.value.position();
-        }
-        if (DocumentSerialization.ReturnType.kryo == returnType) {
-            if (kryo.get() == null){
-                kryo.set(new Kryo());
-                kryo.get().addDefaultSerializer(Attribute.class, new KryoCVAwareSerializableSerializer(true));
-            }
-
-            Input input = new Input(DocumentSerialization.consumeHeader(array,offset,size));
-            Document doc  = kryo.get().readObject(input, Document.class);
-
-            if (null == doc) {
-                throw new RuntimeException("Deserialized null Document");
-            }
-
-            input.close();
-            document = new SerializedDocument(doc);
-
-        } else if (DocumentSerialization.ReturnType.json == returnType) {
-            InputStream jsonStream  = new ByteArrayInputStream(array, offset+3, size - 3);
-
-
-                Reader rdr = new InputStreamReader(jsonStream);
-                JsonObject jsonObject = jsonParser.parse(rdr).getAsJsonObject();
-                document = new JsonDocument(jsonObject,kv.getKey(),size-3);
-
-
-        }
-        else if (DocumentSerialization.ReturnType.jsondocument == returnType) {
-            InputStream jsonStream  = new ByteArrayInputStream(array, offset+3, size - 3);
-
-                Reader rdr = new InputStreamReader(jsonStream);
-                JsonObject jsonObject = jsonParser.parse(rdr).getAsJsonObject();
-                Document doc = jsonDeser.deserialize(jsonObject, null, null);
-                document = new SerializedDocument(doc);
-        }
-        else{
-            throw new UnsupportedOperationException("only kryo and json are supported");
-        }
-
-        return document;
-
     }
 
     static int sumSizes(Collection<List<Range>> values) {

@@ -2,6 +2,7 @@ package datawave.query.tables.document.batch;
 
 import datawave.marking.MarkingFunctions;
 import datawave.query.DocumentSerialization;
+import datawave.query.attributes.Document;
 import datawave.query.config.DocumentQueryConfiguration;
 import datawave.query.iterator.QueryOptions;
 import datawave.query.planner.MetadataHelperQueryModelProvider;
@@ -66,8 +67,8 @@ public class DocumentLogic extends ShardedBaseQueryLogic<SerializedDocumentIfc, 
 
     }
 
-    public static DocumentScannerImpl createDocumentScanner(DocumentQueryConfiguration config, MyScannerFactory scannerFactory, QueryData qd, DocumentSerialization.ReturnType returnType) throws TableNotFoundException {
-        final DocumentScannerImpl bs = scannerFactory.newDocumentScanner(config.getShardTableName(), config.getAuthorizations(), config.getNumQueryThreads(),
+    public static DocumentScannerBase createDocumentScanner(DocumentQueryConfiguration config, MyScannerFactory scannerFactory, QueryData qd, DocumentSerialization.ReturnType returnType) throws TableNotFoundException {
+        final DocumentScannerBase bs = scannerFactory.newDocumentScanner(config.getShardTableName(), config.getAuthorizations(), config.getNumQueryThreads(),
                 config.getQuery(),config.getDocRawFields(), returnType, config.getQueueCapacity() == 0 ? config.getNumQueryThreads() : config.getQueueCapacity(), config.getMaxTabletsPerRequest(), config.getMaxTabletThreshold());
 
         if (log.isTraceEnabled()) {
