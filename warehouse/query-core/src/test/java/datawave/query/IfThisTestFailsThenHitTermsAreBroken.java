@@ -10,7 +10,6 @@ import datawave.data.type.Type;
 import datawave.helpers.PrintUtility;
 import datawave.ingest.data.TypeRegistry;
 import datawave.ingest.protobuf.Uid;
-import datawave.ingest.table.config.ShardTableConfigHelper;
 import datawave.marking.MarkingFunctions;
 import datawave.query.attributes.Attribute;
 import datawave.query.attributes.Attributes;
@@ -19,10 +18,7 @@ import datawave.query.attributes.PreNormalizedAttribute;
 import datawave.query.attributes.TypeAttribute;
 import datawave.query.function.JexlEvaluation;
 import datawave.query.function.deserializer.KryoDocumentDeserializer;
-import datawave.query.planner.DefaultQueryPlanner;
 import datawave.query.planner.document.batch.DocumentQueryPlanner;
-import datawave.query.tables.ShardQueryLogic;
-import datawave.query.tables.document.batch.DocumentLogic;
 import datawave.query.tables.serialization.SerializedDocumentIfc;
 import datawave.query.testframework.AbstractDocumentQueryTest;
 import datawave.query.testframework.AccumuloSetup;
@@ -31,7 +27,6 @@ import datawave.query.testframework.DataTypeHadoopConfig;
 import datawave.query.testframework.FieldConfig;
 import datawave.query.testframework.FileType;
 import datawave.query.testframework.GenericCityFields;
-import datawave.query.testframework.RawDataManager;
 import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.MetadataHelperFactory;
 import datawave.security.util.ScannerHelper;
@@ -43,20 +38,11 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.clientImpl.ClientConfConverter;
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.singletons.SingletonReservation;
-import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
-import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -67,13 +53,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -119,7 +103,7 @@ public class IfThisTestFailsThenHitTermsAreBroken extends AbstractDocumentQueryT
         DataTypeHadoopConfig dataType = new CitiesDataType(CitiesDataType.CityEntry.generic, generic);
         accumuloSetup.setData(FileType.CSV, dataType);
         client = accumuloSetup.loadTables(log);
-
+        MoreTestData.writeItAll(client, WhatKindaRange.SHARD);
     }
 
     @Override
@@ -177,12 +161,6 @@ public class IfThisTestFailsThenHitTermsAreBroken extends AbstractDocumentQueryT
 
 
 
-    private static void recreateTable(TableOperations tops, String table) throws Exception {
-        if (tops.exists(table)) {
-            tops.delete(table);
-        }
-        tops.create(table);
-    }
     @Before
     public void setup() throws Exception {
 
@@ -193,8 +171,9 @@ public class IfThisTestFailsThenHitTermsAreBroken extends AbstractDocumentQueryT
         System.setProperty("type.metadata.dir", tempDir.getAbsolutePath());
         System.setProperty("dw.metadatahelper.all.auths", "A,B,C,D,T,U,V,W,X,Y,Z");
         log.info("using tempFolder " + tempDir);
-        
-        logic = new DocumentLogic();
+        MoreTestData.writeItAll(client, WhatKindaRange.DOCUMENT);
+
+        //logic = new DocumentLogic();
         logic.setMetadataTableName(QueryTestTableHelper.MODEL_TABLE_NAME);
         logic.setTableName(TableName.SHARD);
         logic.setIndexTableName(TableName.SHARD_INDEX);
@@ -208,6 +187,10 @@ public class IfThisTestFailsThenHitTermsAreBroken extends AbstractDocumentQueryT
         logic.setMetadataHelperFactory(new MetadataHelperFactory());
         logic.setDateIndexHelperFactory(new DateIndexHelperFactory());
         logic.setMaxEvaluationPipelines(1);
+        logic.setCollectTimingDetails(false);
+        logic.setFullTableScanEnabled(true);
+        logic.setLogTimingDetails(false);
+
         deserializer = new KryoDocumentDeserializer();
     }
     
@@ -328,9 +311,9 @@ public class IfThisTestFailsThenHitTermsAreBroken extends AbstractDocumentQueryT
     @Test
     public void testWithShardRange() throws Exception {
         
-        QueryTestTableHelper qtth = new QueryTestTableHelper(client, log);
+     //   QueryTestTableHelper qtth = new QueryTestTableHelper(client, log);
         
-        MoreTestData.writeItAll(client, WhatKindaRange.SHARD);
+
         if (log.isDebugEnabled()) {
             log.debug("testWithShardRange");
             PrintUtility.printTable(client, auths, TableName.SHARD);
@@ -344,9 +327,9 @@ public class IfThisTestFailsThenHitTermsAreBroken extends AbstractDocumentQueryT
     @Test
     public void testWithDocumentRange() throws Exception {
 
-        QueryTestTableHelper qtth = new QueryTestTableHelper(client, log);
+       // QueryTestTableHelper qtth = new QueryTestTableHelper(client, log);
         
-        MoreTestData.writeItAll(client, WhatKindaRange.DOCUMENT);
+
         if (log.isDebugEnabled()) {
             log.debug("testWithDocumentRange");
             PrintUtility.printTable(client, auths, TableName.SHARD);
@@ -461,7 +444,7 @@ public class IfThisTestFailsThenHitTermsAreBroken extends AbstractDocumentQueryT
         protected static final String datatype = "test";
         protected static final String date = "20130101";
         protected static final String shard = date + "_0";
-        protected static final ColumnVisibility columnVisibility = new ColumnVisibility("A");
+        protected static final ColumnVisibility columnVisibility = new ColumnVisibility("");
         protected static final Value emptyValue = new Value(new byte[0]);
         protected static final long timeStamp = 1356998400000l;
         

@@ -122,7 +122,12 @@ public class FieldAgeOffFilterTest {
         public Iterator<Map.Entry<String,String>> iterator() {
             return map.entrySet().iterator();
         }
-        
+
+        @Override
+        public boolean isPropertySet(Property property) {
+            return map.get(property.getKey()) != null;
+        }
+
     }
     
     @Test
