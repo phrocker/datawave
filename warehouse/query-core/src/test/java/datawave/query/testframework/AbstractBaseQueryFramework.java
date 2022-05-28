@@ -8,6 +8,8 @@ import datawave.marking.MarkingFunctions.Default;
 import datawave.microservice.querymetric.BaseQueryMetric;
 import datawave.microservice.querymetric.QueryMetricFactory;
 import datawave.microservice.querymetric.QueryMetricFactoryImpl;
+import datawave.query.Constants;
+import datawave.query.DocumentSerialization;
 import datawave.query.QueryTestTableHelper;
 import datawave.query.attributes.Attribute;
 import datawave.query.attributes.Document;
@@ -137,6 +139,7 @@ public abstract class AbstractBaseQueryFramework<L extends ShardedBaseQueryLogic
     // ============================================
     // static members
     protected static AccumuloClient client;
+    protected static DocumentSerialization.ReturnType returnType= DocumentSerialization.ReturnType.kryo;
 
     // ============================================
     // instance members
@@ -183,7 +186,7 @@ public abstract class AbstractBaseQueryFramework<L extends ShardedBaseQueryLogic
         this.logic.setLogTimingDetails(true);
         this.logic.setMinimumSelectivity(0.03D);
         this.logic.setMaxIndexScanTimeMillis(5000);
-        
+        this.logic.getConfig().setReturnType(returnType);
         // count logic
         countLogic.setIncludeDataTypeAsField(true);
         countLogic.setFullTableScanEnabled(false);
@@ -436,6 +439,7 @@ public abstract class AbstractBaseQueryFramework<L extends ShardedBaseQueryLogic
         q.setId(UUID.randomUUID());
         q.setPagesize(Integer.MAX_VALUE);
         q.setQueryAuthorizations(auths.toString());
+        q.addParameter(Constants.RETURN_TYPE,returnType.toString());
         if (useRunningQuery) {
             QueryMetricFactory queryMetricFactory = (metricFactory == null) ? new QueryMetricFactoryImpl() : metricFactory;
             new RunningQuery(client, AccumuloConnectionFactory.Priority.NORMAL, this.logic, q, "", principal, queryMetricFactory);

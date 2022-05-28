@@ -7,13 +7,10 @@ import datawave.query.Constants;
 import datawave.query.exceptions.DatawaveFatalQueryException;
 import datawave.query.exceptions.FullTableScansDisallowedException;
 import datawave.query.jexl.JexlASTHelper;
-import datawave.query.planner.DefaultQueryPlanner;
 import datawave.query.planner.QueryPlanner;
 import datawave.query.planner.document.batch.DocumentQueryPlanner;
 import datawave.query.planner.rules.RegexPushdownTransformRule;
-import datawave.query.tables.document.batch.DocumentLogic;
 import datawave.query.testframework.AbstractDocumentQueryTest;
-import datawave.query.testframework.AbstractFunctionalQuery;
 import datawave.query.testframework.AccumuloSetup;
 import datawave.query.testframework.CitiesDataType;
 import datawave.query.testframework.CitiesDataType.CityEntry;
@@ -25,11 +22,9 @@ import datawave.query.testframework.GenericCityFields;
 import datawave.query.testframework.RawDataManager;
 import org.apache.accumulo.core.data.Key;
 import org.apache.log4j.Logger;
-import org.easymock.EasyMock;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.powermock.api.easymock.PowerMock;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,7 +38,7 @@ import static datawave.query.testframework.RawDataManager.RE_OP;
 import static datawave.query.testframework.RawDataManager.RN_OP;
 import static org.junit.Assert.fail;
 
-public class DocumentLogicTest extends AbstractDocumentQueryTest {
+public class DocumentLogicTestKryo extends AbstractDocumentQueryTest {
 
     @ClassRule
     public static AccumuloSetup accumuloSetup = new AccumuloSetup();
@@ -61,7 +56,7 @@ public class DocumentLogicTest extends AbstractDocumentQueryTest {
 
     }
 
-    public DocumentLogicTest() {
+    public DocumentLogicTestKryo() {
         super(CitiesDataType.getManager());
     }
 

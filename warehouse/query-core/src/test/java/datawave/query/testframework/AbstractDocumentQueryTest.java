@@ -19,6 +19,7 @@ import datawave.query.jexl.visitors.TreeEqualityVisitor;
 import datawave.query.jexl.visitors.TreeFlatteningRebuildingVisitor;
 import datawave.query.planner.DefaultQueryPlanner;
 import datawave.query.planner.QueryPlanner;
+import datawave.query.planner.document.batch.DocumentQueryPlanner;
 import datawave.query.tables.CountingShardQueryLogic;
 import datawave.query.tables.ShardQueryLogic;
 import datawave.query.tables.ShardedBaseQueryLogic;
@@ -101,5 +102,10 @@ public abstract class AbstractDocumentQueryTest extends AbstractBaseQueryFramewo
 
     protected DocumentLogic createQueryLogic(){
         return new DocumentLogic();
+    }
+
+    @Override
+    protected QueryPlanner createQueryPlanner(){
+        return new DocumentQueryPlanner();
     }
 }
