@@ -69,9 +69,9 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
             }
             else {
                 JsonObject key = new JsonObject();
-                key.addProperty("row", metadata.getRow().toString());
-                key.addProperty("cf", metadata.getColumnFamily().toString());
-                key.addProperty("cq", metadata.getColumnQualifier().toString());
+//                key.addProperty("row", metadata.getRow().toString());
+  //              key.addProperty("cf", metadata.getColumnFamily().toString());
+    //            key.addProperty("cq", metadata.getColumnQualifier().toString());
                 key.addProperty("cv", metadata.getColumnVisibility().toString());
                 key.addProperty("timestamp", metadata.getTimestamp());
                 jsonObject.add("key", key);
@@ -291,8 +291,9 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
         if (jsonElement.isJsonObject()){
             JsonObject obj = (JsonObject)jsonElement;
             if (obj.has("doc.key")){
-                JsonObject jsonKey = obj.getAsJsonObject("doc.key").getAsJsonObject("key");
-                key = new Key(jsonKey.get("row").getAsString(),jsonKey.get("cf").getAsString(),jsonKey.get("cq").getAsString(),jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
+                JsonObject jsonKey = obj.getAsJsonObject("doc.key").getAsJsonObject("doc.key");
+            //    key = new Key(jsonKey.get("row").getAsString(),jsonKey.get("cf").getAsString(),jsonKey.get("cq").getAsString(),jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
+                key = new Key("","","",jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
             }
             obj.remove("doc.key");
         }
