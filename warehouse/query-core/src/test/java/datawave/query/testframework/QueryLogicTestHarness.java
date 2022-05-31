@@ -170,7 +170,7 @@ public class QueryLogicTestHarness {
                 continue;
             }
 
-            final Document document = entry.getAs(Document.class);
+            final Document document = entry.getAsDocument();
 
             // check all of the types to ensure that all are keepers as defined in the
             // AttributeFactory class
