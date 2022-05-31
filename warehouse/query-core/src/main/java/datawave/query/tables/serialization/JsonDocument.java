@@ -27,13 +27,14 @@ public class JsonDocument implements SerializedDocumentIfc{
     }
 
     @Override
-    public <T> T getAs(Class<?> as){
-        if (as == Document.class){
-        return (T)deser.deserialize(new ByteArrayInputStream(doc.toString().getBytes(StandardCharsets.UTF_8)));
-        }
-
+    public <T> T get(){
         return (T)(doc);
 
+    }
+
+    @Override
+    public Document getAsDocument() {
+        return deser.deserialize(new ByteArrayInputStream(doc.toString().getBytes(StandardCharsets.UTF_8)));
     }
 
     @Override

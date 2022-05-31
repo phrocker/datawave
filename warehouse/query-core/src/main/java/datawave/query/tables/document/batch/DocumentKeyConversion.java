@@ -22,6 +22,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.util.Map;
+import java.util.Objects;
 
 public class DocumentKeyConversion {
 
@@ -32,6 +33,7 @@ public class DocumentKeyConversion {
     static final JsonParser jsonParser = new JsonParser();
 
     public static SerializedDocumentIfc getDocument(DocumentSerialization.ReturnType returnType, boolean docRawFields, TKeyValue kv){
+        Objects.requireNonNull(kv,"Key Value object must be non-null");
         SerializedDocumentIfc document = null;
         byte [] array = kv.value.array();
         int offset = 0;

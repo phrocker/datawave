@@ -2,6 +2,7 @@ package datawave.query;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.MessageFormat;
@@ -104,7 +105,21 @@ public class DocumentSerialization {
                 (byte) (DOC_MAGIC >> 8), // Magic number (short)
                 (byte) compression};
     }
-    
+
+    private static int toLittleEndian(int value){
+        return ((value >> 8) & 0xff) | ((value & 0xff) << 8);
+    }
+
+    public static byte[] writeBodyWithHeader(byte [] data, int compression) throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
+        dataOutputStream.writeShort(toLittleEndian(DOC_MAGIC));
+        byte comp = (byte)compression;
+        dataOutputStream.writeByte(compression);
+        dataOutputStream.write(writeBody(data,compression));
+        return outputStream.toByteArray();
+    }
+
     public static byte[] writeBody(byte[] data, int compression) throws InvalidDocumentHeader {
         if (NONE == compression) {
             return data;
@@ -183,7 +198,7 @@ public class DocumentSerialization {
     }
     
     /*
-     * Reads unsigned short in Intel byte order.
+     * Reads unsigned short in little endian ( aka Intel ) byte order.
      */
     private static int readUShort(InputStream in) throws InvalidDocumentHeader {
         int b = readUByte(in);

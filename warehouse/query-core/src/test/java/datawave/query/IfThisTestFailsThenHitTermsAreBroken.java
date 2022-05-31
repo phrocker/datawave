@@ -230,7 +230,7 @@ public class IfThisTestFailsThenHitTermsAreBroken extends AbstractDocumentQueryT
         Set<Document> docs = new HashSet<>();
         for (SerializedDocumentIfc entry : logic) {
 
-            Document d = entry.getAs(Document.class);
+            Document d = entry.getAsDocument();
             
             //log.debug(entry.getKey() + " => " + d);
             
