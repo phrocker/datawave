@@ -103,9 +103,9 @@ public class JsonDocumentTransformer extends JsonDocumentTransformerSupport<Seri
 
     private EventBase _transform(SerializedDocumentIfc documentEntry) throws EmptyObjectException {
             if (asDocument || (!asDocument && documentEntry instanceof SerializedDocument)){
-                return _transform( documentEntry.computeKey(), (Document)documentEntry.getAs(Document.class) );
+                return _transform( documentEntry.computeKey(), documentEntry.getAsDocument());
             }else{
-                return _transform(documentEntry.computeKey(),documentEntry,  (JsonObject)documentEntry.getAs(JsonObject.class) );
+                return _transform(documentEntry.computeKey(),documentEntry, documentEntry.get());
             }
     }
 

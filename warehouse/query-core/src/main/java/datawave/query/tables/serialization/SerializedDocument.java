@@ -16,8 +16,13 @@ public class SerializedDocument implements SerializedDocumentIfc{
     }
 
     @Override
-    public <T> T getAs(Class<?> as) {
+    public <T> T get() {
         return (T)doc;
+    }
+
+    @Override
+    public Document getAsDocument(){
+        return doc;
     }
 
     @Override

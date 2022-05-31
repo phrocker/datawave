@@ -40,4 +40,12 @@ public class JsonDocumentSerializerTest {
         Document doc = deser.deserialize(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
         Assert.assertEquals(0, doc.size());
     }
+
+    @Test
+    public void testNullDocument(){
+        final String json = "";
+        DocumentJsonDeserializer deser = new DocumentJsonDeserializer();
+        Document doc = deser.deserialize(new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8)));
+        Assert.assertNull(doc);
+    }
 }
