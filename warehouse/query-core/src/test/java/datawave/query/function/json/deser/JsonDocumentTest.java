@@ -42,7 +42,7 @@ public class JsonDocumentTest {
         Key key = new Key("a","b");
         JsonObject obj = (JsonObject)parser.parse(json);
         JsonDocument jdoc = new JsonDocument(obj,key.toThrift(),2);
-        String doc = jdoc.get();
+        String doc = jdoc.get();// class cast exception
 
     }
 
