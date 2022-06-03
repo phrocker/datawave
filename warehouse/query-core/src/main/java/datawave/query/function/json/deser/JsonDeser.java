@@ -211,7 +211,10 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
                 JsonObject obj = (JsonObject)element;
                 if ( obj.has("key") ){ // it has metadata
                     JsonObject jsonKey = obj.getAsJsonObject("key");
-                    key = new Key(jsonKey.get("row").getAsString(),jsonKey.get("cf").getAsString(),jsonKey.get("cq").getAsString(),jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
+                    // we don't need the full key.
+                    //key = new Key(jsonKey.get("row").getAsString(),jsonKey.get("cf").getAsString(),jsonKey.get("cq").getAsString(),jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
+
+                    key = new Key("","","",jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
                 }else if (obj.has("doc.key")){
                     key = docKey;
                 }
@@ -292,6 +295,7 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
             JsonObject obj = (JsonObject)jsonElement;
             if (obj.has("doc.key")){
                 JsonObject jsonKey = obj.getAsJsonObject("doc.key").getAsJsonObject("doc.key");
+                // we don't need the full key
             //    key = new Key(jsonKey.get("row").getAsString(),jsonKey.get("cf").getAsString(),jsonKey.get("cq").getAsString(),jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
                 key = new Key("","","",jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
             }

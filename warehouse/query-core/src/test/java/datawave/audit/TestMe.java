@@ -22,6 +22,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 
+/**
+ * This is a quick performance test that shows GSON, jackson, and kryo comparisons.
+ *
+ * In many cases gson will come closer to kryo performance. What this demonstrates is that
+ *
+ * if we are required or need serialization and deserialization to occur , kryo is better. If
+ *
+ * we removed the need for tserver documents to be converted to json then to webserver document POJOs ( in other words
+ *
+ * we removed the need for deser ), and we could return the json natively through the webserver, we could achieve
+ *
+ * improvements to the clients without a deserialization process. THe serialization for gson is slower than jackson in
+ *
+ * these microbenchmarks, and kryo, but not enough to be of concern.
+ *
+ * The test, below, is a micro benchmark that generates random documents to test through the various methods.
+ */
 public class TestMe {
 
     private Document docGenerator(int attributes){
