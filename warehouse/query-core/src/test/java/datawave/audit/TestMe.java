@@ -38,6 +38,9 @@ import java.util.stream.IntStream;
  * these microbenchmarks, and kryo, but not enough to be of concern.
  *
  * The test, below, is a micro benchmark that generates random documents to test through the various methods.
+ *
+ * @TODO add the document transformer to this so we can prove, in a microbenchmark, that the secondary translation
+ * is costly. Then add the byte translation part from the accumulo client.
  */
 public class TestMe {
 
@@ -117,7 +120,6 @@ public class TestMe {
         System.out.println( runGSONTest(docCount,attributeCount).summarize());
         System.out.println( runJSONTest(docCount,attributeCount).summarize());
         System.out.println( runKryoTest(docCount,attributeCount).summarize());
-
     }
 
     @FunctionalInterface
