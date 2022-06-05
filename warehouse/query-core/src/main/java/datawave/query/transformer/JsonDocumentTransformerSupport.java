@@ -649,6 +649,6 @@ public abstract class JsonDocumentTransformerSupport<I,O> extends EventQueryTran
     }
     
     public void setPrimaryToSecondaryFieldMap(Map<String,List<String>> primaryToSecondaryFieldMap) {
-        //addTransform(new FieldMappingTransform(primaryToSecondaryFieldMap, reducedResponse));
+        addTransform(new JsonDocumentFieldMappingTransform(primaryToSecondaryFieldMap, reducedResponse));
     }
 }
