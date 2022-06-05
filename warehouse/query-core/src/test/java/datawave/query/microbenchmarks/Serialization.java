@@ -1,4 +1,4 @@
-package datawave.audit;
+package datawave.query.microbenchmarks;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,7 +42,7 @@ import java.util.stream.IntStream;
  * @TODO add the document transformer to this so we can prove, in a microbenchmark, that the secondary translation
  * is costly. Then add the byte translation part from the accumulo client.
  */
-public class TestMe {
+public class Serialization {
 
     private Document docGenerator(int attributes){
         Document doc = new Document();
