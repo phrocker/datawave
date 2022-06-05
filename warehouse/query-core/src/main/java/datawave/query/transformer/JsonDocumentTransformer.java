@@ -97,7 +97,13 @@ public class JsonDocumentTransformer extends JsonDocumentTransformerSupport<Seri
     
     @Override
     public EventBase transform(SerializedDocumentIfc documentEntry) throws EmptyObjectException {
-
+        for (JsonDocumentTransform transform : transforms) {
+            if (documentEntry != null) {
+                documentEntry = transform.apply(documentEntry);
+            } else {
+                break;
+            }
+        }
         return _transform(documentEntry);
     }
 

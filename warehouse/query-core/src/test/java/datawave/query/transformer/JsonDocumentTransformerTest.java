@@ -304,7 +304,7 @@ public class JsonDocumentTransformerTest { // extends EasyMockSupport {
         fieldMap.put("field2", fieldList);
         
         Document d = new Document(key,true);
-        basicExpects(d, key, entry, 2);
+        basicExpects(d, key, entry, 3);
         SerializedDocument doc = new SerializedDocument(d);
         EasyMock.expect(mockResponseFactory.getField()).andReturn(new SimpleField());
         
@@ -349,10 +349,10 @@ public class JsonDocumentTransformerTest { // extends EasyMockSupport {
         Document d = new Document(key,true);
         d.put("field3", new Numeric("6", key, true));
         SerializedDocument doc = new SerializedDocument(d);
-        basicExpects(d, key, entry, 3);
+        basicExpects(d, key, entry, 4);
 
         EasyMock.expect(mockResponseFactory.getField()).andReturn(new SimpleField());
-        //EasyMock.expect(mockResponseFactory.getField()).andReturn(new SimpleField());
+        EasyMock.expect(mockResponseFactory.getField()).andReturn(new SimpleField());
         
         PowerMock.replayAll();
         
@@ -363,7 +363,7 @@ public class JsonDocumentTransformerTest { // extends EasyMockSupport {
         PowerMock.verifyAll();
         
         Assert.assertNotNull(event);
-        Assert.assertEquals(2, event.getFields().size());
+        Assert.assertEquals(3, event.getFields().size());
         
         List<String> foundFields = new ArrayList<>(3);
         for (SimpleField field : event.getFields()) {
