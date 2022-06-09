@@ -35,7 +35,8 @@ import java.util.Iterator;
 import java.util.Set;
 
 /**
- * Extends the premises defined in shard query logic
+ * Extends the premise defined in shard query logic to support returning a SerializedDocumentIfc type through
+ * the iterator.
  */
 public class DocumentLogic extends ShardedBaseQueryLogic<SerializedDocumentIfc, DocumentQueryConfiguration> {
 
