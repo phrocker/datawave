@@ -100,6 +100,7 @@ public abstract class AbstractDocumentQueryTest extends AbstractBaseQueryFramewo
         super(mgr);
     }
 
+    @Override
     protected DocumentLogic createQueryLogic(){
         return new DocumentLogic();
     }
