@@ -1,37 +1,13 @@
 package datawave.query.config;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.google.common.collect.*;
-import datawave.data.type.DiscreteIndexType;
-import datawave.data.type.NoOpType;
-import datawave.data.type.Type;
-import datawave.query.Constants;
-import datawave.query.DocumentSerialization;
-import datawave.query.DocumentSerialization.ReturnType;
 import datawave.query.QueryParameters;
-import datawave.query.attributes.Document;
-import datawave.query.attributes.UniqueFields;
-import datawave.query.function.DocumentPermutation;
-import datawave.query.iterator.QueryIterator;
-import datawave.query.iterator.ivarator.IvaratorCacheDirConfig;
-import datawave.query.jexl.JexlASTHelper;
-import datawave.query.model.QueryModel;
 import datawave.query.tables.document.batch.DocumentLogic;
-import datawave.query.tld.TLDQueryIterator;
-import datawave.query.util.QueryStopwatch;
-import datawave.util.TableName;
-import datawave.util.UniversalSet;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl;
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 
 import java.io.Serializable;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 /**
  * <p>

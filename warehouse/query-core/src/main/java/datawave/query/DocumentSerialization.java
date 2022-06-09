@@ -114,7 +114,6 @@ public class DocumentSerialization {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
         dataOutputStream.writeShort(toLittleEndian(DOC_MAGIC));
-        byte comp = (byte)compression;
         dataOutputStream.writeByte(compression);
         dataOutputStream.write(writeBody(data,compression));
         return outputStream.toByteArray();

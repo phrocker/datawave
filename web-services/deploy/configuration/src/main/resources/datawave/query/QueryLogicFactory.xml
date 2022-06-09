@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <beans xmlns="http://www.springframework.org/schema/beans"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xmlns:util="http://www.springframework.org/schema/util"
     xmlns:context="http://www.springframework.org/schema/context"
     xsi:schemaLocation="http://www.springframework.org/schema/beans
-    http://www.springframework.org/schema/beans/spring-beans-4.0.xsd 
+    http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
     http://www.springframework.org/schema/context
     http://www.springframework.org/schema/context/spring-context-4.0.xsd
     http://www.springframework.org/schema/util
@@ -57,19 +57,22 @@
         <bean class="datawave.query.language.functions.jexl.Geowave.Intersects"/>
         <bean class="datawave.query.language.functions.jexl.Geowave.Overlaps"/>
         <bean class="datawave.query.language.functions.jexl.Geowave.Within"/>
+<<<<<<< HEAD
         <bean class="datawave.query.language.functions.jexl.EvaluationOnly">
             <property name="parser" ref="LuceneToJexlQueryParser"/>
         </bean>
         <bean class="datawave.query.language.functions.jexl.ExcerptFields"/>
         <bean class="datawave.query.language.functions.jexl.Matches"/>
+=======
+>>>>>>> 6518e1cb1 (Apply changes from PR  #7 . Fix issue with JsonDeser from. Add scanner seralization micro benchmark)
     </util:list>
 
-    <!-- Fields we should not tokenize in a tokenized query. In non-tokenized 
+    <!-- Fields we should not tokenize in a tokenized query. In non-tokenized
          the field name is simply removed -->
     <util:set id="skipTokenizeFields" value-type="java.lang.String">
         <value>DOMETA</value>
     </util:set>
-    
+
     <!-- Fields we should tokenize in a tokenized query -->
     <util:set id="tokenizeFields" value-type="java.lang.String">
         <value>CONTENT</value>
@@ -93,7 +96,28 @@
     </bean>
 
     <bean id="DefaultQueryPlanner" scope="prototype" class="datawave.query.planner.DefaultQueryPlanner" >
+        <property name="reduceQuery" value="false" />
+        <property name="sourceLimit" value="75" />
         <property name="compressOptionMappings" value="true" />
+        <property name="pushdownThreshold" value="2048" />
+        <property name="queryModelProviderFactory" ref="queryModelProviderFactory" />
+        <!-- the first integer arg is to define the number of ranges per batch -->
+        <constructor-arg>
+            <value>2611</value>
+        </constructor-arg>
+        <!-- the second boolean arg is to turn on/off the limiting of the batch scanners -->
+        <constructor-arg>
+            <value>true</value>
+        </constructor-arg>
+        <!--<lookup-method name="getQueryModelProvider" bean="metadataHelperQueryModelProvider" />-->
+    </bean>
+
+    <bean id="DocumentQueryPlanner" scope="prototype" class="datawave.query.planner.document.batch.DocumentQueryPlanner" >
+        <property name="reduceQuery" value="false" />
+        <property name="sourceLimit" value="75" />
+        <property name="compressOptionMappings" value="true" />
+        <property name="pushdownThreshold" value="2048" />
+        <property name="maxRangeWaitMillis" value="10" />
         <property name="queryModelProviderFactory" ref="queryModelProviderFactory" />
         <property name="visitorManager" ref="TimedVisitorManager"/>
         <!-- the first integer arg is to define the number of ranges per batch -->
@@ -114,7 +138,7 @@
     <bean id="wiredQueryModelProvider" scope="prototype" class="datawave.query.planner.WiredQueryModelProvider" >
         <property name="queryModel">
             <util:map>
-                ${lookup.uuid.mappings}
+                
             </util:map>
         </property>
 
@@ -187,31 +211,29 @@
         <property name="userOperations" ref="MyRemoteUserOps" />
     </bean>
 
-    <bean id="BaseEventQuery" parent="baseQueryLogic" class="datawave.query.tables.ShardQueryLogic" abstract="true">
-        <property name="accumuloPassword" value="${accumulo.user.password}" />
+    <!-- <bean id="BaseEventQuery" parent="baseQueryLogic" class="datawave.query.tables.ShardQueryLogic" abstract="true"> -->
+    <bean id="BaseEventQuery" parent="baseQueryLogic" class="datawave.query.tables.document.batch.DocumentLogic" abstract="true">
+	<property name="accumuloPassword" value="${accumulo.user.password}" />
         <property name="tableName" value="${shard.table.name}" />
-        <property name="dateIndexTableName" value="${date.index.table.name}" />
         <property name="dateIndexHelperFactory" ref="dateIndexHelperFactory" />
-        <property name="defaultDateTypeName" value="${default.date.type.name}"/>
-        <property name="metadataTableName" value="${metadata.table.name}" />
+        <property name="defaultDateTypeName" value="EVENT"/>
         <property name="metadataHelperFactory" ref="metadataHelperFactory" />
-        <property name="indexTableName" value="${index.table.name}" />
-        <property name="reverseIndexTableName" value="${rindex.table.name}" />
-        <property name="maxResults" value="${event.query.max.results}" />
-        <property name="queryThreads" value="${shard.query.threads}" />
-        <property name="indexLookupThreads" value="${index.query.threads}" />
-        <property name="dateIndexThreads" value="${date.index.threads}" />
-        <property name="fullTableScanEnabled" value="${beq.fullTableScanEnabled}" />
+        <property name="maxResults" value="-1" />
+        <property name="fullTableScanEnabled" value="false" />
         <property name="includeDataTypeAsField" value="false" />
-        <property name="disableIndexOnlyDocuments" value="${disable.index.only.documents}" />
-        <property name="indexOnlyFilterFunctionsEnabled" value="${enable.index.only.filter.functions}" />
-        <property name="includeHierarchyFields" value="${include.hierarchy.fields}" />
+        <property name="disableIndexOnlyDocuments" value="false" />
+        <property name="indexOnlyFilterFunctionsEnabled" value="true" />
+        <property name="includeHierarchyFields" value="false" />
         <property name="hierarchyFieldOptions"  ref="BaseEventQueryHierarchyFieldOptions" />
-        <property name="baseIteratorPriority" value="${beq.baseIteratorPriority}" />
-        <property name="maxIndexScanTimeMillis" value="${query.max.index.scan.ms}" />
-        <property name="collapseUids" value="${query.collapse.uids}" />
-        <property name="collapseUidsThreshold" value="${query.collapse.uids.threshold}"/>
+        <property name="baseIteratorPriority" value="100" />
+        <property name="maxIndexScanTimeMillis" value="60000" />
+        <property name="collapseUidsThreshold" value="-1"/>
         <property name="useEnrichers" value="true" />
+        <property name="allowShortcutEvaluation" value="true" />
+        <property name="backoffEnabled" value="true" />
+        <property name="unsortedUIDsEnabled" value="true" />
+        <property name="maxIndexBatchSize" value="200" />
+        <property name="yieldThresholdMs" value="188400" />
         <property name="contentFieldNames">
             <list value-type="java.lang.String">
                 <value>CONTENT</value>
@@ -228,10 +250,10 @@
                 <value>datawave.query.enrich.DatawaveTermFrequencyEnricher</value>
             </list>
         </property>
-        <property name="useFilters" value="${event.query.filters.enabled}" />
+        <property name="useFilters" value="false" />
         <property name="filterClassNames">
             <list value-type="java.lang.String">
-                ${event.query.filters.classnames}
+                
             </list>
         </property>
         <property name="filterOptions" ref="BaseEventQueryFilterOptions" />
@@ -239,34 +261,28 @@
         <property name="logicDescription" value="Retrieve sharded events/documents, leveraging the global index tables as needed" />
         <!-- Determines how many events in the global index lookup will be
         aggregated into a day range -->
-        <property name="eventPerDayThreshold" value="40000" />
+        <property name="eventPerDayThreshold" value="99999" />
         <!-- Determines how many shards in the global index lookup will be
         aggregated into a day range -->
-        <property name="shardsPerDayThreshold" value="${beq.shardsPerDayThreshold}" />
+<!--        <property name="shardsPerDayThreshold" value="99999" /> -->
         <!-- The max number of terms BEFORE all expansions -->
-        <property name="initialMaxTermThreshold" value="${beq.initialMaxTermThreshold}" />
+        <property name="initialMaxTermThreshold" value="2000" />
         <!-- The max number of terms AFTER all expansions -->
-        <property name="finalMaxTermThreshold" value="${beq.finalMaxTermThreshold}" />
+        <property name="finalMaxTermThreshold" value="2000" />
         <!-- The max query depth -->
-        <property name="maxDepthThreshold" value="${beq.maxDepthThreshold}" />
+        <property name="maxDepthThreshold" value="2000" />
         <!-- The max unfielded (_ANYFIELD_) expansion per term -->
-        <property name="maxUnfieldedExpansionThreshold" value="${beq.unfieldedExpansionThreshold}" />
+        <property name="maxUnfieldedExpansionThreshold" value="50" />
         <!-- The max value (regex or range) expansion -->
-        <property name="maxValueExpansionThreshold" value="${beq.valueExpansionThreshold}" />
+        <property name="maxValueExpansionThreshold" value="10000" />
         <!-- The max value or list expansion for a single field before using an ivarator -->
-        <property name="maxOrExpansionThreshold" value="${beq.orExpansionThreshold}" />
-        <!-- The max value or list expansion for a group of ranges against a single field before combining them in an ivarator -->
-        <property name="maxOrRangeThreshold" value="${beq.orRangeThreshold}" />
+        <property name="maxOrExpansionThreshold" value="10000" />
         <!-- The max value or list expansion for a single field using an FST ivarator -->
-        <property name="maxOrExpansionFstThreshold" value="${beq.orExpansionFstThreshold}" />
+        <property name="maxOrExpansionFstThreshold" value="2000000" />
         <!-- The max number of splits to divide a range into for the ivarators.  They are run in a pool of threads controlled by the tserver.datawave.ivarator.threads accumulo configuration property which defaults to 100 (IteratorThreadPoolManager). -->
         <property name="maxFieldIndexRangeSplit" value="${beq.fieldIndexRangeSplit}" />
         <!-- The max number of sources that can be created across ivarators for one scan -->
         <property name="maxIvaratorSources" value="${beq.maxIvaratorSources}" />
-        <!-- The max number of evaluation pipelines.  They are run in a pool of threads controlled by the tserver.datawave.evaluation.threads accumulo configuration property which defaults to 100 (IteratorThreadPoolManager). -->
-        <property name="maxEvaluationPipelines" value="${beq.evaluationPipelines}" />
-        <!-- The max number of non-null evaluated results to cache on each tserver beyond the evaluation pipelines in queue -->
-        <property name="maxPipelineCachedResults" value="${beq.pipelineCachedResults}" />
         <!-- the list of comma delimited hdfs configuration files something like file:///opt/datawave/hadoop-warehouse/conf/core-site.xml,file:///opt/datawave/hadoop-warehouse/conf/hdfs-site.xml-->
         <property name="hdfsSiteConfigURLs" value="${hdfs.site.config.urls}" />
         <!-- the zookeeper configuration (could be something like file:///opt/datawave/zookeeper-warehouse/conf/zoo.cfg, or the zookeeper list (somehost1:2181,somehost2:2181,…)-->
@@ -284,7 +300,6 @@
         <!-- the scan time after which the buffer is flushed to a file. -->
         <property name="ivaratorCacheScanTimeoutMinutes" value="${query.max.call.time.minutes}" />
         <property name="eventQueryDataDecoratorTransformer" ref="EventQueryDataDecoratorTransformer" />
-        <property name="modelTableName" value="${metadata.table.name}" />
         <property name="modelName" value="DATAWAVE" />
         <property name="querySyntaxParsers">
             <map key-type="java.lang.String" value-type="datawave.query.language.parser.QueryParser">
@@ -297,8 +312,7 @@
                 <!-- JEXL is the default Jexl query syntax -->
             </map>
         </property>
-        <property name="queryPlanner" ref="DefaultQueryPlanner" />
-        <property name="sendTimingToStatsd" value="false" />
+        <property name="queryPlanner" ref="DocumentQueryPlanner" />
         <property name="collectQueryMetrics" value="true" />
         <property name="logTimingDetails" value="false" />
         <property name="statsdHost" value="localhost" />
@@ -306,6 +320,48 @@
         <property name="selectorExtractor" ref="DatawaveSelectorExtractor" />
         <property name="evaluationOnlyFields" value="${evaluation.only.fields}" />
         <property name="lazySetMechanismEnabled" value="false" />
+<!-- Begin query-updates config -->
+<property name="reverseIndexTableName" value="datawave.shardReverseIndex" /> 
+<property name="sequentialScheduler" value="false" />
+<property name="maxPipelineCachedResults" value="1" />
+<property name="maxEvaluationPipelines" value="1" />
+<property name="collapseUids" value="false" />
+<property name="compressServerSideResults" value="false" />
+<property name="reducedResponse" value="false" />
+<property name="collapseDatePercentThreshold" value="0.99" />
+<property name="rangeBufferPollMillis" value="25" />
+<property name="maxScannerBatchSize" value="40000" />
+<property name="serializeQueryIterator" value="true" />
+<property name="queryThreads" value="96" />
+<property name="modelTableName" value="datawave.metadata" />
+<property name="dateIndexTableName" value="datawave.dateIndex" />
+<property name="dateIndexThreads" value="15" />
+<property name="metadataTableName" value="datawave.metadata" />
+<property name="indexLookupThreads" value="96" />
+<property name="shardsPerDayThreshold" value="9999" />
+<property name="indexTableName" value="datawave.shardIndex" />
+<property name="sendTimingToStatsd" value="false" />
+<property name="forceAllTypes" value="true" />
+<property name="allowedTypes" value="datawave.data.type.NoOpType" />
+<property name="projectFields">
+   <util:set>
+       <value>PAGE_ID</value>
+       <value>ORIG_FILE</value>
+   </util:set>
+</property>
+<property name="trackSizes" value="false" />
+<property name="typeString" value="false" />
+<property name="queueCapacity" value="50000" />
+<!--
+  Already false by default
+  <property name="docRawFields" value="false" /> -->
+<property name="numRangesToBuffer" value="50000" />
+<!-- No sign of this one in the source code
+     <property name="collapseUidsIgnoreParsing" value="true" /> -->
+<property name="pushdownLogic" value="true" />
+<property name="convertToDocument" value="false" />
+<!-- End query-updates config -->
+
     </bean>
 
     <util:list id="IvaratorCacheDirConfigs">
@@ -345,7 +401,7 @@
         <property name="columnVisibility" value="" />
         <property name="beginDate" value="${lookup.uuid.beginDate}" />
     </bean>
-    
+
     <bean id="IdTranslatorConfiguration" class="datawave.webservice.query.configuration.IdTranslatorConfiguration">
         <property name="uuidTypes" ref="UUIDTypeList" />
         <property name="columnVisibility" value="" />
@@ -362,7 +418,7 @@
         <property name="pageByteTrigger" value="${query.page.byte.trigger}" />
 
     </bean>
-    
+
     <!-- Query Logic which performs a count on fieldIndex keys -->
     <bean id="FieldIndexCountQuery" parent="baseQueryLogic" scope="prototype"  class="datawave.query.tables.shard.FieldIndexCountQueryLogic">
         <property name="tableName" value="${shard.table.name}" />
@@ -372,7 +428,7 @@
         <property name="metadataHelperFactory" ref="metadataHelperFactory" />
         <property name="maxResults" value="-1" />
         <property name="maxWork" value="-1" />
-        <property name="queryThreads" value="${shard.query.threads}" />
+        <property name="queryThreads" value="64" />
         <property name="modelTableName" value="${metadata.table.name}" />
         <property name="modelName" value="DATAWAVE" />
         <property name="maxUniqueValues" value="20000" />
@@ -418,7 +474,7 @@
         <property name="metadataHelperFactory" ref="metadataHelperFactory" />
         <property name="maxResults" value="-1" />
         <property name="maxWork" value="-1" />
-        <property name="queryThreads" value="${shard.query.threads}" />
+        <property name="queryThreads" value="64" />
         <property name="modelTableName" value="${metadata.table.name}" />
         <property name="modelName" value="DATAWAVE" />
         <property name="maxUniqueValues" value="20000" />
@@ -556,10 +612,9 @@
         <property name="auditType" value="NONE" />
         <property name="logicDescription" value="Faceted search over indexed fields, returning aggregate counts for field values" />
         <property name="facetedSearchType" value="FIELD_VALUE_FACETS" />
-        <property name="facetTableName" value="${table.name.facet}" />
-        <property name="facetMetadataTableName" value="${table.name.facet.metadata}" />
-        <property name="facetHashTableName" value="${table.name.facet.hashes}" />
-        <property name="fullTableScanEnabled" value="false" />
+        <property name="facetTableName" value="datawave.facets" />
+        <property name="facetMetadataTableName" value="datawave.facetMetadata" />
+        <property name="facetHashTableName" value="datawave.facetHashes" />
         <property name="maximumFacetGrouping" value="200" />
         <property name="minimumFacet" value="1" />
         <property name="streaming" value="true" />
@@ -582,9 +637,9 @@
         <property name="metadataHelperFactory" ref="metadataHelperFactory" />
         <property name="indexTableName" value="${index.table.name}" />
         <property name="reverseIndexTableName" value="${rindex.table.name}" />
-        <property name="queryThreads" value="${index.query.threads}" />
+        <property name="queryThreads" value="50" />
         <property name="fullTableScanEnabled" value="false" />
-        <property name="minimumSelectivity" value=".2" />
+        <property name="minimumSelectivity" value=".03" />
         <property name="includeDataTypeAsField" value="false" />
         <property name="includeGroupingContext" value="false" />
         <property name="useEnrichers" value="false" />
@@ -595,49 +650,45 @@
         <property name="eventPerDayThreshold" value="40000" />
         <!-- Determines how many shards in the global index lookup will be
         aggregated into a day range -->
-        <property name="shardsPerDayThreshold" value="${beq.shardsPerDayThreshold}" />
-        <!-- The max number of terms BEFORE all expansions -->
-        <property name="initialMaxTermThreshold" value="${beq.initialMaxTermThreshold}" />
+        <property name="shardsPerDayThreshold" value="99999" />
         <!-- The max number of terms AFTER all expansions -->
-        <property name="finalMaxTermThreshold" value="${beq.finalMaxTermThreshold}" />
+        <property name="maxTermThreshold" value="2048" />
         <!-- The max query depth -->
-        <property name="maxDepthThreshold" value="${beq.maxDepthThreshold}" />
+        <property name="maxDepthThreshold" value="2000" />
         <!-- The max unfielded (_ANYFIELD_) expansion per term -->
-        <property name="maxUnfieldedExpansionThreshold" value="${beq.unfieldedExpansionThreshold}" />
+        <property name="maxUnfieldedExpansionThreshold" value="50" />
         <!-- The max value (regex or range) expansion -->
-        <property name="maxValueExpansionThreshold" value="${beq.valueExpansionThreshold}" />
+        <property name="maxValueExpansionThreshold" value="100" />
         <!-- The max value or list expansion for a single field before using an ivarator -->
-        <property name="maxOrExpansionThreshold" value="${beq.orExpansionThreshold}" />
-        <!-- The max value or list expansion for a group of ranges against a single field before combining them in an ivarator -->
-        <property name="maxOrRangeThreshold" value="${beq.orRangeThreshold}" />
+        <property name="maxOrExpansionThreshold" value="100" />
         <!-- The maximum number of ranges to combine for merged range ivarators against a single field within an or node -->
-        <property name="maxRangesPerRangeIvarator" value="${beq.maxRangesPerRangeIvarator}" />
+        <property name="maxRangesPerRangeIvarator" value="5" />
         <!-- The maximum number of range ivarators allowed for a single field under an or node -->
-        <property name="maxOrRangeIvarators" value="${beq.maxOrRangeIvarators}" />
+        <property name="maxOrRangeIvarators" value="10" />
         <!-- The max value or list expansion for a single field using an FST ivarator -->
-        <property name="maxOrExpansionFstThreshold" value="${beq.orExpansionFstThreshold}" />
+        <property name="maxOrExpansionFstThreshold" value="2000000" />
         <!-- The max number of splits to divide a range into for the ivarators.  They are run in a pool of threads controlled by the tserver.datawave.ivarator.threads accumulo configuration property which defaults to 100 (IteratorThreadPoolManager). -->
-        <property name="maxFieldIndexRangeSplit" value="${beq.fieldIndexRangeSplit}" />
+        <property name="maxFieldIndexRangeSplit" value="3" />
         <!-- The max number of evaluation pipelines.  They are run in a pool of threads controlled by the tserver.datawave.evaluation.threads accumulo configuration property which defaults to 100 (IteratorThreadPoolManager). -->
-        <property name="maxEvaluationPipelines" value="${beq.evaluationPipelines}" />
+        <property name="maxEvaluationPipelines" value="1" />
         <!-- The max number of non-null evaluated results to cache on each tserver beyond the evaluation pipelines in queue -->
-        <property name="maxPipelineCachedResults" value="${beq.pipelineCachedResults}" />
+        <property name="maxPipelineCachedResults" value="1" />
         <!-- the list of comma delimited hdfs configuration files something like file:///opt/datawave/hadoop-warehouse/conf/core-site.xml,file:///opt/datawave/hadoop-warehouse/conf/hdfs-site.xml-->
-        <property name="hdfsSiteConfigURLs" value="${hdfs.site.config.urls}" />
+        <property name="hdfsSiteConfigURLs" value="file:///home/centos/install/hadoop-3.3.1/etc/hadoop/core-site.xml,file:///home/centos/install/hadoop-3.3.1/etc/hadoop/hdfs-site.xml" />
         <!-- the zookeeper configuration (could be something like file:///opt/datawave/zookeeper-warehouse/conf/zoo.cfg, or the zookeeper list (somehost1:2181,somehost2:2181,…)-->
-        <property name="zookeeperConfig" value="${ivarator.zookeeper.hosts}" />
+        <property name="zookeeperConfig" value="" />
         <!-- the list of directories in which the ivarator puts its caches (selection always made on tserver side) -->
         <property name="ivaratorCacheDirConfigs" ref="IvaratorCacheDirConfigs" />
         <!-- the hdfs location where FST's will be stored (see maxOrExpansionFstThreshold above) -->
-        <property name="ivaratorFstHdfsBaseURIs" value ="${ivarator.fst.hdfs.base.uris}" />
+        <property name="ivaratorFstHdfsBaseURIs" value ="hdfs:///IvaratorCache" />
         <!-- the size after which a buffer is flushed to a file. -->
         <property name="ivaratorCacheBufferSize" value="10000" />
         <!-- the max number of open files in an ivarator -->
-        <property name="ivaratorMaxOpenFiles" value="${beq.maxIvaratorOpenFiles}" />
+        <property name="ivaratorMaxOpenFiles" value="100" />
         <!-- the number of keys scanned after which the buffer is flushed to a file. -->
         <property name="ivaratorCacheScanPersistThreshold" value="100000" />
         <!-- the scan time after which the buffer is flushed to a file. -->
-        <property name="ivaratorCacheScanTimeoutMinutes" value="${query.max.call.time.minutes}" />
+        <property name="ivaratorCacheScanTimeoutMinutes" value="60" />
         <property name="querySyntaxParsers">
             <map key-type="java.lang.String" value-type="datawave.query.language.parser.QueryParser">
                 <entry key="JEXL">
@@ -656,12 +707,16 @@
         <property name="queryLogicFactoryConfiguration" ref="QueryLogicFactoryConfiguration" />
     </bean>
 
+    <bean id="queryMetricHandler" scope="prototype" class="datawave.query.metrics.ShardTableQueryMetricHandler">
+        <property name="queryLogicFactory" ref="queryLogicFactory"/>
+    </bean>
+
     <bean id="datawaveRoleManager" class="datawave.webservice.query.logic.DatawaveRoleManager" />
-    
+
     <bean id="easyRoleManager" class="datawave.webservice.query.logic.EasyRoleManager" />
-    
-    <!-- 
-        Factory method config for creating whatever model we want for the default. 
+
+    <!--
+        Factory method config for creating whatever model we want for the default.
         Provides a fall-back model in the event that the named query model 'modelName'
         isn't defined in Accumulo for whatever reason...
     -->

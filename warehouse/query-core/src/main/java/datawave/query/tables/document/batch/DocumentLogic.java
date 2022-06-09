@@ -223,4 +223,84 @@ public class DocumentLogic extends ShardedBaseQueryLogic<SerializedDocumentIfc, 
     }
 
 
+    public boolean getSerializeQueryIterator() {
+        return getConfig().getSerializeQueryIterator();
+    }
+
+    public void setSerializeQueryIterator(boolean serializeQueryIterator) {
+        getConfig().setSerializeQueryIterator(serializeQueryIterator);
+    }
+
+    public String getAllowedTypes() {
+        return getConfig().getAllowedTypes();
+    }
+
+    public void setAllowedTypes(String allowedTypes){
+        getConfig().setAllowedTypes(allowedTypes);
+    }
+
+    public boolean getForceAllTypes() {
+        return getConfig().getForceAllTypes();
+    }
+
+    public void setForceAllTypes(boolean forceAllTypes) {
+        getConfig().setForceAllTypes(forceAllTypes);
+    }
+
+    public Set<String> getProjectFields() {
+        return getConfig().getProjectFields();
+    }
+
+    public void setProjectFields(Set<String> projectFields) {
+        getConfig().setProjectFields(projectFields);
+    }
+
+    public boolean getTypeString() {
+        return getConfig().getTypeString();
+    }
+
+    public void setTypeString(final Boolean setType){
+        getConfig().setTypeString(setType);
+    }
+
+    public int getQueueCapacity() {
+        return getConfig().getQueueCapacity();
+    }
+
+    public void setQueueCapacity(int queueCapacity){
+        getConfig().setQueueCapacity(queueCapacity);
+    }
+
+    public boolean getPushdownLogic() {
+        return getConfig().getPushdownLogic();
+    }
+
+    public void setPushdownLogic(boolean pushdownLogic){
+        getConfig().setPushdownLogic(pushdownLogic);
+    }
+
+    public boolean getConvertToDocument() {
+        return getConfig().getConvertToDocument();
+    }
+
+    public void setConvertToDocument(boolean document){
+        getConfig().setConvertToDocument(document);
+    }
+
+    public int getInitialMaxTermThreshold() {
+        return getConfig().getInitialMaxTermThreshold();
+    }
+
+    public void setInitialMaxTermThreshold(int initialMaxTermThreshold) {
+        getConfig().setInitialMaxTermThreshold(initialMaxTermThreshold);
+    }
+
+    public int getFinalMaxTermThreshold() {
+        return getConfig().getFinalMaxTermThreshold();
+    }
+
+    public void setFinalMaxTermThreshold(int finalMaxTermThreshold) {
+        getConfig().setFinalMaxTermThreshold(finalMaxTermThreshold);
+    }
+
 }
