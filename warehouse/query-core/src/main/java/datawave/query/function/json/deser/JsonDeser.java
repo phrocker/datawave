@@ -74,7 +74,7 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
     //            key.addProperty("cq", metadata.getColumnQualifier().toString());
                 key.addProperty("cv", metadata.getColumnVisibility().toString());
                 key.addProperty("timestamp", metadata.getTimestamp());
-                jsonObject.add("key", key);
+                jsonObject.add("doc.key", key);
             }
 
         }

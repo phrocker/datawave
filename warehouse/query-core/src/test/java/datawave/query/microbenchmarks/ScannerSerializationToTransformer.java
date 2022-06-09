@@ -1,19 +1,25 @@
 package datawave.query.microbenchmarks;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Maps;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import datawave.data.type.NoOpType;
+import datawave.marking.MarkingFunctionsFactory;
 import datawave.query.DocumentSerialization;
-import datawave.query.attributes.Content;
 import datawave.query.attributes.Document;
 import datawave.query.attributes.TypeAttribute;
-import datawave.query.function.deserializer.DocumentJsonDeserializer;
-import datawave.query.function.deserializer.KryoDocumentDeserializer;
 import datawave.query.function.serializer.JsonDocumentSerializer;
 import datawave.query.function.serializer.KryoDocumentSerializer;
 import datawave.query.tables.document.batch.DocumentKeyConversion;
+import datawave.query.tables.document.batch.DocumentLogic;
+import datawave.query.tables.serialization.JsonDocument;
+import datawave.query.transformer.DocumentTransformer;
+import datawave.query.transformer.JsonDocumentTransformer;
 import datawave.query.util.QueryStopwatch;
+import datawave.webservice.query.Query;
+import datawave.webservice.query.QueryImpl;
+import datawave.webservice.query.result.event.DefaultResponseObjectFactory;
+import datawave.webservice.query.result.event.EventBase;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TKey;
@@ -24,26 +30,22 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 
 /**
- * This is a micro microbenchmark attempting to replicate the interaction between the tserver and webserver.
+ * This is a micro microbenchmark attempting to replicate the interaction between the tserver and webserver responses.
  *
- * In many cases the serialization is faster in kryo. This is becaues kryo is doing a single serialization, where as
+ * It is expected that GSON is faster than kryo deserialization because certain liberties can be taken. These same
  *
- * json incurs a document pojo -> JSON object conversion during serialization. Eliminating this would further improve
+ * liberties can be made within Kryo, but JSON is a human-readable structure. Serialization is expected to be faster
  *
- * performance. The value of this microbenchmark is showing that deser is faster with json when we use the JSON object
- *
- * as the return from the tserver. Further, the serialization step can occur on 1 to many tservers, so the difference
- *
- * in time is minimal. Documents still must be converted into webserver responses, as the JSON could be curated as
- *
- * the final response object from the webserver.
+ * with kryo; however, these serializations can be distributed amongst many tservers.
  */
-public class ScannerSerialization {
+public class ScannerSerializationToTransformer {
 
     private Document docGenerator(int attributes){
         Document doc = new Document();
@@ -70,7 +72,7 @@ public class ScannerSerialization {
         initwatch.stop();
 
         var convertStopWatch = stopWatch.newStartedStopwatch("Time to convert " + docCount + " " + name +" docs...serialization");
-        TKey key = new Key("a","b","c","d").toThrift();
+        TKey key = new Key("20220607_1","abcx\u0000efghi","c","d").toThrift();
         for(int i=0;i < documents.size(); i++) {
             TKeyValue tkv = new TKeyValue();
             tkv.setValue(DocumentSerialization.writeBodyWithHeader(ser.serialize(documents.get(i)),0));
@@ -86,8 +88,8 @@ public class ScannerSerialization {
             ntkv.setKey(tkv.getKey());
             ntkv.setValue(tkv.value);
 
-            Document newDoc = deser.deserialize(ntkv);
-            Assert.assertEquals(attributeCount,newDoc.size());
+            EventBase newDoc = deser.deserialize(ntkv);
+            Assert.assertEquals(attributeCount,newDoc.getFields().size());
         }
         convertStopWatch.stop();
 
@@ -96,7 +98,7 @@ public class ScannerSerialization {
 
     QueryStopwatch runTestWithoutValue(int docCount,int attributeCount, String name, SerializeMe ser, JsonDeSerializeMe deser) throws IOException {
         final List<Document> documents = new ArrayList<>();
-        List<TKeyValue> arrays = new ArrayList<>(docCount);
+        List<JsonDocument> arrays = new ArrayList<>(docCount);
         QueryStopwatch stopWatch = new QueryStopwatch();
         var initwatch = stopWatch.newStartedStopwatch("Time to generate 100k docs");
         IntStream.range(0,docCount).forEach(x -> {
@@ -106,18 +108,17 @@ public class ScannerSerialization {
         initwatch.stop();
 
         var convertStopWatch = stopWatch.newStartedStopwatch("Time to convert " + docCount + " " + name +" docs...serialization");
-        TKey key = new Key("a","b","c","d").toThrift();
+        TKey key = new Key("20220607_1","abcx\u0000efghi","c","d").toThrift();
+        JsonParser parser = new JsonParser();
         for(int i=0;i < documents.size(); i++) {
-            TKeyValue tkv = new TKeyValue();
-            tkv.setKey(key);
-            tkv.setValue(DocumentSerialization.writeBodyWithHeader(ser.serialize(documents.get(i)),0));
-            arrays.set(i, tkv);
+            JsonObject jsonObject =parser.parse(new InputStreamReader(new ByteArrayInputStream(ser.serialize(documents.get(i))))).getAsJsonObject();
+            arrays.set(i, new JsonDocument(jsonObject,key,25));
         }
         convertStopWatch.stop();
         convertStopWatch = stopWatch.newStartedStopwatch("Time to convert " + docCount + " " + name +" docs...deserialization");
         for(int i=0;i < documents.size(); i++) {
-            JsonObject newDoc = deser.deserialize(arrays.get(i));
-            Assert.assertEquals(attributeCount,newDoc.entrySet().size());
+            EventBase newDoc = deser.deserialize(arrays.get(i));
+            Assert.assertEquals(attributeCount,newDoc.getFields().size());
         }
         convertStopWatch.stop();
 
@@ -126,16 +127,25 @@ public class ScannerSerialization {
 
     QueryStopwatch runKryoTest(int docCount, int attributes) throws IOException {
         KryoDocumentSerializer kryoSerializer = new KryoDocumentSerializer();
+        Query queryObj = new QueryImpl();
+        queryObj.setQueryAuthorizations("A");
+        DocumentTransformer transformer = new DocumentTransformer("shard", queryObj, MarkingFunctionsFactory.createMarkingFunctions(), new DefaultResponseObjectFactory(),false);
         return runTestWithValue(docCount,attributes,"kryo",document -> kryoSerializer.serialize(document), tkv -> {
-            return DocumentKeyConversion.getDocument(DocumentSerialization.ReturnType.kryo,false,tkv).getAsDocument();
+            Map.Entry<Key,Value> kv = Maps.immutableEntry(new Key(tkv.getKey()),new Value(tkv.getValue()));
+            return transformer.transform(kv);
         });
     }
 
 
     QueryStopwatch runGSONTest(int docCount, int attributes) throws IOException {
         JsonDocumentSerializer jsonSerializer = new JsonDocumentSerializer(false);
-        return runTestWithoutValue(docCount,attributes,"gson",document ->jsonSerializer.serialize(document), tkv -> {
-            return DocumentKeyConversion.getDocument(DocumentSerialization.ReturnType.json,false,tkv).get();
+        Query queryObj = new QueryImpl();
+        queryObj.setQueryAuthorizations("A");
+        DocumentLogic logic = new DocumentLogic();
+
+        JsonDocumentTransformer transformer = new JsonDocumentTransformer(logic, queryObj, MarkingFunctionsFactory.createMarkingFunctions(), new DefaultResponseObjectFactory(),false);
+        return runTestWithoutValue(docCount,attributes,"gson",document ->jsonSerializer.serialize(document), doc -> {
+            return transformer.transform(doc);
         });
     }
 
@@ -155,12 +165,14 @@ public class ScannerSerialization {
 
     @FunctionalInterface
     interface DeSerializeMe{
-        Document deserialize(TKeyValue arr);
+        EventBase deserialize(TKeyValue arr);
     }
 
     @FunctionalInterface
     interface JsonDeSerializeMe{
-        JsonObject deserialize(TKeyValue  arr);
+        EventBase deserialize(JsonDocument arr);
     }
+
+
 
 }
