@@ -497,7 +497,7 @@ public class GroupingTransform extends DocumentTransform.DefaultDocumentTransfor
         return combine(visibilities);
     }
     
-    static class GroupCountingHashMap extends HashMap<Collection<GroupingTypeAttribute<?>>,Integer> {
+    public static class GroupCountingHashMap extends HashMap<Collection<GroupingTypeAttribute<?>>,Integer> {
         
         private MarkingFunctions markingFunctions;
         
@@ -552,7 +552,7 @@ public class GroupingTransform extends DocumentTransform.DefaultDocumentTransfor
      * 
      * @param <T>
      */
-    static class GroupingTypeAttribute<T extends Comparable<T>> extends TypeAttribute<T> {
+    public static class GroupingTypeAttribute<T extends Comparable<T>> extends TypeAttribute<T> {
         
         public GroupingTypeAttribute(Type type, Key key, boolean toKeep) {
             super(type, key, toKeep);
