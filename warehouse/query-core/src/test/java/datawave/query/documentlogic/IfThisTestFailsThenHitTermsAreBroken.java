@@ -1,4 +1,4 @@
-package datawave.query;
+package datawave.query.documentlogic;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableListMultimap;
@@ -11,6 +11,7 @@ import datawave.helpers.PrintUtility;
 import datawave.ingest.data.TypeRegistry;
 import datawave.ingest.protobuf.Uid;
 import datawave.marking.MarkingFunctions;
+import datawave.query.QueryTestTableHelper;
 import datawave.query.attributes.Attribute;
 import datawave.query.attributes.Attributes;
 import datawave.query.attributes.Document;
@@ -18,8 +19,15 @@ import datawave.query.attributes.PreNormalizedAttribute;
 import datawave.query.attributes.TypeAttribute;
 import datawave.query.function.JexlEvaluation;
 import datawave.query.function.deserializer.KryoDocumentDeserializer;
-import datawave.query.planner.DefaultQueryPlanner;
-import datawave.query.tables.ShardQueryLogic;
+import datawave.query.planner.document.batch.DocumentQueryPlanner;
+import datawave.query.tables.serialization.SerializedDocumentIfc;
+import datawave.query.testframework.AbstractDocumentQueryTest;
+import datawave.query.testframework.AccumuloSetup;
+import datawave.query.testframework.CitiesDataType;
+import datawave.query.testframework.DataTypeHadoopConfig;
+import datawave.query.testframework.FieldConfig;
+import datawave.query.testframework.FileType;
+import datawave.query.testframework.GenericCityFields;
 import datawave.query.util.DateIndexHelperFactory;
 import datawave.query.util.MetadataHelperFactory;
 import datawave.security.util.ScannerHelper;
@@ -34,23 +42,22 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,27 +80,45 @@ import java.util.concurrent.TimeUnit;
  * If this test fails, then hit terms are broken... maybe... probably...
  * 
  */
-public class IfThisTestFailsThenHitTermsAreBroken {
-    
+public class IfThisTestFailsThenHitTermsAreBroken extends AbstractDocumentQueryTest {
+
     @ClassRule
-    // Temporary folders are not successfully deleted in this test with @Rule for some reason, but they are with @ClassRule.
-    public static TemporaryFolder temporaryFolder = new TemporaryFolder();
-    
+    public static AccumuloSetup accumuloSetup = new AccumuloSetup();
+
+
+    private static final Logger logger = Logger.getLogger(IfThisTestFailsThenHitTermsAreBroken.class);
+
+    private Configuration conf;
+    private KryoDocumentDeserializer deserializer;
+
+    public IfThisTestFailsThenHitTermsAreBroken(){
+        super(CitiesDataType.getManager());
+
+    }
+    @BeforeClass
+    public static void filterSetup() throws Exception {
+        FieldConfig generic = new GenericCityFields();
+        generic.addReverseIndexField(CitiesDataType.CityField.STATE.name());
+        generic.addReverseIndexField(CitiesDataType.CityField.CONTINENT.name());
+        DataTypeHadoopConfig dataType = new CitiesDataType(CitiesDataType.CityEntry.generic, generic);
+        accumuloSetup.setData(FileType.CSV, dataType);
+        client = accumuloSetup.loadTables(log);
+        MoreTestData.writeItAll(client, WhatKindaRange.SHARD);
+    }
+
+    @Override
+    protected void testInit() {
+        this.auths = CitiesDataType.getTestAuths();
+        this.documentKey = CitiesDataType.CityField.EVENT_ID.name();
+    }
+
+
     enum WhatKindaRange {
         SHARD, DOCUMENT
     }
     
     private static final Logger log = Logger.getLogger(IfThisTestFailsThenHitTermsAreBroken.class);
     
-    protected static AccumuloClient client = null;
-    
-    protected Authorizations auths = new Authorizations("A");
-    
-    protected Set<Authorizations> authSet = Collections.singleton(auths);
-    
-    protected ShardQueryLogic logic = null;
-    
-    protected KryoDocumentDeserializer deserializer;
     
     private final DateFormat format = new SimpleDateFormat("yyyyMMdd");
     
@@ -133,16 +158,22 @@ public class IfThisTestFailsThenHitTermsAreBroken {
         TypeRegistry.reset();
         System.clearProperty("type.metadata.dir");
     }
-    
+
+
+
     @Before
     public void setup() throws Exception {
+
+        conf = new Configuration();
+
         TimeZone.setDefault(TimeZone.getTimeZone("GMT"));
         File tempDir = temporaryFolder.newFolder();
         System.setProperty("type.metadata.dir", tempDir.getAbsolutePath());
         System.setProperty("dw.metadatahelper.all.auths", "A,B,C,D,T,U,V,W,X,Y,Z");
         log.info("using tempFolder " + tempDir);
-        
-        logic = new ShardQueryLogic();
+        MoreTestData.writeItAll(client, WhatKindaRange.DOCUMENT);
+
+        //logic = new DocumentLogic();
         logic.setMetadataTableName(QueryTestTableHelper.MODEL_TABLE_NAME);
         logic.setTableName(TableName.SHARD);
         logic.setIndexTableName(TableName.SHARD_INDEX);
@@ -150,12 +181,16 @@ public class IfThisTestFailsThenHitTermsAreBroken {
         logic.setMaxResults(5000);
         logic.setMaxWork(25000);
         logic.setModelTableName(QueryTestTableHelper.MODEL_TABLE_NAME);
-        logic.setQueryPlanner(new DefaultQueryPlanner());
+        logic.setQueryPlanner(new DocumentQueryPlanner());
         logic.setIncludeGroupingContext(true);
         logic.setMarkingFunctions(new MarkingFunctions.Default());
         logic.setMetadataHelperFactory(new MetadataHelperFactory());
         logic.setDateIndexHelperFactory(new DateIndexHelperFactory());
         logic.setMaxEvaluationPipelines(1);
+        logic.setCollectTimingDetails(false);
+        logic.setFullTableScanEnabled(true);
+        logic.setLogTimingDetails(false);
+
         deserializer = new KryoDocumentDeserializer();
     }
     
@@ -183,22 +218,22 @@ public class IfThisTestFailsThenHitTermsAreBroken {
         settings.setParameters(extraParms);
         settings.setId(UUID.randomUUID());
         settings.setParameters(extraParms);
-        
+
         log.debug("query: " + settings.getQuery());
         log.debug("logic: " + settings.getQueryLogicName());
-        
+
         GenericQueryConfiguration config = logic.initialize(client, settings, authSet);
         logic.setupQuery(config);
-        
+
         HashSet<String> expectedSet = new HashSet<>(expected);
         HashSet<String> resultSet;
         resultSet = new HashSet<>();
         Set<Document> docs = new HashSet<>();
-        for (Entry<Key,Value> entry : logic) {
+        for (SerializedDocumentIfc entry : logic) {
+
+            Document d = entry.getAsDocument();
             
-            Document d = deserializer.apply(entry).getValue();
-            
-            log.debug(entry.getKey() + " => " + d);
+            //log.debug(entry.getKey() + " => " + d);
             
             Attribute<?> attr = d.get("UUID.0");
             
@@ -276,10 +311,9 @@ public class IfThisTestFailsThenHitTermsAreBroken {
     @Test
     public void testWithShardRange() throws Exception {
         
-        QueryTestTableHelper qtth = new QueryTestTableHelper(IfThisTestFailsThenHitTermsAreBroken.class.toString(), log);
-        client = qtth.client;
+     //   QueryTestTableHelper qtth = new QueryTestTableHelper(client, log);
         
-        MoreTestData.writeItAll(client, WhatKindaRange.SHARD);
+
         if (log.isDebugEnabled()) {
             log.debug("testWithShardRange");
             PrintUtility.printTable(client, auths, TableName.SHARD);
@@ -292,11 +326,10 @@ public class IfThisTestFailsThenHitTermsAreBroken {
     
     @Test
     public void testWithDocumentRange() throws Exception {
+
+       // QueryTestTableHelper qtth = new QueryTestTableHelper(client, log);
         
-        QueryTestTableHelper qtth = new QueryTestTableHelper(IfThisTestFailsThenHitTermsAreBroken.class.toString(), log);
-        client = qtth.client;
-        
-        MoreTestData.writeItAll(client, WhatKindaRange.DOCUMENT);
+
         if (log.isDebugEnabled()) {
             log.debug("testWithDocumentRange");
             PrintUtility.printTable(client, auths, TableName.SHARD);
@@ -411,7 +444,7 @@ public class IfThisTestFailsThenHitTermsAreBroken {
         protected static final String datatype = "test";
         protected static final String date = "20130101";
         protected static final String shard = date + "_0";
-        protected static final ColumnVisibility columnVisibility = new ColumnVisibility("A");
+        protected static final ColumnVisibility columnVisibility = new ColumnVisibility("");
         protected static final Value emptyValue = new Value(new byte[0]);
         protected static final long timeStamp = 1356998400000l;
         
