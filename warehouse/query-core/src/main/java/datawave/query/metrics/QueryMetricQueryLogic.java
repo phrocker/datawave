@@ -66,7 +66,30 @@ public class QueryMetricQueryLogic extends ShardQueryLogic {
             roles.addAll(other.roles);
         }
     }
-    
+    public String getAllowedTypes() {
+        return getConfig().getAllowedTypes();
+    }
+
+    public void setAllowedTypes(String allowedTypes){
+        getConfig().setAllowedTypes(allowedTypes);
+    }
+
+    public boolean getSerializeQueryIterator() {
+        return getConfig().getSerializeQueryIterator();
+    }
+
+    public void setSerializeQueryIterator(boolean serializeQueryIterator) {
+        getConfig().setSerializeQueryIterator(serializeQueryIterator);
+    }
+
+    public boolean getForceAllTypes() {
+        return getConfig().getForceAllTypes();
+    }
+
+    public void setForceAllTypes(boolean forceAllTypes) {
+        getConfig().setForceAllTypes(forceAllTypes);
+    }
+
     @Override
     public QueryMetricQueryLogic clone() {
         return new QueryMetricQueryLogic(this);
