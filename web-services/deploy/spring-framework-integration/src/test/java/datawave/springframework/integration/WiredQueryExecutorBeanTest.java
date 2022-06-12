@@ -97,7 +97,8 @@ public class WiredQueryExecutorBeanTest {
                 log.error("role manager is null for " + name + " and " + ql + " named " + ql.getLogicName() + " and " + ql.getClass());
             }
             Assert.assertNotNull(ql.getRoleManager());
-            log.info("got " + ql);
+            log.error("got " + ql); // get this to write to the console!!!
+            System.err.println("got " + ql);
         }
     }
     
