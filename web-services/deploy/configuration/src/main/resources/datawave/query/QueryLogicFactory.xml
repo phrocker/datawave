@@ -267,6 +267,12 @@
         <property name="evaluationOnlyFields" value="${evaluation.only.fields}" />
     </bean>
 
+    <bean id="ShardedBaseQueryLogic" parent="baseQueryLogic" abstract="true" />
+
+    <bean id="DocumentQuery" parent="ShardedBaseQueryLogic" class="datawave.query.tables.document.batch.DocumentLogic" abstract="true">
+        <property name="serializeQueryIterator" value="true" />
+    </bean>
+
     <util:list id="IvaratorCacheDirConfigs">
         ${ivarator.cache.dir.config}
     </util:list>
