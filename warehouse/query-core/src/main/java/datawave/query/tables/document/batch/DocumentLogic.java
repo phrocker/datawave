@@ -37,7 +37,7 @@ import java.util.Set;
 /**
  * Extends the premise defined in shard query logic to support returning a SerializedDocumentIfc type through
  * the iterator.
- */
+ * */
 public class DocumentLogic extends ShardedBaseQueryLogic<SerializedDocumentIfc, DocumentQueryConfiguration> {
 
     protected static final Logger log = ThreadConfigurableLogger.getLogger(DocumentLogic.class);

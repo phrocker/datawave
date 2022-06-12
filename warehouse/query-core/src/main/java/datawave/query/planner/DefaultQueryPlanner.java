@@ -552,7 +552,7 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
         addOption(cfg, QueryOptions.TRACK_SIZES, Boolean.toString(config.isTrackSizes()), true);
         addOption(cfg, QueryOptions.ACTIVE_QUERY_LOG_NAME, config.getActiveQueryLogName(), true);
         // Set the start and end dates
-        configureTypeMappings(config, cfg, metadataHelper, compressMappings, config.getForceAllTypes());
+        configureTypeMappings(config, cfg, metadataHelper, compressMappings);
     }
     
     /*
@@ -2006,25 +2006,8 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
         return builderThread.submit(() -> {
             // VersioningIterator is typically set at 20 on the table
 
-                        IteratorSetting cfg = null;
-                        if (!config.getQueryIteratorClass().isEmpty()){
-                            cfg = new IteratorSetting(config.getBaseIteratorPriority(), "query", config.getQueryIteratorClass());
-                        }
-                        else {
-                            cfg = new IteratorSetting(config.getBaseIteratorPriority() + 40, "query", getQueryIteratorClass());
-                        }
+                        IteratorSetting cfg = new IteratorSetting(config.getBaseIteratorPriority() + 40, "query", getQueryIteratorClass());
 
-                    if (config.getQueryIteratorClass().equals("aquery.iterators.Query")) {
-                        addOption(cfg, "queryname", "query_x", false);
-                        addOption(cfg, "term1.1", settings.getQuery(), false);
-                        addOption(cfg, "query1", "AND", false);
-                        addOption(cfg, "query1.order", "0", false);
-                        addOption(cfg, "query1.1", "TERM", false);
-                        addOption(cfg, "pageids", "false", false);
-                        addOption(cfg, "return_whole_doc", "true", false);
-                    }
-                    else {
-                        System.out.println("Return type is " + config.getReturnType().toString());
                         addOption(cfg, Constants.RETURN_TYPE, config.getReturnType().toString(), false);
                         addOption(cfg, QueryOptions.FULL_TABLE_SCAN_ONLY, Boolean.toString(isFullTable), false);
 
@@ -2071,21 +2054,18 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
 
                         addOption(cfg, QueryOptions.SORTED_UIDS, Boolean.toString(config.isSortedUIDs()), false);
 
-                        configureTypeMappings(config, cfg, metadataHelper, compressMappings, config.getForceAllTypes());
+                        configureTypeMappings(config, cfg, metadataHelper, compressMappings);
                         configureAdditionalOptions(config, cfg);
 
                         try {
 
 
-                            addOption(cfg, QueryOptions.INDEX_ONLY_FIELDS, config.getTypeString() ? QueryOptions.buildFieldStringFromSet(filterFields(
-                                    metadataHelper.getIndexOnlyFields(config.getDatatypeFilter()), queryFields)) : QueryOptions.buildFieldSetStringFromSet(filterFields(
+                            addOption(cfg, QueryOptions.INDEX_ONLY_FIELDS,  QueryOptions.buildFieldSetStringFromSet(filterFields(
                                     metadataHelper.getIndexOnlyFields(config.getDatatypeFilter()), queryFields)), true);
                             addOption(cfg, QueryOptions.COMPOSITE_FIELDS,
-                                    config.getTypeString() ?  QueryOptions.buildFieldStringFromSet(metadataHelper.getCompositeToFieldMap(config.getDatatypeFilter()).keySet())
-                                        :QueryOptions.buildFieldSetStringFromSet(metadataHelper.getCompositeToFieldMap(config.getDatatypeFilter()).keySet()) ,
+                                    QueryOptions.buildFieldSetStringFromSet(metadataHelper.getCompositeToFieldMap(config.getDatatypeFilter()).keySet()) ,
                                     true);
-                            addOption(cfg, QueryOptions.INDEXED_FIELDS, config.getTypeString() ? QueryOptions.buildFieldStringFromSet(filterFields(
-                                    metadataHelper.getIndexedFields(config.getDatatypeFilter()), queryFields)) : QueryOptions.buildFieldSetStringFromSet(filterFields(
+                            addOption(cfg, QueryOptions.INDEXED_FIELDS, QueryOptions.buildFieldSetStringFromSet(filterFields(
                                     metadataHelper.getIndexedFields(config.getDatatypeFilter()), queryFields)), true);
                         } catch (TableNotFoundException e) {
                             QueryException qe = new QueryException(DatawaveErrorCode.INDEX_ONLY_FIELDS_RETRIEVAL_ERROR, e);
@@ -2125,7 +2105,7 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
                         if (config.getLimitFieldsField() != null) {
                             addOption(cfg, QueryOptions.LIMIT_FIELDS_FIELD, config.getLimitFieldsField(), false);
                         }
-                    }
+
                         return cfg;
                     });
     }
@@ -2198,7 +2178,7 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
             return null;
     }
     
-    public static void configureTypeMappings(ShardQueryConfiguration config, IteratorSetting cfg, MetadataHelper metadataHelper, boolean compressMappings,  boolean forceAllTypes)
+    public static void configureTypeMappings(ShardQueryConfiguration config, IteratorSetting cfg, MetadataHelper metadataHelper, boolean compressMappings)
                     throws DatawaveQueryException {
         try {
             addOption(cfg, QueryOptions.QUERY_MAPPING_COMPRESS, Boolean.valueOf(compressMappings).toString(), false);
@@ -2211,7 +2191,7 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
             TypeMetadata metadata = metadataHelper.getTypeMetadata(config.getDatatypeFilter());
             
             String nonIndexedTypes = QueryOptions.buildFieldNormalizerString(nonIndexedQueryFieldsDatatypes);
-            String typeMetadataString = forceAllTypes ? forceTypes(config.getAllowedTypes(),metadata) : metadata.toString();
+            String typeMetadataString = metadata.toString();
             String requiredAuthsString = metadataHelper.getUsersMetadataAuthorizationSubset();
             
             if (compressMappings) {
@@ -2322,7 +2302,7 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
         // Include the option to filter masked values
         addOption(cfg, QueryOptions.FILTER_MASKED_VALUES, Boolean.toString(config.getFilterMaskedValues()), false);
 
-        addOption(cfg, QueryOptions.SET_TYPE_STRING, Boolean.toString(config.getTypeString()), false);
+        addOption(cfg, QueryOptions.SET_TYPE_STRING, Boolean.toString(false), false);
         
         // Include the EVENT_DATATYPE as a field
         if (config.getIncludeDataTypeAsField()) {

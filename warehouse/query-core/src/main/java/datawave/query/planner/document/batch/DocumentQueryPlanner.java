@@ -16,6 +16,7 @@ import datawave.query.QueryParameters;
 import datawave.query.attributes.UniqueFields;
 import datawave.query.composite.CompositeMetadata;
 import datawave.query.composite.CompositeUtils;
+import datawave.query.config.DocumentQueryConfiguration;
 import datawave.query.config.ShardQueryConfiguration;
 import datawave.query.exceptions.CannotExpandUnfieldedTermFatalException;
 import datawave.query.exceptions.DatawaveFatalQueryException;
@@ -390,13 +391,13 @@ public class DocumentQueryPlanner extends QueryPlanner implements Cloneable {
     @Override
     public CloseableIterable<QueryData> process(GenericQueryConfiguration genericConfig, String query, Query settings, ScannerFactory scannerFactory)
             throws DatawaveQueryException {
-        if (!(genericConfig instanceof ShardQueryConfiguration)) {
-            throw new ClassCastException("Config object must be an instance of ShardQueryConfiguration");
+        if (!(genericConfig instanceof DocumentQueryConfiguration)) {
+            throw new ClassCastException("Config object must be an instance of DocumentQueryConfiguration");
         }
 
         builderThread = Executors.newSingleThreadExecutor();
 
-        ShardQueryConfiguration config = (ShardQueryConfiguration) genericConfig;
+        DocumentQueryConfiguration config = (DocumentQueryConfiguration) genericConfig;
 
         // lets mark the query as started (used by ivarators at a minimum)
         try {
@@ -409,7 +410,7 @@ public class DocumentQueryPlanner extends QueryPlanner implements Cloneable {
     }
 
     protected CloseableIterable<QueryData> process(ScannerFactory scannerFactory, MetadataHelper metadataHelper, DateIndexHelper dateIndexHelper,
-                                                   ShardQueryConfiguration config, String query, Query settings) throws DatawaveQueryException {
+                                                   DocumentQueryConfiguration config, String query, Query settings) throws DatawaveQueryException {
         final QueryData queryData = new QueryData();
 
         settingFuture = null;
@@ -532,7 +533,7 @@ public class DocumentQueryPlanner extends QueryPlanner implements Cloneable {
         }
     }
 
-    private void configureIterator(ShardQueryConfiguration config, IteratorSetting cfg, String newQueryString, boolean isFullTable)
+    private void configureIterator(DocumentQueryConfiguration config, IteratorSetting cfg, String newQueryString, boolean isFullTable)
             throws DatawaveQueryException {
 
         // Load enrichers, filters, unevaluatedExpressions, and projection
@@ -1966,7 +1967,7 @@ public class DocumentQueryPlanner extends QueryPlanner implements Cloneable {
         // no-op
     }
 
-    protected Future<IteratorSetting> loadQueryIterator(final MetadataHelper metadataHelper, final ShardQueryConfiguration config, final Query settings,
+    protected Future<IteratorSetting> loadQueryIterator(final MetadataHelper metadataHelper, final DocumentQueryConfiguration config, final Query settings,
                                                         final String queryString, final Set<String> queryFields, final Boolean isFullTable) throws DatawaveQueryException {
 
         return builderThread.submit(() -> {
@@ -2148,7 +2149,7 @@ public class DocumentQueryPlanner extends QueryPlanner implements Cloneable {
         return shuffledIvaratorCacheDirs;
     }
 
-    protected IteratorSetting getQueryIterator(MetadataHelper metadataHelper, ShardQueryConfiguration config, Query settings, String queryString,
+    protected IteratorSetting getQueryIterator(MetadataHelper metadataHelper, DocumentQueryConfiguration config, Query settings, String queryString,
                                                Boolean isFullTable) throws DatawaveQueryException {
         if (null == settingFuture) {
             Set<String> queryFields = getQueryFields(queryString);
@@ -2164,7 +2165,7 @@ public class DocumentQueryPlanner extends QueryPlanner implements Cloneable {
             return null;
     }
 
-    public static void configureTypeMappings(ShardQueryConfiguration config, IteratorSetting cfg, MetadataHelper metadataHelper, boolean compressMappings,  boolean forceAllTypes)
+    public static void configureTypeMappings(DocumentQueryConfiguration config, IteratorSetting cfg, MetadataHelper metadataHelper, boolean compressMappings,  boolean forceAllTypes)
             throws DatawaveQueryException {
         try {
             addOption(cfg, QueryOptions.QUERY_MAPPING_COMPRESS, Boolean.valueOf(compressMappings).toString(), false);
@@ -2217,7 +2218,7 @@ public class DocumentQueryPlanner extends QueryPlanner implements Cloneable {
      * @param cfg
      * @throws DatawaveQueryException
      */
-    protected void setCommonIteratorOptions(ShardQueryConfiguration config, IteratorSetting cfg) throws DatawaveQueryException {
+    protected void setCommonIteratorOptions(DocumentQueryConfiguration config, IteratorSetting cfg) throws DatawaveQueryException {
         // Applying filtering options, including classnames, whether applied to
         // post-processing or field index
         if (config.getUseFilters()) {

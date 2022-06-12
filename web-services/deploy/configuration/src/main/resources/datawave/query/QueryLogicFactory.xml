@@ -282,9 +282,7 @@
 <property name="compressServerSideResults" value="false" />
 <property name="reducedResponse" value="false" />
 <property name="collapseDatePercentThreshold" value="0.99" />
-<property name="rangeBufferPollMillis" value="25" />
 <property name="maxScannerBatchSize" value="40000" />
-<property name="serializeQueryIterator" value="true" />
 <property name="queryThreads" value="96" />
 <property name="modelTableName" value="datawave.metadata" />
 <property name="dateIndexTableName" value="datawave.dateIndex" />
@@ -294,25 +292,7 @@
 <property name="shardsPerDayThreshold" value="9999" />
 <property name="indexTableName" value="datawave.shardIndex" />
 <property name="sendTimingToStatsd" value="false" />
-<property name="forceAllTypes" value="true" />
-<property name="allowedTypes" value="datawave.data.type.NoOpType" />
-<property name="projectFields">
-   <util:set>
-       <value>PAGE_ID</value>
-       <value>ORIG_FILE</value>
-   </util:set>
-</property>
 <property name="trackSizes" value="false" />
-<property name="typeString" value="false" />
-<property name="queueCapacity" value="50000" />
-<!--
-  Already false by default
-  <property name="docRawFields" value="false" /> -->
-<property name="numRangesToBuffer" value="50000" />
-<!-- No sign of this one in the source code
-     <property name="collapseUidsIgnoreParsing" value="true" /> -->
-<property name="pushdownLogic" value="true" />
-<property name="convertToDocument" value="false" />
 <!-- End query-updates config -->
 
     </bean>

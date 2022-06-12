@@ -396,23 +396,6 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
      */
     private long visitorFunctionMaxWeight = 5000000L;
     
-
-    /**
-     * Query iterator class name
-     */
-    private String queryIteratorClazz = "";
-
-    private boolean forceAllTypes=false;
-
-    private String allowedTypes="";
-    private boolean typeString=true;
-
-    private boolean customBatchScanner = false;
-
-    private boolean docRawFields = false;
-
-    private int queueCapacity=0;
-    private int maxTabletsPerRequest=0;
     private String transformedQuery="";
 
     /**
@@ -2296,56 +2279,6 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
         this.noExpansionFields = noExpansionFields;
     }
 
-    public String getQueryIteratorClass() { return queryIteratorClazz; }
-
-    public void setQueryIteratorClass(final String queryIteratorClazz){
-        this.queryIteratorClazz = queryIteratorClazz;
-    }
-
-    public boolean getForceAllTypes() { return forceAllTypes; }
-
-    public void setForceAllTypes(final boolean forceAllTypes){
-        this.forceAllTypes = forceAllTypes;
-    }
-
-    public String getAllowedTypes() { return allowedTypes; }
-
-    public void setAllowedTypes(final String allowedTypes){
-        this.allowedTypes = allowedTypes;
-    }
-
-    public boolean getTypeString() {
-        return this.typeString;
-    }
-
-    public void setTypeString(final Boolean setType){
-        this.typeString=setType;
-    }
-
-    public boolean getCustomBatchScanner() { return this.customBatchScanner; }
-
-    public void setCustomBatchScanner(final Boolean customBatchScanner) { this.customBatchScanner = customBatchScanner; }
-
-    public boolean getDocRawFields(){ return this.docRawFields; }
-
-    public void setDocRawFields(final Boolean docRawFields){ this.docRawFields=docRawFields; }
-
-    public int getQueueCapacity() {
-        return queueCapacity;
-    }
-
-    public void setQueueCapacity(int queueCapacity){
-        this.queueCapacity=queueCapacity;
-    }
-
-    public int getMaxTabletsPerRequest() {
-        return maxTabletsPerRequest;
-    }
-
-    public void setMaxTabletsPerRequest(int maxTabletsPerRequest){
-        this.maxTabletsPerRequest=maxTabletsPerRequest;
-    }
-    
     public ExcerptFields getExcerptFields() {
         return excerptFields;
     }

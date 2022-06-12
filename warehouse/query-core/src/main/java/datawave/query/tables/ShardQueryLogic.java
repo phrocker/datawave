@@ -72,7 +72,7 @@ public class ShardQueryLogic extends ShardedBaseQueryLogic<Entry<Key,Value>, Sha
     
     public static BatchScanner createBatchScanner(ShardQueryConfiguration config, ScannerFactory scannerFactory, QueryData qd) throws TableNotFoundException {
         final BatchScanner bs = scannerFactory.newScanner(config.getShardTableName(), config.getAuthorizations(), config.getNumQueryThreads(),
-                        config.getQuery(),false,config.getCustomBatchScanner());
+                        config.getQuery(),false,false);
         
         if (log.isTraceEnabled()) {
             log.trace("Running with " + config.getAuthorizations() + " and " + config.getNumQueryThreads() + " threads: " + qd);
