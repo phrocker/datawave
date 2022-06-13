@@ -341,8 +341,8 @@
         <property name="queueCapacity" ref="50000" />
         <property name="numRangesToBuffer" ref="50000" />
         <property name="maxScannerBatchSize" ref="50000" />
-        <!-- @TODO should we allow query metrics for a baseline ?  -->
-        <property name="collectQueryMetrics" value="false" />
+        <!-- @TODO should we allow query metrics for a baseline ?
+        <property name="collectQueryMetrics" value="false" /> -->
     </bean>
 
     <util:list id="IvaratorCacheDirConfigs">
