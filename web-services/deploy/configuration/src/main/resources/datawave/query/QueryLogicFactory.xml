@@ -284,14 +284,14 @@
     </bean>
     <bean id="BaseEventQuery" parent="ShardedBaseQueryLogic" class="datawave.query.tables.ShardQueryLogic" abstract="true" />
 
-    <bean id="DocumentQuery" parent="ShardedBaseQueryLogic" class="datawave.query.tables.document.batch.DocumentLogic" abstract="true">
+    <bean id="DocumentQuery" parent="ShardedBaseQueryLogic" scope="prototype" class="datawave.query.tables.document.batch.DocumentLogic" >
         <property name="serializeQueryIterator" value="true" />
         <property name="queryPlanner" ref="DocumentQueryPlanner" />
-        <property name="forceAllTypes" ref="true" />
-        <property name="allowedTypes" ref="datawave.data.type.NoOpType" />
-        <property name="queueCapacity" ref="50000" />
-        <property name="numRangesToBuffer" ref="50000" />
-        <property name="maxScannerBatchSize" ref="50000" />
+        <property name="forceAllTypes" value="true" />
+        <property name="allowedTypes" value="datawave.data.type.NoOpType" />
+        <property name="queueCapacity" value="50000" />
+        <property name="numRangesToBuffer" value="50000" />
+        <property name="maxScannerBatchSize" value="50000" />
         <!-- @TODO should we allow query metrics for a baseline ?
         <property name="collectQueryMetrics" value="false" /> -->
     </bean>
