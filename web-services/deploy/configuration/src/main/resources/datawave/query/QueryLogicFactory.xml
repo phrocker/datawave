@@ -163,7 +163,7 @@
         <property name="remoteQueryLogic" value="EventQuery" />
     </bean>
 
-    <bean id="BaseEventQuery" parent="baseQueryLogic" class="datawave.query.tables.ShardQueryLogic" abstract="true">
+    <bean id="ShardedBaseQueryLogic" parent="baseQueryLogic" class="datawave.query.tables.ShardedBaseQueryLogic" abstract="true">
         <property name="accumuloPassword" value="${accumulo.user.password}" />
         <property name="tableName" value="${shard.table.name}" />
         <property name="dateIndexTableName" value="${date.index.table.name}" />
@@ -282,8 +282,7 @@
         <property name="selectorExtractor" ref="DatawaveSelectorExtractor" />
         <property name="evaluationOnlyFields" value="${evaluation.only.fields}" />
     </bean>
-
-    <bean id="ShardedBaseQueryLogic" parent="baseQueryLogic" abstract="true" />
+    <bean id="BaseEventQuery" parent="ShardedBaseQueryLogic" class="datawave.query.tables.ShardQueryLogic" abstract="true" />
 
     <bean id="DocumentQuery" parent="ShardedBaseQueryLogic" class="datawave.query.tables.document.batch.DocumentLogic" abstract="true">
         <property name="serializeQueryIterator" value="true" />
