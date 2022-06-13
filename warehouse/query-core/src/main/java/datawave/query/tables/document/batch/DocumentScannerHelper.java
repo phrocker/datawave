@@ -7,6 +7,7 @@ import datawave.query.util.QueryInformation;
 import datawave.security.iterator.ConfigurableVisibilityFilter;
 import datawave.security.util.AuthorizationsMinimizer;
 import datawave.webservice.common.connection.ScannerBaseDelegate;
+import datawave.webservice.common.connection.WrappedAccumuloClient;
 import datawave.webservice.query.Query;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -45,11 +46,12 @@ public class DocumentScannerHelper {
     }
 
     public static DocumentScannerBase getScanner(AccumuloClient client, String tableName, Iterator<Authorizations> iter, int numQueryThreads, Query query, boolean docRawFields, DocumentSerialization.ReturnType returnType, int queueCapacity, int maxTabletsPerRequest, int maxTabletThreshold) throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-        if (client instanceof InMemoryAccumuloClient){
-            return new InMemoryDocumentScannerImpl((ClientContext) client, TableId.of((String) ((ClientContext) client).tableOperations().tableIdMap().get(tableName)), tableName, (Authorizations) iter.next(), numQueryThreads, returnType, docRawFields);
+        ClientContext ctx = getClientContext(client);
+        if (ctx instanceof InMemoryAccumuloClient){
+            return new InMemoryDocumentScannerImpl(ctx, TableId.of((String) ctx.tableOperations().tableIdMap().get(tableName)), tableName, (Authorizations) iter.next(), numQueryThreads, returnType, docRawFields);
         }
         else {
-            return new DocumentScannerImpl((ClientContext) client, TableId.of((String) ((ClientContext) client).tableOperations().tableIdMap().get(tableName)), tableName, (Authorizations) iter.next(), numQueryThreads, returnType, docRawFields, queueCapacity, maxTabletsPerRequest, maxTabletThreshold);
+            return new DocumentScannerImpl(ctx, TableId.of((String) ctx.tableOperations().tableIdMap().get(tableName)), tableName, (Authorizations) iter.next(), numQueryThreads, returnType, docRawFields, queueCapacity, maxTabletsPerRequest, maxTabletThreshold);
         }
     }
 
@@ -84,5 +86,12 @@ public class DocumentScannerHelper {
             }
         }
 
+    }
+
+    protected static ClientContext getClientContext(AccumuloClient client) {
+        if (client instanceof WrappedAccumuloClient) {
+            return (ClientContext)((WrappedAccumuloClient) client).getReal();
+        }
+        return (ClientContext) client;
     }
 }
