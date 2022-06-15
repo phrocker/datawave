@@ -211,7 +211,7 @@ public class LimitFields implements Function<Entry<Key,Document>,Entry<Key,Docum
                             + mapOfMisses.asMap() + "," + countForFieldMap);
     }
     
-    static String[] getCommonalityAndGroupingContext(String in) {
+    public static String[] getCommonalityAndGroupingContext(String in) {
         String[] splits = StringUtils.split(in, '.');
         if (splits.length >= 3) {
             return new String[] {splits[1], splits[splits.length - 1]};
