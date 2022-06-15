@@ -1,4 +1,4 @@
-package datawave.query.function;
+package datawave.query.documentlogic;
 
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
@@ -10,10 +10,14 @@ import datawave.query.attributes.Attribute;
 import datawave.query.attributes.Attributes;
 import datawave.query.attributes.Content;
 import datawave.query.attributes.Document;
-import datawave.query.iterator.ivarator.IvaratorCacheDirConfig;
+import datawave.query.function.JexlEvaluation;
+import datawave.query.function.LimitFields;
 import datawave.query.function.deserializer.KryoDocumentDeserializer;
+import datawave.query.iterator.ivarator.IvaratorCacheDirConfig;
 import datawave.query.tables.ShardQueryLogic;
+import datawave.query.tables.document.batch.DocumentLogic;
 import datawave.query.tables.edge.DefaultEdgeEventQueryLogic;
+import datawave.query.tables.serialization.SerializedDocumentIfc;
 import datawave.query.util.LimitFieldsTestingIngest;
 import datawave.util.TableName;
 import datawave.webservice.edgedictionary.RemoteEdgeDictionary;
@@ -119,8 +123,8 @@ public abstract class HitsAreAlwaysIncludedTest {
     protected Set<Authorizations> authSet = Collections.singleton(auths);
     
     @Inject
-    @SpringBean(name = "EventQuery")
-    protected ShardQueryLogic logic;
+    @SpringBean(name = "DocumentQuery")
+    protected DocumentLogic logic;
     
     protected KryoDocumentDeserializer deserializer;
     
@@ -177,13 +181,13 @@ public abstract class HitsAreAlwaysIncludedTest {
         logic.setupQuery(config);
         
         Set<Document> docs = new HashSet<>();
-        for (Entry<Key,Value> entry : logic) {
-            Document d = deserializer.apply(entry).getValue();
-            log.info(entry.getKey() + " => " + d);
+        for (SerializedDocumentIfc entry : logic) {
+            Document d = entry.getAsDocument();
+            log.info(entry.computeKey() + " => " + d);
             docs.add(d);
             
             Attribute hitAttribute = d.get(JexlEvaluation.HIT_TERM_FIELD);
-            
+
             if (hitAttribute instanceof Attributes) {
                 Attributes attributes = (Attributes) hitAttribute;
                 for (Attribute attr : attributes.getAttributes()) {
@@ -198,15 +202,15 @@ public abstract class HitsAreAlwaysIncludedTest {
             } else {
                 Assert.fail("Did not find hit term field");
             }
-            
+
             Assert.assertTrue(expectedHits + " expected hits was not empty", expectedHits.isEmpty());
-            
+
             // remove from goodResults as we find the expected return fields
             log.debug("goodResults: " + goodResults);
             Map<String,Attribute<? extends Comparable<?>>> dictionary = d.getDictionary();
             log.debug("dictionary:" + dictionary);
             for (Entry<String,Attribute<? extends Comparable<?>>> dictionaryEntry : dictionary.entrySet()) {
-                
+
                 Attribute<? extends Comparable<?>> attribute = dictionaryEntry.getValue();
                 if (attribute instanceof Attributes) {
                     for (Attribute attr : ((Attributes) attribute).getAttributes()) {
@@ -218,18 +222,18 @@ public abstract class HitsAreAlwaysIncludedTest {
                             log.debug("Did not remove " + toFind);
                     }
                 } else {
-                    
+
                     String toFind = dictionaryEntry.getKey() + ":" + dictionaryEntry.getValue();
-                    
+
                     boolean found = goodResults.remove(toFind);
                     if (found)
                         log.debug("removed " + toFind);
                     else
                         log.debug("Did not remove " + toFind);
                 }
-                
+
             }
-            
+
             Assert.assertTrue(goodResults + " good results was not empty", goodResults.isEmpty());
         }
         Assert.assertTrue("No docs were returned!", !docs.isEmpty());
@@ -379,7 +383,7 @@ public abstract class HitsAreAlwaysIncludedTest {
     @Test
     public void testHitWithExceededOrThreshold() throws Exception {
         Map<String,String> extraParameters = new HashMap<>();
-        extraParameters.put("include.grouping.context", "false");
+//        extraParameters.put("include.grouping.context", "false");
         extraParameters.put("hit.list", "true");
         extraParameters.put("limit.fields", "FOO_1_BAR=3,FOO_1=2,FOO_3=2,FOO_3_BAR=4,FOO_4=3,FOO_1_BAR_1=4");
         logic.setMaxOrExpansionThreshold(1);
