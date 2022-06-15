@@ -153,7 +153,7 @@ public class HitListArithmetic extends DatawaveArithmetic implements StatefulAri
                     }
                     if (!exhaustiveHits) {
                         log.trace("equals 1 returning true");
-                        return true;
+//                        return true;
                     } else {
                         matches = true;
                     }
