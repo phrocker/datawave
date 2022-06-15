@@ -4,6 +4,7 @@ import datawave.marking.MarkingFunctions;
 import datawave.query.DocumentSerialization;
 import datawave.query.attributes.Document;
 import datawave.query.config.DocumentQueryConfiguration;
+import datawave.query.config.ShardQueryConfiguration;
 import datawave.query.iterator.QueryOptions;
 import datawave.query.planner.MetadataHelperQueryModelProvider;
 import datawave.query.planner.QueryModelProvider;
@@ -49,6 +50,16 @@ public class DocumentLogic extends ShardedBaseQueryLogic<SerializedDocumentIfc, 
         super();
         if (log.isTraceEnabled())
             log.trace("Creating ShardQueryLogic: " + System.identityHashCode(this));
+    }
+
+    /**
+     * Validate that the configuration is in a consistent state
+     *
+     * @throws IllegalArgumentException
+     *             when config constraints are violated
+     */
+    @Override
+    protected void validateConfiguration(DocumentQueryConfiguration config) {
     }
 
     /**
