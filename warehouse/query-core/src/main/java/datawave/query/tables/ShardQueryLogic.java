@@ -69,7 +69,21 @@ public class ShardQueryLogic extends ShardedBaseQueryLogic<Entry<Key,Value>, Sha
         // Set ShardQueryConfiguration variables
         this.config = ShardQueryConfiguration.create(other);
     }
-    
+
+    /**
+     * Validate that the configuration is in a consistent state
+     *
+     * @throws IllegalArgumentException
+     *             when config constraints are violated
+     */
+    @Override
+    protected void validateConfiguration(ShardQueryConfiguration config) {
+        // do not allow disabling track sizes unless page size is no more than 1
+        if (!config.isTrackSizes() && this.getMaxPageSize() > 1) {
+            throw new IllegalArgumentException("trackSizes cannot be disabled with a page size greater than 1");
+        }
+    }
+
     public static BatchScanner createBatchScanner(ShardQueryConfiguration config, ScannerFactory scannerFactory, QueryData qd) throws TableNotFoundException {
         final BatchScanner bs = scannerFactory.newScanner(config.getShardTableName(), config.getAuthorizations(), config.getNumQueryThreads(),
                         config.getQuery(),false,false);

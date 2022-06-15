@@ -385,12 +385,7 @@ public abstract class ShardedBaseQueryLogic<T,J extends ShardQueryConfiguration>
      * @throws IllegalArgumentException
      *             when config constraints are violated
      */
-    protected void validateConfiguration(ShardQueryConfiguration config) {
-        // do not allow disabling track sizes unless page size is no more than 1
-        if (!config.isTrackSizes() && this.getMaxPageSize() > 1) {
-            throw new IllegalArgumentException("trackSizes cannot be disabled with a page size greater than 1");
-        }
-    }
+    protected abstract void validateConfiguration(J config);
     
     protected MetadataHelper prepareMetadataHelper(AccumuloClient client, String metadataTableName, Set<Authorizations> auths) {
         return prepareMetadataHelper(client, metadataTableName, auths, false);
