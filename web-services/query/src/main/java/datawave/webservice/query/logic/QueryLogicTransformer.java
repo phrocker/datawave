@@ -12,6 +12,9 @@ public interface QueryLogicTransformer<I,O> extends Transformer<I,O> {
      * @return a jaxb response object that is specific to this QueryLogic
      */
     BaseQueryResponse createResponse(ResultsPage resultList);
+
+    String createJSONResponse(ResultsPage resultList);
+
     
     /**
      * Transforms the input object (leaving it unchanged) into some output object.

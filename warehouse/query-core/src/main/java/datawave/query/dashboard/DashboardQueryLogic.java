@@ -63,6 +63,12 @@ public class DashboardQueryLogic extends ShardQueryLogic implements QueryLogicTr
         
         return new ExtJsResponse<>(list);
     }
+
+
+    public String createJSONResponse(ResultsPage page) {
+
+        return "";
+    }
     
     @Override
     public Object transform(Object input) {
