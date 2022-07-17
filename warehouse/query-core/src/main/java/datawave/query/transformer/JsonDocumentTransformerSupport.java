@@ -62,7 +62,7 @@ import java.util.Set;
  * Document. Once we move toward a nested event, we can have a simpler approach.
  *
  */
-public abstract class JsonDocumentTransformerSupport<I,O> extends EventQueryTransformerSupport<I,O> implements WritesQueryMetrics, WritesResultCardinalities {
+public abstract class JsonDocumentTransformerSupport<I,O> extends EventQueryTransformerSupport<I,O> implements  WritesResultCardinalities {
 
     protected DocumentDeserializer deserializer;
 

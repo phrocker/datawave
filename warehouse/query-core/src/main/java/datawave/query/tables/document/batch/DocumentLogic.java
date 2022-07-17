@@ -18,6 +18,8 @@ import datawave.query.tables.ShardedBaseQueryLogic;
 import datawave.query.tables.serialization.SerializedDocumentIfc;
 import datawave.query.transformer.EventQueryDataDecoratorTransformer;
 import datawave.query.transformer.JsonDocumentTransformer;
+import datawave.query.transformer.JsonDocumentTransformerSupport;
+import datawave.query.transformer.RawJsonDocumentTransformer;
 import datawave.query.util.DateIndexHelper;
 import datawave.query.util.MetadataHelper;
 import datawave.webservice.common.logging.ThreadConfigurableLogger;
@@ -171,12 +173,20 @@ public class DocumentLogic extends ShardedBaseQueryLogic<SerializedDocumentIfc, 
             reducedInSettings = Boolean.parseBoolean(reducedResponseStr);
         }
         boolean reduced = (this.isReducedResponse() || reducedInSettings);
-        JsonDocumentTransformer transformer = new JsonDocumentTransformer(this, settings, markingFunctions, responseObjectFactory, reduced, config.getConvertToDocument());
+        JsonDocumentTransformerSupport transformer = null;
+        if (config.getDocRawFields()){
+            transformer = new RawJsonDocumentTransformer(this, settings, markingFunctions, responseObjectFactory, reduced, config.getConvertToDocument());
+        }
+        else{
+            transformer = new JsonDocumentTransformer(this, settings, markingFunctions, responseObjectFactory, reduced, config.getConvertToDocument());
+        }
         transformer.setEventQueryDataDecoratorTransformer(eventQueryDataDecoratorTransformer);
         transformer.setContentFieldNames(getConfig().getContentFieldNames());
         transformer.setLogTimingDetails(this.getLogTimingDetails());
         transformer.setCardinalityConfiguration(cardinalityConfiguration);
-        transformer.setPrimaryToSecondaryFieldMap(primaryToSecondaryFieldMap);
+        if (!config.getDocRawFields()) {
+            transformer.setPrimaryToSecondaryFieldMap(primaryToSecondaryFieldMap);
+        }
         transformer.setQm(queryModel);
         if (getConfig() != null) {
             transformer.setProjectFields(getConfig().getProjectFields());
@@ -314,5 +324,17 @@ public class DocumentLogic extends ShardedBaseQueryLogic<SerializedDocumentIfc, 
     public void setFinalMaxTermThreshold(int finalMaxTermThreshold) {
         getConfig().setFinalMaxTermThreshold(finalMaxTermThreshold);
     }
+
+    public boolean getRawDocFields() {
+        return getConfig().getDocRawFields();
+    }
+
+    public void setRawDocFields(boolean rawDocFields) {
+        getConfig().setDocRawFields(rawDocFields);
+    }
+
+
+
+
 
 }
