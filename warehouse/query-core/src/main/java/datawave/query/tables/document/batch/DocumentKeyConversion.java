@@ -10,6 +10,7 @@ import datawave.query.attributes.Document;
 import datawave.query.function.KryoCVAwareSerializableSerializer;
 import datawave.query.function.json.deser.JsonDeser;
 import datawave.query.tables.serialization.JsonDocument;
+import datawave.query.tables.serialization.RawJsonDocument;
 import datawave.query.tables.serialization.SerializedDocument;
 import datawave.query.tables.serialization.SerializedDocumentIfc;
 import org.apache.accumulo.core.data.Key;
@@ -59,13 +60,16 @@ public class DocumentKeyConversion {
             document = new SerializedDocument(doc);
 
         } else if (DocumentSerialization.ReturnType.json == returnType) {
-            InputStream jsonStream  = new ByteArrayInputStream(array, offset+3, size - 3);
 
 
-            Reader rdr = new InputStreamReader(jsonStream);
-            JsonObject jsonObject = jsonParser.parse(rdr).getAsJsonObject();
-            document = new JsonDocument(jsonObject,kv.getKey(),size-3);
-
+            if (!docRawFields) {
+                InputStream jsonStream  = new ByteArrayInputStream(array, offset+3, size - 3);
+                Reader rdr = new InputStreamReader(jsonStream);
+                JsonObject jsonObject = jsonParser.parse(rdr).getAsJsonObject();
+                document = new JsonDocument(jsonObject, kv.getKey(), size - 3);
+            }else{
+                document = new RawJsonDocument(new String(array,offset+3,size-3), kv.getKey(), size - 3);
+            }
 
         }
         else if (DocumentSerialization.ReturnType.jsondocument == returnType) {

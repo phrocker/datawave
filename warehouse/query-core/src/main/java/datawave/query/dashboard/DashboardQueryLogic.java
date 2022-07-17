@@ -74,6 +74,12 @@ public class DashboardQueryLogic extends ShardQueryLogic implements QueryLogicTr
             return response;
         }
     }
+
+
+    public String createJSONResponse(ResultsPage page) {
+
+        return "";
+    }
     
     @Override
     public Object transform(Object input) {
