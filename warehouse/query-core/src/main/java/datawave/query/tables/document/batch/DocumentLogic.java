@@ -325,11 +325,11 @@ public class DocumentLogic extends ShardedBaseQueryLogic<SerializedDocumentIfc, 
         getConfig().setFinalMaxTermThreshold(finalMaxTermThreshold);
     }
 
-    public boolean getRawDocFields() {
+    public boolean getDocRawFields() {
         return getConfig().getDocRawFields();
     }
 
-    public void setRawDocFields(boolean rawDocFields) {
+    public void setDocRawFields(boolean rawDocFields) {
         getConfig().setDocRawFields(rawDocFields);
     }
 
