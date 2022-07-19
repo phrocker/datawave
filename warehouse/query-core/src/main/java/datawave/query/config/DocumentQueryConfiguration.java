@@ -63,6 +63,7 @@ public class DocumentQueryConfiguration extends ShardQueryConfiguration implemen
         
         // GenericQueryConfiguration copy first
         super(other);
+        this.setDocRawFields(other.getDocRawFields());
     }
     
     /**

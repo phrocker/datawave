@@ -13,6 +13,9 @@ public abstract class AbstractQueryLogicTransformer<I,O> implements QueryLogicTr
     public abstract BaseQueryResponse createResponse(List<Object> resultList);
 
     public String createJSONResponse(List<Object> resultList){
+        for(Object obj : resultList){
+            System.out.println("Type is " + obj.getClass());
+        }
         return "[" + Joiner.on(',').join(resultList) + "]";
     }
     
