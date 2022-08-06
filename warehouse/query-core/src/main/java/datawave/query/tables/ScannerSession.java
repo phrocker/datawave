@@ -586,7 +586,7 @@ public class ScannerSession extends  BaseScannerSession<Entry<Key,Value>> {
     protected void run() throws Exception {
         try {
             while (isRunning()) {
-                
+                System.out.println("is running calling findtop");
                 findTop();
             }
             

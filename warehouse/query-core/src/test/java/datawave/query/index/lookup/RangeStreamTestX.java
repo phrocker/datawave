@@ -33,6 +33,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
 import static datawave.common.test.utils.query.RangeFactoryForTests.makeShardedRange;
@@ -1031,7 +1032,7 @@ public class RangeStreamTestX {
 
             }
         }
-        
+        System.out.println("unevenstart");
         runTest(query, expectedRanges, expectedQueryStrings);
     }
     
@@ -3572,12 +3573,12 @@ public class RangeStreamTestX {
         // Run a default range stream.
         rangeStream = new RangeStream(config, new ScannerFactory(client, 1), helper);
         rangeStream.setLimitScanners(false);
-        runTest(rangeStream, script, expectedRanges, expectedQueries);
+        System.out.println( runTest(rangeStream, script, expectedRanges, expectedQueries) );
         
         rangeStream.close();
     }
     
-    private void runTest(RangeStream rangeStream, ASTJexlScript script, List<Range> expectedRanges, List<String> expectedQueries) throws Exception {
+    private int runTest(RangeStream rangeStream, ASTJexlScript script, List<Range> expectedRanges, List<String> expectedQueries) throws Exception {
         CloseableIterable<QueryPlan> queryPlans = rangeStream.streamPlans(script);
         assertEquals(IndexStream.StreamContext.PRESENT, rangeStream.context());
         
@@ -3591,7 +3592,13 @@ public class RangeStreamTestX {
             // Assert proper range
             Iterator<Range> rangeIter = queryPlan.getRanges().iterator();
             Range planRange = rangeIter.next();
-            Range expectedRange = shardIter.next();
+            Range expectedRange = null;
+            try {
+                expectedRange = shardIter.next();
+            }catch(NoSuchElementException e){
+                System.out.println(expectedRanges.size() + " Failing at " + counter);
+                throw e;
+            }
             
             assertEquals("Query produced unexpected range: " + planRange.toString(), expectedRange, planRange);
             assertFalse("Query plan had more than one range!", rangeIter.hasNext());
@@ -3618,5 +3625,6 @@ public class RangeStreamTestX {
             fail("Expected ranges still exist after test: " + shardIter.next());
         if (queryIter.hasNext())
             fail("Expected queries still exist after test: " + queryIter.next());
+        return counter;
     }
 }

@@ -30,6 +30,7 @@ import datawave.ingest.table.config.TableConfigHelper;
 import datawave.policy.IngestPolicyEnforcer;
 import datawave.query.config.ShardQueryConfiguration;
 import datawave.query.iterator.ivarator.IvaratorCacheDirConfig;
+import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.query.testframework.MockStatusReporter;
 import datawave.query.planner.DefaultQueryPlanner;
 import datawave.query.tables.ShardQueryLogic;
@@ -57,6 +58,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.StatusReporter;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -240,7 +243,7 @@ public class ContentFunctionQueryTest {
     @Test
     public void withinTest() throws Exception {
         String query = "ID == 'TEST_ID' && content:within(1,termOffsetMap,'dog','cat')";
-        
+
         final List<String> expected = Arrays.asList("dog", "cat");
         final List<DefaultEvent> events = getQueryResults(query, true, null);
         Assert.assertEquals(1, events.size());
@@ -287,6 +290,17 @@ public class ContentFunctionQueryTest {
         final List<String> expected = Arrays.asList("dog", "gap");
         evaluateEvents(events, expected);
     }
+
+    @Test
+    public void phraseWithSkipTestNoAnchor() throws Exception {
+        Logger.getLogger("datawave.query").setLevel(Level.TRACE);
+        String query = "BODY:\"dog gap\" BODY:\"dog gap\"";
+
+        final List<DefaultEvent> events = getQueryResults(query, true, null, true);
+        Assert.assertEquals(1, events.size());
+        final List<String> expected = Arrays.asList("dog", "gap");
+        evaluateEvents(events, expected);
+    }
     
     @Test
     public void phraseScoreTest() throws Exception {
@@ -319,9 +333,13 @@ public class ContentFunctionQueryTest {
             Assert.assertTrue("Missing values {" + expected + "} != {" + fields + "}", fields.containsAll(expected));
         }
     }
-    
+
     private List<DefaultEvent> getQueryResults(String queryString, boolean useIvarator, MultiValueMap<String,String> optionalParams) throws Exception {
-        ShardQueryLogic logic = getShardQueryLogic(useIvarator);
+        return getQueryResults(queryString,useIvarator,optionalParams,false);
+    }
+    
+    private List<DefaultEvent> getQueryResults(String queryString, boolean useIvarator, MultiValueMap<String,String> optionalParams, boolean isLucene) throws Exception {
+        ShardQueryLogic logic = getShardQueryLogic(useIvarator, isLucene);
         
         Iterator iter = getResultsIterator(queryString, logic, optionalParams);
         List<DefaultEvent> events = new ArrayList<>();
@@ -359,9 +377,10 @@ public class ContentFunctionQueryTest {
         return logic.getTransformIterator(query);
     }
     
-    private ShardQueryLogic getShardQueryLogic(boolean useIvarator) {
+    private ShardQueryLogic getShardQueryLogic(boolean useIvarator, boolean isLucene) {
         ShardQueryLogic logic = new ShardQueryLogic(this.logic);
-        
+        if (isLucene)
+            logic.setParser(new LuceneToJexlQueryParser());
         // increase the depth threshold
         logic.setMaxDepthThreshold(20);
         
