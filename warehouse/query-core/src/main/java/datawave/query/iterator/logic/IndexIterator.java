@@ -6,8 +6,10 @@ import com.google.common.collect.Lists;
 import datawave.query.Constants;
 import datawave.query.attributes.Document;
 import datawave.query.attributes.PreNormalizedAttributeFactory;
+import datawave.query.data.parsers.DatawaveKey;
 import datawave.query.iterator.DocumentIterator;
 import datawave.query.iterator.LimitedSortedKeyValueIterator;
+import datawave.query.iterator.QueryIterator;
 import datawave.query.iterator.Util;
 import datawave.query.jexl.functions.FieldIndexAggregator;
 import datawave.query.jexl.functions.IdentityAggregator;
@@ -258,6 +260,8 @@ public class IndexIterator implements SortedKeyValueIterator<Key,Value>, Documen
                 source.seek(newRange, seekColumnFamilies, includeColumnFamilies);
                 continue;
             } else if (cqDiff < 0) {
+
+                DatawaveKey parsedKey = new DatawaveKey(scanRange.getStartKey());
                 // need to move to the next row and try again
                 // this op is destructive on row, but iz ok 'cause the continue will reset it
                 //
@@ -269,6 +273,8 @@ public class IndexIterator implements SortedKeyValueIterator<Key,Value>, Documen
                 if (scanRange.afterEndKey(newStart)) {
                     return;
                 }
+
+
                 
                 Range newRange = new Range(newStart, false, scanRange.getEndKey(), scanRange.isEndKeyInclusive());
                 
@@ -429,7 +435,7 @@ public class IndexIterator implements SortedKeyValueIterator<Key,Value>, Documen
      */
     protected Range buildIndexRange(Range r) {
         Key startKey = permuteRangeKey(r.getStartKey(), r.isStartKeyInclusive());
-        Key endKey = permuteRangeKey(r.getEndKey(), r.isEndKeyInclusive());
+        Key endKey = permuteRangeKey(QueryIterator.isDocumentSpecificRange(r) ? r.getEndKey() : r.getStartKey(), r.isEndKeyInclusive());
         
         return new Range(startKey, r.isStartKeyInclusive(), endKey, r.isEndKeyInclusive());
     }
@@ -452,7 +458,7 @@ public class IndexIterator implements SortedKeyValueIterator<Key,Value>, Documen
             
             // if not inclusive, then add a null byte to the end of the UID to ensure we go to the next one
             if (!inclusive) {
-                term = Util.appendSuffix(term, (byte) 0);
+                term = Util.appendSuffix(term, (byte) 0xff);
             }
             
             key = new Key(rangeKey.getRow(), this.columnFamily, term);

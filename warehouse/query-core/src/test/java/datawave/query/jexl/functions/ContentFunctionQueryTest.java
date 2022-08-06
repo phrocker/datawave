@@ -30,6 +30,7 @@ import datawave.ingest.table.config.TableConfigHelper;
 import datawave.policy.IngestPolicyEnforcer;
 import datawave.query.config.ShardQueryConfiguration;
 import datawave.query.iterator.ivarator.IvaratorCacheDirConfig;
+import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
 import datawave.query.testframework.MockStatusReporter;
 import datawave.query.planner.DefaultQueryPlanner;
 import datawave.query.tables.ShardQueryLogic;
@@ -57,6 +58,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.StatusReporter;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -287,6 +290,17 @@ public class ContentFunctionQueryTest {
         final List<String> expected = Arrays.asList("dog", "gap");
         evaluateEvents(events, expected);
     }
+
+    @Test
+    public void phraseWithSkipTestNoAnchor() throws Exception {
+        Logger.getLogger("datawave.query").setLevel(Level.TRACE);
+        String query = "BODY:\"dog gap\" BODY:\"dog gap\"";
+
+        final List<DefaultEvent> events = getQueryResults(query, true, null);
+        Assert.assertEquals(1, events.size());
+        final List<String> expected = Arrays.asList("dog", "gap");
+        evaluateEvents(events, expected);
+    }
     
     @Test
     public void phraseScoreTest() throws Exception {
@@ -361,7 +375,7 @@ public class ContentFunctionQueryTest {
     
     private ShardQueryLogic getShardQueryLogic(boolean useIvarator) {
         ShardQueryLogic logic = new ShardQueryLogic(this.logic);
-        
+        logic.setParser(new LuceneToJexlQueryParser());
         // increase the depth threshold
         logic.setMaxDepthThreshold(20);
         
