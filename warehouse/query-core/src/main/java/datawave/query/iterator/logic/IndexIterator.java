@@ -398,7 +398,7 @@ public class IndexIterator implements SortedKeyValueIterator<Key,Value>, Documen
         Key nextKey = new Key(pointer.getRow(), columnFamily, newColumnQualifier);
         Key newTop = null;
    //     for (int i = 0; i < 256 && source.hasTop() && (newTop = source.getTopKey()).compareTo(nextKey) < 0; ++i)
-     //       source.next();
+     //p       source.next();
         
         /*
          * We need to verify a few things after next()'ing a bunch and then seeking:
@@ -426,6 +426,11 @@ public class IndexIterator implements SortedKeyValueIterator<Key,Value>, Documen
     protected void seek(SortedKeyValueIterator<Key,Value> source, Range r) throws IOException {
         source.seek(r, this.seekColumnFamilies, true);
     }
+
+    protected static boolean isNullTerminatedRow(Key key){
+        ByteSequence keySeq = key.getRowData();
+        return keySeq.byteAt(keySeq.length()-1)== 0x00;
+    }
     
     /**
      * Permute a "Document" Range to the equivalent "Field Index" Range for a Field:Term
@@ -435,7 +440,7 @@ public class IndexIterator implements SortedKeyValueIterator<Key,Value>, Documen
      */
     protected Range buildIndexRange(Range r) {
         Key startKey = permuteRangeKey(r.getStartKey(), r.isStartKeyInclusive());
-        Key endKey = permuteRangeKey(QueryIterator.isDocumentSpecificRange(r) ? r.getEndKey() : r.getStartKey(), r.isEndKeyInclusive(),true);
+        Key endKey = permuteRangeKey(!isNullTerminatedRow(r.getEndKey()) ? r.getEndKey() : r.getStartKey(), r.isEndKeyInclusive(),true);
         
         return new Range(startKey, r.isStartKeyInclusive(), endKey, r.isEndKeyInclusive());
     }
