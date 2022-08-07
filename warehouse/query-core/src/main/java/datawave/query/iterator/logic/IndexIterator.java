@@ -397,8 +397,8 @@ public class IndexIterator implements SortedKeyValueIterator<Key,Value>, Documen
         
         Key nextKey = new Key(pointer.getRow(), columnFamily, newColumnQualifier);
         Key newTop = null;
-        for (int i = 0; i < 256 && source.hasTop() && (newTop = source.getTopKey()).compareTo(nextKey) < 0; ++i)
-            source.next();
+   //     for (int i = 0; i < 256 && source.hasTop() && (newTop = source.getTopKey()).compareTo(nextKey) < 0; ++i)
+     //       source.next();
         
         /*
          * We need to verify a few things after next()'ing a bunch and then seeking:
