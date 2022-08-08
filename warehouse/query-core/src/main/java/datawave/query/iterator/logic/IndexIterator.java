@@ -440,7 +440,7 @@ public class IndexIterator implements SortedKeyValueIterator<Key,Value>, Documen
      */
     protected Range buildIndexRange(Range r) {
         Key startKey = permuteRangeKey(r.getStartKey(), r.isStartKeyInclusive());
-        Key endKey = permuteRangeKey( r.getEndKey() , r.isEndKeyInclusive(),true);
+        Key endKey = permuteRangeKey( r.getEndKey() , r.isEndKeyInclusive(),true,r.getStartKey().getColumnFamilyData().length() > 0);
         
         return new Range(startKey, r.isStartKeyInclusive(), endKey, r.isEndKeyInclusive());
     }
@@ -452,9 +452,9 @@ public class IndexIterator implements SortedKeyValueIterator<Key,Value>, Documen
      * @return
      */
     protected Key permuteRangeKey(Key rangeKey, boolean inclusive) {
-        return permuteRangeKey(rangeKey,inclusive,false);
+        return permuteRangeKey(rangeKey,inclusive,false,false);
     }
-    protected Key permuteRangeKey(Key rangeKey, boolean inclusive,boolean endKey) {
+    protected Key permuteRangeKey(Key rangeKey, boolean inclusive,boolean endKey, boolean startIsConstrained) {
         Key key = null;
         
         if (null != rangeKey) {
@@ -466,9 +466,11 @@ public class IndexIterator implements SortedKeyValueIterator<Key,Value>, Documen
             
             // if not inclusive, then add a null byte to the end of the UID to ensure we go to the next one
             if (!inclusive) {
-                term = Util.appendSuffix(term, endKey ? (byte) 0xff :  0);
+                //term = Util.appendSuffix(term, endKey ? (byte) 0xff :  0);
+                term = Util.appendSuffix(term, (byte)  0);
             }
-            if (endKey && isNullTerminatedRow(rangeKey) ) {
+            // if this is the end key, and the start is doc spe
+            if (endKey && isNullTerminatedRow(rangeKey) && startIsConstrained ) {
                 key = new Key(Util.removeLastByte(rangeKey.getRow()), this.columnFamily, term);
             }
             else{
