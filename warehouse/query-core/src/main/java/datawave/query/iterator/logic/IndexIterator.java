@@ -466,8 +466,7 @@ public class IndexIterator implements SortedKeyValueIterator<Key,Value>, Documen
             
             // if not inclusive, then add a null byte to the end of the UID to ensure we go to the next one
             if (!inclusive) {
-                //term = Util.appendSuffix(term, endKey ? (byte) 0xff :  0);
-                term = Util.appendSuffix(term, (byte)  0);
+                term = Util.appendSuffix(term, endKey ? (byte) 0xff :  0);
             }
             // if this is the end key, and the start is doc spe
             if (endKey && isNullTerminatedRow(rangeKey) && startIsConstrained ) {
