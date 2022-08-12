@@ -440,7 +440,7 @@ public class IndexIterator implements SortedKeyValueIterator<Key,Value>, Documen
      */
     protected Range buildIndexRange(Range r) {
         Key startKey = permuteRangeKey(r.getStartKey(), r.isStartKeyInclusive());
-        Key endKey = permuteRangeKey( r.getEndKey() , r.isEndKeyInclusive(),true,r.getStartKey().getColumnFamilyData().length() > 0);
+        Key endKey = permuteRangeKey( r.getEndKey() , r.isEndKeyInclusive(),true,startKey.getColumnFamilyData().length() > 0);
         
         return new Range(startKey, r.isStartKeyInclusive(), endKey, r.isEndKeyInclusive());
     }
