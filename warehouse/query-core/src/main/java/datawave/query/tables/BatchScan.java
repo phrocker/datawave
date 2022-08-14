@@ -592,7 +592,7 @@ public class BatchScan implements Iterator<Entry<Key,Value>> {
                         opts.getServerSideIteratorList(), opts.getServerSideIteratorOptions(),
                         ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
                         SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
-                        Long.MAX_VALUE, options.getClassLoaderContext(), execHints);
+                        Long.MAX_VALUE, options.getClassLoaderContext(), execHints,Long.MAX_VALUE);
                 if (waitForWrites)
                     ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
 
@@ -630,7 +630,7 @@ public class BatchScan implements Iterator<Entry<Key,Value>> {
                         timer.reset().start();
                     }
 
-                    scanResult = client.continueMultiScan(TraceUtil.traceInfo(), imsr.scanID);
+                    scanResult = client.continueMultiScan(TraceUtil.traceInfo(), imsr.scanID,Long.MAX_VALUE);
 
                     if (timer != null) {
                         timer.stop();

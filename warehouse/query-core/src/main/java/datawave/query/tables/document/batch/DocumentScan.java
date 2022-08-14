@@ -771,7 +771,7 @@ public class DocumentScan implements Iterator<SerializedDocumentIfc> {
                         opts.getServerSideIteratorList(), opts.getServerSideIteratorOptions(),
                         sharedByteBuffers, waitForWrites,
                         SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
-                        Long.MAX_VALUE, options.getClassLoaderContext(), execHints);
+                        Long.MAX_VALUE, options.getClassLoaderContext(), execHints,Long.MAX_VALUE);
                 if (waitForWrites)
                     ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
 
@@ -808,7 +808,7 @@ public class DocumentScan implements Iterator<SerializedDocumentIfc> {
                         timer.reset().start();
                     }
 
-                    scanResult = client.continueMultiScan(TraceUtil.traceInfo(), imsr.scanID);
+                    scanResult = client.continueMultiScan(TraceUtil.traceInfo(), imsr.scanID,Long.MAX_VALUE);
 
                     if (timer != null) {
                         timer.stop();
@@ -907,7 +907,7 @@ public class DocumentScan implements Iterator<SerializedDocumentIfc> {
                         opts.getServerSideIteratorList(), opts.getServerSideIteratorOptions(),
                         sharedByteBuffers, waitForWrites,false,1000,
                         SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
-                        Long.MAX_VALUE, options.getClassLoaderContext(), execHints);
+                        Long.MAX_VALUE, options.getClassLoaderContext(), execHints,Long.MAX_VALUE);
                 if (waitForWrites)
                     ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
 
@@ -942,7 +942,7 @@ public class DocumentScan implements Iterator<SerializedDocumentIfc> {
                         timer.reset().start();
                     }
 
-                    scanResult = client.continueScan(TraceUtil.traceInfo(), imsr.scanID);
+                    scanResult = client.continueScan(TraceUtil.traceInfo(), imsr.scanID,Long.MAX_VALUE);
 
                     if (timer != null) {
                         timer.stop();
