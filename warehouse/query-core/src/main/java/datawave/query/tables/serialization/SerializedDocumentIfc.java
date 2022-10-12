@@ -11,6 +11,8 @@ public interface SerializedDocumentIfc {
 
     Document getAsDocument();
 
+    byte [] getIdentifier();
+
     int compareTo(SerializedDocumentIfc other);
 
     long size();

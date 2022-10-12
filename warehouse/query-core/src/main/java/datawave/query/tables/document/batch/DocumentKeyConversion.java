@@ -9,6 +9,7 @@ import datawave.query.attributes.Attribute;
 import datawave.query.attributes.Document;
 import datawave.query.function.KryoCVAwareSerializableSerializer;
 import datawave.query.function.json.deser.JsonDeser;
+import datawave.query.function.serializer.JsonMetadataSerializer;
 import datawave.query.tables.serialization.JsonDocument;
 import datawave.query.tables.serialization.RawJsonDocument;
 import datawave.query.tables.serialization.SerializedDocument;
@@ -61,19 +62,22 @@ public class DocumentKeyConversion {
 
         } else if (DocumentSerialization.ReturnType.json == returnType) {
 
-
+            int dataLength = JsonMetadataSerializer.getDataLength(array);
+            byte [] identifier = JsonMetadataSerializer.getIdentifier(array,dataLength);
             if (!docRawFields) {
-                InputStream jsonStream  = new ByteArrayInputStream(array, offset+3, size - 3);
+                InputStream jsonStream  = new ByteArrayInputStream(array, offset+7, dataLength);
                 Reader rdr = new InputStreamReader(jsonStream);
                 JsonObject jsonObject = jsonParser.parse(rdr).getAsJsonObject();
-                document = new JsonDocument(jsonObject, kv.getKey(), size - 3);
+                document = new JsonDocument(jsonObject, kv.getKey(), identifier,dataLength);
             }else{
-                document = new RawJsonDocument(new String(array,offset+3,size-3), kv.getKey(), size - 3);
+                document = new RawJsonDocument(new String(array,offset+7,dataLength), kv.getKey(), identifier,size - 7);
             }
 
         }
         else if (DocumentSerialization.ReturnType.jsondocument == returnType) {
-            InputStream jsonStream  = new ByteArrayInputStream(array, offset+3, size - 3);
+            int dataLength = JsonMetadataSerializer.getDataLength(array);
+
+            InputStream jsonStream  = new ByteArrayInputStream(array, offset+3, dataLength);
 
             Reader rdr = new InputStreamReader(jsonStream);
             JsonObject jsonObject = jsonParser.parse(rdr).getAsJsonObject();

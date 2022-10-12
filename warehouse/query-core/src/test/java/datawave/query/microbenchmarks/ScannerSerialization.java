@@ -1,15 +1,10 @@
 package datawave.query.microbenchmarks;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.JsonObject;
 import datawave.data.type.NoOpType;
 import datawave.query.DocumentSerialization;
-import datawave.query.attributes.Content;
 import datawave.query.attributes.Document;
 import datawave.query.attributes.TypeAttribute;
-import datawave.query.function.deserializer.DocumentJsonDeserializer;
-import datawave.query.function.deserializer.KryoDocumentDeserializer;
 import datawave.query.function.serializer.JsonDocumentSerializer;
 import datawave.query.function.serializer.KryoDocumentSerializer;
 import datawave.query.tables.document.batch.DocumentKeyConversion;
@@ -22,7 +17,6 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,7 +52,7 @@ public class ScannerSerialization {
         return doc;
     }
 
-    QueryStopwatch runTestWithValue(int docCount,int attributeCount, String name, SerializeMe ser, DeSerializeMe deser) throws IOException {
+    QueryStopwatch runTestWithValue(int docCount, int attributeCount, String name, SerializeMe ser, DeSerializeMe deser, boolean writeIdentifier) throws IOException {
         final List<Document> documents = new ArrayList<>();
         List<TKeyValue> arrays = new ArrayList<>(docCount);
         QueryStopwatch stopWatch = new QueryStopwatch();
@@ -73,7 +67,7 @@ public class ScannerSerialization {
         TKey key = new Key("a","b","c","d").toThrift();
         for(int i=0;i < documents.size(); i++) {
             TKeyValue tkv = new TKeyValue();
-            tkv.setValue(DocumentSerialization.writeBodyWithHeader(ser.serialize(documents.get(i)),0));
+            tkv.setValue(DocumentSerialization.writeBodyWithHeader(ser.serialize(documents.get(i)),0,writeIdentifier));
             tkv.setKey(key);
             arrays.set(i, tkv);
         }
@@ -110,7 +104,7 @@ public class ScannerSerialization {
         for(int i=0;i < documents.size(); i++) {
             TKeyValue tkv = new TKeyValue();
             tkv.setKey(key);
-            tkv.setValue(DocumentSerialization.writeBodyWithHeader(ser.serialize(documents.get(i)),0));
+            tkv.setValue(DocumentSerialization.writeBodyWithHeader(ser.serialize(documents.get(i)),0,true));
             arrays.set(i, tkv);
         }
         convertStopWatch.stop();
@@ -128,7 +122,7 @@ public class ScannerSerialization {
         KryoDocumentSerializer kryoSerializer = new KryoDocumentSerializer();
         return runTestWithValue(docCount,attributes,"kryo",document -> kryoSerializer.serialize(document), tkv -> {
             return DocumentKeyConversion.getDocument(DocumentSerialization.ReturnType.kryo,false,tkv).getAsDocument();
-        });
+        },false);
     }
 
 

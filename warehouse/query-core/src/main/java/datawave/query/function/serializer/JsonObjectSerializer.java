@@ -3,7 +3,6 @@ package datawave.query.function.serializer;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import datawave.query.attributes.Document;
-import datawave.query.function.json.deser.JsonDeser;
 import datawave.query.function.json.deser.JsonObjectDeser;
 
 import java.io.StringWriter;
@@ -11,7 +10,7 @@ import java.io.StringWriter;
 /**
  * Json Document Serializer converts the POJO using gsonBuilder to a json string.
  */
-public class JsonObjectSerializer extends DocumentSerializer {
+public class JsonObjectSerializer extends JsonMetadataSerializer {
 
     static GsonBuilder gsonBuilder = new GsonBuilder();
     static Gson gson;

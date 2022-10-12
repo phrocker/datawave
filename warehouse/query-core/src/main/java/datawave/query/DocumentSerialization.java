@@ -109,12 +109,21 @@ public class DocumentSerialization {
         return ((value >> 8) & 0xff) | ((value & 0xff) << 8);
     }
 
-    public static byte[] writeBodyWithHeader(byte [] data, int compression) throws IOException {
+    public static byte[]  writeBodyWithHeader(byte [] data, int compression) throws IOException {
+        return writeBodyWithHeader(data,compression,false);
+    }
+
+
+    public static byte[]  writeBodyWithHeader(byte [] data, int compression, boolean writeIdentifier) throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
         dataOutputStream.writeShort(toLittleEndian(DOC_MAGIC));
         dataOutputStream.writeByte(compression);
+        if (writeIdentifier)
+        dataOutputStream.writeInt(data.length);
         dataOutputStream.write(writeBody(data,compression));
+        if (writeIdentifier)
+        dataOutputStream.writeChars("identifier");
         return outputStream.toByteArray();
     }
 

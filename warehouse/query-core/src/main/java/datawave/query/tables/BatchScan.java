@@ -69,8 +69,8 @@ public class BatchScan implements Iterator<Entry<Key,Value>> {
     }
 
     public BatchScan(ClientContext context, TableId tableId,
-                                           Authorizations authorizations, ArrayList<Range> ranges, int numThreads,
-                                           ExecutorService queryThreadPool, ScannerOptions scannerOptions, long timeout, boolean printOutput) {
+                     Authorizations authorizations, ArrayList<Range> ranges, int numThreads,
+                     ExecutorService queryThreadPool, ScannerOptions scannerOptions, long timeout, boolean printOutput) {
 
         this.context = context;
         this.tableId = tableId;
@@ -82,7 +82,7 @@ public class BatchScan implements Iterator<Entry<Key,Value>> {
 
         this.locator = new TimeoutTabletLocator(timeout, context, tableId);
 
-  //      timeoutTrackers = Collections.synchronizedMap(new HashMap<>());
+        //      timeoutTrackers = Collections.synchronizedMap(new HashMap<>());
 //        timedoutServers = Collections.synchronizedSet(new HashSet<>());
         this.timeout = timeout;
         if (options.getFetchedColumns().size() > 0) {
@@ -219,8 +219,8 @@ public class BatchScan implements Iterator<Entry<Key,Value>> {
                 if (failures.size() >= lastFailureSize)
                     if (!context.tableNodeExists(tableId))
                         throw new TableDeletedException(tableId.canonical());
-                    if (context.getTableState(tableId) == TableState.OFFLINE)
-                        throw new TableOfflineException("Table (" + tableId.canonical() + ") is offline");
+                if (context.getTableState(tableId) == TableState.OFFLINE)
+                    throw new TableOfflineException("Table (" + tableId.canonical() + ") is offline");
 
                 lastFailureSize = failures.size();
 
@@ -569,10 +569,10 @@ public class BatchScan implements Iterator<Entry<Key,Value>> {
         try {
             final HostAndPort parsedServer = HostAndPort.fromString(server);
             final TabletScanClientService.Client client;
-    //        if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis())
-  //              client = ThriftUtil.getTServerClient(parsedServer, context, timeoutTracker.getTimeOut());
+            //        if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis())
+            //              client = ThriftUtil.getTServerClient(parsedServer, context, timeoutTracker.getTimeOut());
 //            else
-                client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN,parsedServer, context);
+            client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN,parsedServer, context);
             MyScannerOptions opts = new MyScannerOptions(options);
             try {
 
@@ -592,7 +592,7 @@ public class BatchScan implements Iterator<Entry<Key,Value>> {
                         opts.getServerSideIteratorList(), opts.getServerSideIteratorOptions(),
                         ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
                         SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
-                        Long.MAX_VALUE, options.getClassLoaderContext(), execHints);
+                        Long.MAX_VALUE, options.getClassLoaderContext(), execHints,Long.MAX_VALUE);
                 if (waitForWrites)
                     ThriftScanner.serversWaitedForWrites.get(ttype).add(server.toString());
 
@@ -613,7 +613,7 @@ public class BatchScan implements Iterator<Entry<Key,Value>> {
 
                 if (entries.size() > 0)
                     receiver.receive(entries);
-  //              if (entries.size() > 0 || scanResult.fullScans.size() > 0)
+                //              if (entries.size() > 0 || scanResult.fullScans.size() > 0)
 //                    timeoutTracker.madeProgress();
 
                 trackScanning(failures, unscanned, scanResult);
@@ -630,7 +630,7 @@ public class BatchScan implements Iterator<Entry<Key,Value>> {
                         timer.reset().start();
                     }
 
-                    scanResult = client.continueMultiScan(TraceUtil.traceInfo(), imsr.scanID);
+                    scanResult = client.continueMultiScan(TraceUtil.traceInfo(), imsr.scanID,Long.MAX_VALUE);
 
                     if (timer != null) {
                         timer.stop();
@@ -648,7 +648,7 @@ public class BatchScan implements Iterator<Entry<Key,Value>> {
                     if (entries.size() > 0)
                         receiver.receive(entries);
 
-  //                  if (entries.size() > 0 || scanResult.fullScans.size() > 0)
+                    //                  if (entries.size() > 0 || scanResult.fullScans.size() > 0)
 //                        timeoutTracker.madeProgress();
 
                     trackScanning(failures, unscanned, scanResult);
@@ -661,7 +661,7 @@ public class BatchScan implements Iterator<Entry<Key,Value>> {
             }
         } catch (TTransportException e) {
             log.debug("Server : {} msg : {}", server, e.getMessage());
-        //    timeoutTracker.errorOccured();
+            //    timeoutTracker.errorOccured();
             throw new IOException(e);
         } catch (ThriftSecurityException e) {
             log.debug("Server : {} msg : {}", server, e.getMessage(), e);
@@ -679,7 +679,7 @@ public class BatchScan implements Iterator<Entry<Key,Value>> {
             throw new SampleNotPresentException(message, e);
         } catch (TException e) {
             log.debug("Server : {} msg : {}", server, e.getMessage(), e);
-           // timeoutTracker.errorOccured();
+            // timeoutTracker.errorOccured();
             throw new IOException(e);
         }
     }

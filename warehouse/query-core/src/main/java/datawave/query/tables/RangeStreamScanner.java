@@ -378,7 +378,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
             } else {
                 Entry<Key,Value> kv = queue.poll();
                 if (log.isTraceEnabled() && kv != null){
-                    log.trace("Popped " + kv);
+                    log.trace("Polled " + kv);
                 }
             }
         }
@@ -588,7 +588,6 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
 
                         lastSeenKey = kvIter.next().getKey();
                     } else {
-
                         currentDay = null;
 
                     }
@@ -670,17 +669,8 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
             }
 
             if (!result && !(!finished && forceAll)) {
-//                if (log.isTraceEnabled())
- //                   log.trace("Adding " + top.getKey() + " back ");
                 currentQueue.add(top);
-            } /*else {
-                if (log.isTraceEnabled())
-                    log.trace("missing " + top.getKey() + " true? " + result + " " + finished + " " + forceAll);
-            }*/
-
-  //          if (log.isTraceEnabled())
-//                log.trace("Last key is " + lastSeenKey);
-
+            }
             count++;
         }
 
@@ -831,7 +821,6 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
             } else {
                 // adjust the end key range.
                 if (seeking) {
-
                     currentRange = buildSeekRange(seekShard, currentRange);
                     seeking = false;
                 } else {

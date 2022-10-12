@@ -19,12 +19,13 @@ import java.nio.charset.StandardCharsets;
 public class JsonDocumentTest {
 
     static JsonParser parser = new JsonParser();
+    byte [] identifier = new byte[0];
     @Test
     public void testConversion(){
         final String json = "{ \"fieldA\" : 25 , \"fieldB\" : \"stringvalue\"}";
         Key key = new Key("a","b");
         JsonObject obj = (JsonObject)parser.parse(json);
-        JsonDocument jdoc = new JsonDocument(obj,key.toThrift(),2);
+        JsonDocument jdoc = new JsonDocument(obj,key.toThrift(),identifier,2);
         Document doc = jdoc.getAsDocument();
         Attribute<?> attr = doc.get("fieldA");
         Assert.assertNotNull(attr);
@@ -41,7 +42,7 @@ public class JsonDocumentTest {
         final String json = "{ \"fieldA\" : 25 , \"fieldB\" : \"stringvalue\"}";
         Key key = new Key("a","b");
         JsonObject obj = (JsonObject)parser.parse(json);
-        JsonDocument jdoc = new JsonDocument(obj,key.toThrift(),2);
+        JsonDocument jdoc = new JsonDocument(obj,key.toThrift(),identifier,2);
         String doc = jdoc.get();// class cast exception
 
     }
@@ -51,7 +52,7 @@ public class JsonDocumentTest {
         final String json = "{ }";
         Key key = new Key("a","b");
         JsonObject obj = (JsonObject)parser.parse(json);
-        JsonDocument jdoc = new JsonDocument(obj,key.toThrift(),2);
+        JsonDocument jdoc = new JsonDocument(obj,key.toThrift(),identifier,2);
         Document doc = jdoc.getAsDocument();
         Assert.assertEquals(0, doc.size());
     }

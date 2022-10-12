@@ -10,7 +10,6 @@ import datawave.query.attributes.Document;
 import datawave.query.attributes.TypeAttribute;
 import datawave.query.function.serializer.JsonDocumentSerializer;
 import datawave.query.function.serializer.KryoDocumentSerializer;
-import datawave.query.tables.document.batch.DocumentKeyConversion;
 import datawave.query.tables.document.batch.DocumentLogic;
 import datawave.query.tables.serialization.JsonDocument;
 import datawave.query.transformer.DocumentTransformer;
@@ -112,7 +111,7 @@ public class ScannerSerializationToTransformer {
         JsonParser parser = new JsonParser();
         for(int i=0;i < documents.size(); i++) {
             JsonObject jsonObject =parser.parse(new InputStreamReader(new ByteArrayInputStream(ser.serialize(documents.get(i))))).getAsJsonObject();
-            arrays.set(i, new JsonDocument(jsonObject,key,25));
+            arrays.set(i, new JsonDocument(jsonObject,key,new byte[0],25));
         }
         convertStopWatch.stop();
         convertStopWatch = stopWatch.newStartedStopwatch("Time to convert " + docCount + " " + name +" docs...deserialization");
