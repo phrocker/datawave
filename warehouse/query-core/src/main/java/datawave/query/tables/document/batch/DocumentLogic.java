@@ -155,7 +155,7 @@ public class DocumentLogic extends ShardedBaseQueryLogic<SerializedDocumentIfc, 
 
     @Override
     protected Iterator<SerializedDocumentIfc> getDedupedIterator() {
-        return this.iterator;
+        return new DocumentDedupingIterator(this.iterator);
     }
 
     protected String getStopwatchHeader(DocumentQueryConfiguration config) {

@@ -1764,7 +1764,6 @@ public abstract class ShardedBaseQueryLogic<T,J extends ShardQueryConfiguration>
         optionalParams.add(QueryParameters.INCLUDE_DATATYPE_AS_FIELD);
         optionalParams.add(QueryParameters.INCLUDE_GROUPING_CONTEXT);
         optionalParams.add(QueryParameters.RAW_DATA_ONLY);
-        optionalParams.add(QueryParameters.TRANFORM_CONTENT_TO_UID);
         optionalParams.add(QueryOptions.REDUCED_RESPONSE);
         optionalParams.add(QueryOptions.POSTPROCESSING_CLASSES);
         optionalParams.add(QueryOptions.COMPRESS_SERVER_SIDE_RESULTS);
@@ -2281,6 +2280,14 @@ public abstract class ShardedBaseQueryLogic<T,J extends ShardQueryConfiguration>
 
     public void setLazySetMechanismEnabled(boolean lazySetMechanismEnabled) {
         getConfig().setLazySetMechanismEnabled(lazySetMechanismEnabled);
+    }
+
+
+    public void setPageProcessingStartTime(long pageProcessingStartTime) {
+        // we only care about setting the start time if we have an instance already
+        if (this.transformerInstance != null) {
+            transformerInstance.setQueryExecutionForPageStartTime(pageProcessingStartTime);
+        }
     }
 
 

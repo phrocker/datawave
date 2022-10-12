@@ -1537,11 +1537,13 @@ public class RangeStreamTest {
         // is OBE. Leaving it should show that without day ranges ( and only returning shard ranges ) prevents this
         // test from returning a range that needs to be tested at the doc level.
         Set<Range> expectedRanges = Sets.newHashSet();
-
         RangeStream rangeStream = new RangeStream(config, new ScannerFactory(client, 1), helper);
         rangeStream.setLimitScanners(true);
         CloseableIterable<QueryPlan> queryPlans = rangeStream.streamPlans(script);
-        assertEquals(IndexStream.StreamContext.PRESENT, rangeStream.context());
+        /**
+         * This stream is now absent because day ranges don't exist.
+         */
+        assertEquals(IndexStream.StreamContext.ABSENT, rangeStream.context());
         for (QueryPlan queryPlan : queryPlans) {
             Iterable<Range> ranges = queryPlan.getRanges();
             for (Range range : ranges) {

@@ -60,6 +60,8 @@ public class JsonDocumentTransformerTest { // extends EasyMockSupport {
     
     @Mock
     private KryoDocumentDeserializer mockDeserializer;
+
+    byte [] identifier = new byte [0];
     
     // @Mock
     // private Numeric mockNumeric;
@@ -163,7 +165,7 @@ public class JsonDocumentTransformerTest { // extends EasyMockSupport {
         JsonObject d= new JsonObject();
         basicExpects(d, key, entry,2);
 
-        JsonDocument doc = new JsonDocument(d,key.toThrift(),1);
+        JsonDocument doc = new JsonDocument(d,key.toThrift(),identifier,1);
         PowerMock.replayAll();
 
         transformer = new JsonDocumentTransformer(mockLogic, mockQuery, mockMarkingFunctions, mockResponseFactory, true);
@@ -218,7 +220,7 @@ public class JsonDocumentTransformerTest { // extends EasyMockSupport {
         JsonObject d = new JsonObject();
 
         basicExpects(d, key, entry, 2);
-        JsonDocument doc = new JsonDocument(d,key.toThrift(),1);
+        JsonDocument doc = new JsonDocument(d,key.toThrift(),identifier,1);
         PowerMock.replayAll();
 
         transformer = new JsonDocumentTransformer(mockLogic, mockQuery, mockMarkingFunctions, mockResponseFactory, true);
@@ -276,7 +278,7 @@ public class JsonDocumentTransformerTest { // extends EasyMockSupport {
         JsonObject d = new JsonObject();
         basicExpects(d, key, entry, 2);
 
-        JsonDocument doc = new JsonDocument(d,key.toThrift(),1);
+        JsonDocument doc = new JsonDocument(d,key.toThrift(),identifier,1);
 
         PowerMock.replayAll();
 

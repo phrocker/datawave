@@ -209,12 +209,6 @@ public class ShardQueryLogic extends ShardedBaseQueryLogic<Entry<Key,Value>, Sha
         }
     }
 
-    public void setPageProcessingStartTime(long pageProcessingStartTime) {
-        // we only care about setting the start time if we have an instance already
-        if (this.transformerInstance != null) {
-            transformerInstance.setQueryExecutionForPageStartTime(pageProcessingStartTime);
-        }
-    }
     
     /**
      * Loads a query Model

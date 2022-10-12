@@ -44,6 +44,8 @@ public abstract class AbstractQueryLogicTransformer<I,O> implements QueryLogicTr
     public void setQueryExecutionForPageStartTime(long queryExecutionForCurrentPageStartTime) {
         this.queryExecutionForCurrentPageStartTime = queryExecutionForCurrentPageStartTime;
 
+    }
+
     @Override
     public String createJSONResponse(ResultsPage page) {
         return createJSONResponse(page.getResults());
