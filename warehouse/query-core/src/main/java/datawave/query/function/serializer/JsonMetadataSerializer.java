@@ -69,6 +69,10 @@ public abstract class JsonMetadataSerializer extends DocumentSerializer{
     }
 
     public static byte[] getIdentifier(byte[] doc, int dataLength) {
+        if (doc.length <= 7 || dataLength == 0){
+            // if we don't have a document then we will return an empty identifier
+            return new byte[0];
+        }
         ByteBuffer buf = ByteBuffer.wrap(doc,7+dataLength,doc.length - dataLength - 7);
         byte [] array = new byte [ doc.length - dataLength - 7 ];
         buf.get(array, 0, doc.length - dataLength - 7);
