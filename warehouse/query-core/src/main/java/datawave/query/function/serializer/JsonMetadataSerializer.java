@@ -10,6 +10,8 @@ import org.apache.accumulo.core.data.Value;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
+
+
 public abstract class JsonMetadataSerializer extends DocumentSerializer{
 
     public JsonMetadataSerializer(boolean reducedResponse, boolean allowCompression) {
@@ -57,27 +59,38 @@ public abstract class JsonMetadataSerializer extends DocumentSerializer{
         int offset = cf.offset() + dataTypeOffset;
         int length = cf.length() - dataTypeOffset;
 
-        byte[] bytes = new byte[row.length()-4 + length + 1];
-        System.arraycopy(row.getBackingArray(), row.offset()+4, bytes, 0, row.length()-4);
-        System.arraycopy(cf.getBackingArray(), offset, bytes, row.length() + 1, length-row.length());
+        int rowlen = row.length()- (int)4;
+
+        byte[] bytes = new byte[rowlen + length + 1];
+
+        System.arraycopy(row.getBackingArray(), row.offset()+4, bytes, 0, rowlen);
+        System.arraycopy(cf.getBackingArray(), offset, bytes, rowlen + 1, length-(rowlen));
         return bytes;
     }
 
-    public static int getDataLength(byte [] doc){
-        ByteBuffer buf = ByteBuffer.wrap(doc,3,doc.length-3);
+    public static int getDataLength(byte [] doc, int offset){
+        ByteBuffer buf = ByteBuffer.wrap(doc,offset +(int)3,(int)4);
         return buf.getInt();
     }
 
-    public static byte[] getIdentifier(byte[] doc, int dataLength) {
+    public static byte[] getIdentifier(byte[] doc, int offset,int docSize, int dataLength) {
         if (doc.length <= 7 || dataLength == 0){
             // if we don't have a document then we will return an empty identifier
             return new byte[0];
         }
-        ByteBuffer buf = ByteBuffer.wrap(doc,7+dataLength,doc.length - dataLength - 7);
-        byte [] array = new byte [ doc.length - dataLength - 7 ];
-        buf.get(array, 0, doc.length - dataLength - 7);
+        //ByteBuffer buf = ByteBuffer.wrap(doc,offset + 7+dataLength,doc.length - dataLength - 7 - offset);
+        int totalLen = docSize - dataLength;
+        totalLen-=(int)7;
+        byte [] array = new byte [ totalLen ];
+
+        System.arraycopy(doc,offset+(int)7+dataLength,array,0,totalLen);
+  //      buf.get(array, 0, doc.length - dataLength - 7 - offset);
+//        buf.rewind();
         return array;
     }
+
+
+
 
 
     protected Value getValue(Key key, byte[] document) {
@@ -98,7 +111,9 @@ public abstract class JsonMetadataSerializer extends DocumentSerializer{
         }
         identifier = computeIdentifier(key);
 
-        ByteBuffer buf = ByteBuffer.allocate(identifier.length + 4 + header.length + dataToWrite.length);
+        int totalSize = identifier.length  + header.length + dataToWrite.length;
+        totalSize+=(int)4;
+        ByteBuffer buf = ByteBuffer.allocate(totalSize);
         buf.put(header);
         // writes 4 bytes
         buf.putInt(dataToWrite.length);

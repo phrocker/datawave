@@ -16,7 +16,7 @@ public class JsonDocument implements SerializedDocumentIfc{
     private final long size;
 
     private final byte [] identifier;
-    private DocumentJsonDeserializer deser = new DocumentJsonDeserializer();
+    static private DocumentJsonDeserializer deser = new DocumentJsonDeserializer();
 
     public JsonDocument(JsonObject doc, TKey key, byte [] identifier, long size){
         this.doc=doc;

@@ -307,7 +307,9 @@
         <property name="rangeBufferPollMillis" value="25" />
         <property name="maxPipelineCachedResults" value="1" />
         <property name="maxEvaluationPipelines" value="1" />
-    </bean>
+</bean>
+
+
 
     <util:list id="IvaratorCacheDirConfigs">
         ${ivarator.cache.dir.config}
@@ -327,7 +329,12 @@
     <bean id="BaseModelEventQuery" parent="BaseEventQuery" abstract="true">
         <property name="modelTableName" value="${metadata.table.name}" />
         <property name="modelName" value="DATAWAVE" />
+</bean>
+
+    <bean id="RawDocumentQuery" parent="DocumentQuery" scope="prototype" class="datawave.query.tables.document.batch.DocumentLogic" >
+        <property name="docRawFields" value="true" />
     </bean>
+
 
     <bean id="EventQueryDataDecoratorTransformer" scope="prototype" class="datawave.query.transformer.EventQueryDataDecoratorTransformer">
         <property name="dataDecorators">

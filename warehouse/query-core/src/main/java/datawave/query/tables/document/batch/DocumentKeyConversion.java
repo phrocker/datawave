@@ -62,22 +62,24 @@ public class DocumentKeyConversion {
 
         } else if (DocumentSerialization.ReturnType.json == returnType) {
 
-            int dataLength = JsonMetadataSerializer.getDataLength(array);
-            byte [] identifier = JsonMetadataSerializer.getIdentifier(array,dataLength);
+            int dataLength = JsonMetadataSerializer.getDataLength(array,offset);
+
+            byte [] identifier = JsonMetadataSerializer.getIdentifier(array,offset,size,dataLength);
+            //System.out.println("Data length is " + dataLength + " identifier length is " + identifier.length + " offset is " + offset  + " docRawFields " + docRawFields);
             if (!docRawFields) {
-                InputStream jsonStream  = new ByteArrayInputStream(array, offset+7, dataLength);
+                InputStream jsonStream  = new ByteArrayInputStream(array, offset+(int)7, dataLength);
                 Reader rdr = new InputStreamReader(jsonStream);
                 JsonObject jsonObject = jsonParser.parse(rdr).getAsJsonObject();
                 document = new JsonDocument(jsonObject, kv.getKey(), identifier,dataLength);
             }else{
-                document = new RawJsonDocument(new String(array,offset+7,dataLength), kv.getKey(), identifier,size - 7);
+                document = new RawJsonDocument(new String(array,offset+(int)7,dataLength), kv.getKey(), identifier,size - (int)7 - offset);
             }
 
         }
         else if (DocumentSerialization.ReturnType.jsondocument == returnType) {
-            int dataLength = JsonMetadataSerializer.getDataLength(array);
+            int dataLength = JsonMetadataSerializer.getDataLength(array, offset);
 
-            InputStream jsonStream  = new ByteArrayInputStream(array, offset+3, dataLength);
+            InputStream jsonStream  = new ByteArrayInputStream(array, offset+7, dataLength);
 
             Reader rdr = new InputStreamReader(jsonStream);
             JsonObject jsonObject = jsonParser.parse(rdr).getAsJsonObject();
