@@ -176,6 +176,7 @@ public abstract class ShardedBaseQueryLogic<T,J extends ShardQueryConfiguration>
     protected CardinalityConfiguration cardinalityConfiguration = null;
 
     protected J config;
+    protected boolean alwaysDedupeIterator = false;
 
     /**
      * Basic constructor
@@ -479,7 +480,7 @@ public abstract class ShardedBaseQueryLogic<T,J extends ShardQueryConfiguration>
         this.scanner = null;
         this.iterator = this.scheduler.iterator();
 
-        if (!config.isSortedUIDs()) {
+        if (!config.isSortedUIDs() || alwaysDedupe()) {
             this.iterator = getDedupedIterator();
         }
         
@@ -490,6 +491,10 @@ public abstract class ShardedBaseQueryLogic<T,J extends ShardQueryConfiguration>
         for (String timing : timings) {
             log.info(timing);
         }
+    }
+
+    protected  boolean alwaysDedupe(){
+        return alwaysDedupeIterator;
     }
 
     protected abstract Iterator<T> getDedupedIterator();
@@ -2288,6 +2293,14 @@ public abstract class ShardedBaseQueryLogic<T,J extends ShardQueryConfiguration>
         if (this.transformerInstance != null) {
             transformerInstance.setQueryExecutionForPageStartTime(pageProcessingStartTime);
         }
+    }
+
+    public void setAlwaysDedupeIterator(boolean useDeDupeIterator){
+        alwaysDedupeIterator = useDeDupeIterator;
+    }
+
+    public boolean getAlwaysDedupeIterator(){
+        return alwaysDedupeIterator;
     }
 
 
