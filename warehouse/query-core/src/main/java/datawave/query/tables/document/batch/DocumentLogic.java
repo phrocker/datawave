@@ -2,9 +2,7 @@ package datawave.query.tables.document.batch;
 
 import datawave.marking.MarkingFunctions;
 import datawave.query.DocumentSerialization;
-import datawave.query.attributes.Document;
 import datawave.query.config.DocumentQueryConfiguration;
-import datawave.query.config.ShardQueryConfiguration;
 import datawave.query.iterator.QueryOptions;
 import datawave.query.planner.MetadataHelperQueryModelProvider;
 import datawave.query.planner.QueryModelProvider;
