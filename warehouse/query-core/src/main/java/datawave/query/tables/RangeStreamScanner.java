@@ -454,7 +454,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                         log.trace("Found intermediate current entry or null " + currentEntry);
                     }
                 } catch (InterruptedException e) {
-                    log.error(e);
+                    log.error("455 " + e);
                     throw new RuntimeException(e);
                 }
                 // if we pulled no data and we are not running, and there is no data in the queue
@@ -476,7 +476,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                 try {
                     stats.getTimer(TIMERS.HASNEXT).suspend();
                 } catch (Exception e) {
-                    log.error(e);
+                    log.error("477 " + e);
                 }
             }
             if (uncaughtExceptionHandler.getThrowable() != null) {
@@ -615,7 +615,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
             }
             return info;
         } catch (IOException e) {
-            log.error(e);
+            log.error("616 " + e);
             throw new DatawaveFatalQueryException(e);
         }
     }
@@ -635,7 +635,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
 
             return new Value(outByteStream.toByteArray());
         } catch (IOException e) {
-            log.error(e);
+            log.error("636 " + e);
             throw new DatawaveFatalQueryException(e);
         }
     }
@@ -694,19 +694,6 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
     }
 
     protected boolean flushNeeded() {
-        /*
-        try {
-            if (readLock.tryLock(2, TimeUnit.MILLISECONDS)) {
-                try {
-                    return !currentQueue.isEmpty();
-                } finally {
-                    readLock.unlock();
-                }
-            }
-        } catch (InterruptedException e) {
-            log.error(e);
-            throw new RuntimeException(e);
-        }*/
         return false;
     }
 
@@ -881,7 +868,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
 
         } catch (Exception e) {
 
-            log.error(e);
+            log.error("880 " + e);
             throw e;
 
         } finally {
