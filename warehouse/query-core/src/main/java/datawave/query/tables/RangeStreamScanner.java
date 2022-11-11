@@ -1,7 +1,6 @@
 package datawave.query.tables;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Queues;
 import datawave.mr.bulk.RfileScanner;
 import datawave.query.exceptions.DatawaveFatalQueryException;
@@ -21,7 +20,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
