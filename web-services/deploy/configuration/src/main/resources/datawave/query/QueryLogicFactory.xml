@@ -382,6 +382,7 @@
 
     <bean id="RawDocumentQuery" parent="DocumentQuery" scope="prototype" class="datawave.query.tables.document.batch.DocumentLogic" >
         <property name="docRawFields" value="true" />
+        <property name="alwaysDedupeIterator" value="true" />
     </bean>
 
 
