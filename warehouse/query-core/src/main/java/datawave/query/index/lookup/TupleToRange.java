@@ -63,6 +63,9 @@ public class TupleToRange implements Function<Tuple2<String,IndexInfo>,Iterator<
         if (log.isTraceEnabled() && indexInfo.getNode() != null) {
             log.trace("Got it from tuple " + JexlStringBuildingVisitor.buildQuery(indexInfo.getNode()));
         }
+        if (indexInfo.getNode() != null) {
+            System.out.println(Thread.currentThread().getId() + " Got it from tuple " + JexlStringBuildingVisitor.buildQuery(indexInfo.getNode()));
+        }
         System.out.println(Thread.currentThread().getId() + " " + "Got it from tuple " + tuple.first() );
         if (isDocumentRange(indexInfo)) {
             
@@ -142,11 +145,16 @@ public class TupleToRange implements Function<Tuple2<String,IndexInfo>,Iterator<
                 log.trace("Building " + range + " from " + (null == queryNode ? "NoQueryNode" : JexlStringBuildingVisitor.buildQuery(queryNode)) + " actually "
                                 + JexlStringBuildingVisitor.buildQuery(indexMatch.getNode()));
             }
+            System.out.println("Building " + range + " from " + (null == indexMatches.getNode() ? "NoQueryNode" : JexlStringBuildingVisitor.buildQuery(indexMatches.getNode())) + " actually "
+                    + JexlStringBuildingVisitor.buildQuery(indexMatch.getNode()));
             System.out.println(Thread.currentThread().getId() + " " +"Creating ddoc "  + range);
             if (null != bloom) {
                 if (!bloom.hasSeenDocOrShard(range)){
-                    System.out.println("Adding range since it does not contain " + range);
-                    ranges.add(new QueryPlan(indexMatch.getNode(), range));
+                    System.out.println("Adding range since it does not contain " + range + " " + JexlStringBuildingVisitor.buildQuery(indexMatch.getNode()));
+                    if ("C == 'all'".equals(JexlStringBuildingVisitor.buildQuery(indexMatch.getNode()))){
+                        System.out.println("Ohns'");
+                    }
+                    ranges.add(new QueryPlan(indexMatches.getNode(), range));
                 }
                 else{
                     System.out.println("Not adding range since it might contain " + range);
@@ -154,7 +162,7 @@ public class TupleToRange implements Function<Tuple2<String,IndexInfo>,Iterator<
             }
             else {
                 System.out.println("Not adding range since no bloom " + range);
-                ranges.add(new QueryPlan(indexMatch.getNode(), range));
+                ranges.add(new QueryPlan(indexMatches.getNode(), range));
             }
         }
         return ranges.iterator();

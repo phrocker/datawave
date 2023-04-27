@@ -25,8 +25,10 @@ import datawave.query.language.parser.jexl.JexlNodeSet;
 import datawave.query.util.Tuple2;
 import datawave.query.util.Tuples;
 import datawave.util.StringUtils;
+import datawave.webservice.query.Query;
 import datawave.webservice.query.exception.DatawaveErrorCode;
 import datawave.webservice.query.exception.QueryException;
+import datawave.webservice.query.service.ServiceConfiguration;
 import org.apache.commons.jexl2.parser.JexlNode;
 import org.apache.log4j.Logger;
 
@@ -92,12 +94,20 @@ public class Intersection extends BaseIndexStream {
     
     protected UidIntersector uidIntersector;
     private static final IndexStreamComparator streamComparator = new IndexStreamComparator();
+
+    private ServiceConfiguration serviceConfiguration = ServiceConfiguration.getDefaultInstance();
     
     private static final Logger log = Logger.getLogger(Intersection.class);
-    
+
     public Intersection(Collection<? extends IndexStream> streams, UidIntersector uidIntersector) {
+        this(streams,uidIntersector,ServiceConfiguration.getDefaultInstance());
+    }
+
+    public Intersection(Collection<? extends IndexStream> streams, UidIntersector uidIntersector, ServiceConfiguration serviceConfiguration) {
         this.children = TreeMultimap.create(Ordering.natural(), streamComparator);
         this.uidIntersector = uidIntersector;
+        this.serviceConfiguration=serviceConfiguration;
+
         
         if (log.isTraceEnabled()) {
             log.trace("Constructor -- has children? " + streams.isEmpty());
@@ -310,15 +320,17 @@ public class Intersection extends BaseIndexStream {
         
         nodeSet.clear();
         nodeSet.add(merged.getNode());
+        System.out.println(Thread.currentThread().getId() + " 321 " + JexlStringBuildingVisitor.buildQuery(merged.getNode()));
         
         boolean childrenAdded = false;
         
         while (infos.hasNext()) {
             
             IndexInfo next = infos.next();
-            
+
             nodeSet.add(next.getNode());
-            merged = merged.intersect(next, Collections.emptyList(), uidIntersector);
+            System.out.println(Thread.currentThread().getId() + " 321 " + JexlStringBuildingVisitor.buildQuery(next.getNode()));
+            merged = merged.intersect(next, Collections.emptyList(), uidIntersector, serviceConfiguration);
             childrenAdded = true;
         }
         
@@ -599,7 +611,7 @@ public class Intersection extends BaseIndexStream {
         protected IdentityHashMap<BaseIndexStream,Object> children = new IdentityHashMap<>();
         
         protected List<ConcurrentScannerInitializer> todo = Lists.newArrayList();
-        
+
         private Builder() {}
         
         public void setUidIntersector(UidIntersector uidIntersector) {
@@ -613,12 +625,13 @@ public class Intersection extends BaseIndexStream {
                 return children.containsKey(child) ? false : children.put(child, null) == null;
             }
         }
+
         
         public ArrayList<BaseIndexStream> children() {
             return Lists.newArrayList(children.keySet());
         }
         
-        public Intersection build(ExecutorService service) {
+        public Intersection build(ExecutorService service, Query query) {
             
             if (!todo.isEmpty()) {
                 if (log.isTraceEnabled())
@@ -630,7 +643,7 @@ public class Intersection extends BaseIndexStream {
             }
             todo.clear();
             built = true;
-            return new Intersection(children.keySet(), uidIntersector);
+            return new Intersection(children.keySet(), uidIntersector,query.getServiceConfiguration());
         }
         
         public void addChildren(List<ConcurrentScannerInitializer> todo) {

@@ -697,6 +697,16 @@ public abstract class AbstractBaseQueryFramework<L extends ShardedBaseQueryLogic
      * @param metric
      */
     protected void withMetric(BaseQueryMetric metric) {
-        this.metricFactory = () -> metric;
+        this.metricFactory = new QueryMetricFactory() {
+            @Override
+            public BaseQueryMetric createMetric() {
+                return metric;
+            }
+
+            @Override
+            public BaseQueryMetric createMetric(boolean b) {
+                return metric;
+            }
+        };
     }
 }

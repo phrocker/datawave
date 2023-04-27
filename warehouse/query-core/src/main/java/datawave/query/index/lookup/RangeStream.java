@@ -83,6 +83,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -382,7 +383,7 @@ public class RangeStream extends BaseVisitor implements CloseableIterable<QueryP
         } else if (builder.size() == 0) {
             return ScannerStream.unindexed(node);
         } else {
-            Intersection build = builder.build(executor);
+            Intersection build = builder.build(executor, config.getQuery());
             switch (build.context()) {
                 case ABSENT:
                     return ScannerStream.noData(build.currentNode(), build);
@@ -786,7 +787,7 @@ public class RangeStream extends BaseVisitor implements CloseableIterable<QueryP
         
         while (start.compareTo(end) <= 0) {
             String day = DateHelper.format(start.getTime());
-            IndexInfo info = new IndexInfo(-1);
+            IndexInfo info = new IndexInfo(-1, Optional.of( config.getQuery().getServiceConfiguration() ));
             info.setNode(node);
             list.add(Tuples.tuple(day, info));
             start.add(Calendar.DAY_OF_YEAR, 1);

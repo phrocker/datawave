@@ -2303,5 +2303,23 @@ public abstract class ShardedBaseQueryLogic<T,J extends ShardQueryConfiguration>
         return alwaysDedupeIterator;
     }
 
+    public void setReduceQueryFields(boolean reduceQueryFields){
+        config.setReduceQueryFields(reduceQueryFields);
+    }
 
+    public void setFiFieldSeek(int fiFieldSeek){
+        config.setFiFieldSeek(fiFieldSeek);
+    }
+
+    public void setFiNextSeek(int fiNextSeek){
+        config.setFiNextSeek(fiNextSeek);
+    }
+
+    public void setEventFieldSeek( int eventFieldSeek){
+        config.setEventFieldSeek(eventFieldSeek);
+    }
+
+    public void setEventNextSeek( int eventNextSeek){
+        config.setEventNextSeek(eventNextSeek);
+    }
 }

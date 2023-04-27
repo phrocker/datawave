@@ -1,6 +1,7 @@
 package datawave.webservice.query;
 
 import datawave.webservice.query.QueryImpl.Parameter;
+import datawave.webservice.query.service.ServiceConfiguration;
 import datawave.webservice.query.util.QueryUncaughtExceptionHandler;
 
 import javax.xml.bind.annotation.XmlAccessType;
@@ -110,4 +111,6 @@ public abstract class Query {
     public abstract void removeParameter(String key);
     
     public abstract void populateTrackingMap(Map<String,String> trackingMap);
+
+    public abstract ServiceConfiguration getServiceConfiguration();
 }

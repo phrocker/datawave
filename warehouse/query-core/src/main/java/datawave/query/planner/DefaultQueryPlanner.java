@@ -2064,13 +2064,7 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
         
         return builderThread.submit(() -> {
             // VersioningIterator is typically set at 20 on the table
-                        IteratorSetting cfg = null;
-                        if (!config.getQueryIteratorClass().isEmpty()){
-                            cfg = new IteratorSetting(config.getBaseIteratorPriority() + 40 , "query", config.getQueryIteratorClass());
-                        }
-                        else {
-                            cfg = new IteratorSetting(config.getBaseIteratorPriority() + 40, "query", getQueryIteratorClass());
-                        }
+                        IteratorSetting cfg = new IteratorSetting(config.getBaseIteratorPriority() + 40, "query", getQueryIteratorClass());
 
                         addOption(cfg, Constants.RETURN_TYPE, config.getReturnType().toString(), false);
                         addOption(cfg, QueryOptions.FULL_TABLE_SCAN_ONLY, Boolean.toString(isFullTable), false);
@@ -2428,7 +2422,7 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
         // Include the option to filter masked values
         addOption(cfg, QueryOptions.FILTER_MASKED_VALUES, Boolean.toString(config.getFilterMaskedValues()), false);
 
-        addOption(cfg, QueryOptions.SET_TYPE_STRING, Boolean.toString(false), false);
+        addOption(cfg, QueryOptions.SET_TYPE_STRING, Boolean.toString(true), false);
         
         // Include the EVENT_DATATYPE as a field
         if (config.getIncludeDataTypeAsField()) {

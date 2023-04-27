@@ -1,5 +1,6 @@
 package datawave.webservice.query;
 
+import datawave.webservice.query.service.ServiceConfiguration;
 import datawave.webservice.query.util.OptionallyEncodedStringAdapter;
 import datawave.webservice.query.util.QueryUncaughtExceptionHandler;
 import io.protostuff.Input;
@@ -44,6 +45,8 @@ public class QueryImpl extends Query implements Serializable, Message<QueryImpl>
     
     public static final String PARAMETER_SEPARATOR = ";";
     public static final String PARAMETER_NAME_VALUE_SEPARATOR = ":";
+
+    private ServiceConfiguration serviceConfiguration = null;
     
     @XmlAccessorType(XmlAccessType.FIELD)
     public static final class Parameter implements Serializable, Message<Parameter> {
@@ -868,5 +871,15 @@ public class QueryImpl extends Query implements Serializable, Message<QueryImpl>
                 trackingMap.put("query.query", this.query);
             }
         }
+    }
+
+    @Override
+    public ServiceConfiguration getServiceConfiguration() {
+        if (null == serviceConfiguration){
+            synchronized (QueryImpl.class){
+                serviceConfiguration = ServiceConfiguration.builder().build();
+            }
+        }
+        return serviceConfiguration;
     }
 }

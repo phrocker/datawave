@@ -1931,7 +1931,7 @@ public class QueryOptions implements OptionDescriber {
 
     public static Set<String> buildFieldSetFromString(String fieldStr, boolean setTypeString) throws IOException, ClassNotFoundException {
         if (!setTypeString) {
-            if (fieldStr.isEmpty()) {
+            if (fieldStr.trim().isEmpty()) {
                 return new HashSet<>();
             }
           //ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(fieldStr.getBytes(StandardCharsets.UTF_8)));

@@ -5,6 +5,7 @@ import datawave.query.jexl.JexlASTHelper;
 import datawave.query.jexl.JexlNodeFactory;
 import datawave.query.jexl.visitors.JexlStringBuildingVisitor;
 import datawave.query.jexl.visitors.TreeEqualityVisitor;
+import datawave.webservice.query.service.ServiceConfiguration;
 import org.apache.commons.jexl2.parser.ASTDelayedPredicate;
 import org.apache.commons.jexl2.parser.JexlNode;
 import org.apache.commons.jexl2.parser.ParseException;
@@ -169,7 +170,7 @@ public class IndexInfoTest {
         
         JexlNode origQueryTree = JexlNodeFactory.createAndNode(andChildren);
         
-        IndexInfo merged = left.intersect(right, Arrays.asList(delayed), left);
+        IndexInfo merged = left.intersect(right, Arrays.asList(delayed), left, ServiceConfiguration.getDefaultInstance());
         
         // The intersection of left and right should be a set of 1 document ids
         List<IndexMatch> expectedDocs = buildIndexMatches("FIELD", "VALUE", "doc1");
@@ -203,7 +204,7 @@ public class IndexInfoTest {
         
         JexlNode origQueryTree = JexlNodeFactory.createAndNode(andChildren);
         
-        IndexInfo merged = right.intersect(left, Arrays.asList(delayed), right);
+        IndexInfo merged = right.intersect(left, Arrays.asList(delayed), right, ServiceConfiguration.getDefaultInstance());
         
         // intersection of uid and infinite shard range is a shard range
         assertTrue(merged.uids().isEmpty());

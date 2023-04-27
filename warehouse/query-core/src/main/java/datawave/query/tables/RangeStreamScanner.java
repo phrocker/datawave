@@ -9,6 +9,7 @@ import datawave.query.index.lookup.IndexMatch;
 import datawave.query.index.lookup.ShardEquality;
 import datawave.query.tables.stats.ScanSessionStats.TIMERS;
 import datawave.webservice.query.Query;
+import datawave.webservice.query.service.ServiceConfiguration;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -626,7 +627,8 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
     }
 
     public Value writeInfoToValue() {
-        return writeInfoToValue(new IndexInfo(-1));
+        throw new UnsupportedOperationException();
+       // return writeInfoToValue(new IndexInfo(-1));
     }
 
     public Value writeInfoToValue(IndexInfo info) {
@@ -938,5 +940,9 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
         } else {
             return key;
         }
+    }
+
+    public ServiceConfiguration getServiceConfiguration(){
+        return settings.getServiceConfiguration();
     }
 }

@@ -41,6 +41,11 @@ public class MyScannerFactory extends ScannerFactory{
         }
     }
 
+    public synchronized DocumentScannerBase newDocumentScanner(DocumentQueryConfiguration config) throws TableNotFoundException {
+        return newDocumentScanner(config.getShardTableName(), config.getAuthorizations(), config.getNumQueryThreads(),
+                config.getQuery(),config.getDocRawFields(), config.getReturnType(), config.getQueueCapacity() == 0 ? config.getNumQueryThreads() : config.getQueueCapacity(), config.getMaxTabletsPerRequest(), config.getMaxTabletThreshold());
+    }
+
 
     public synchronized DocumentScannerBase newDocumentScanner(String tableName, Set<Authorizations> auths, int threads, Query query, boolean docRawFields, DocumentSerialization.ReturnType returnType, int queueCapacity, int maxTabletsPerRequest, int maxTabletThreshold) throws TableNotFoundException {
             DocumentScannerBase bs = DocumentScannerHelper.createDocumentBatchScanner(this.cxn, tableName, auths, threads, query, docRawFields, returnType, queueCapacity, maxTabletsPerRequest, maxTabletThreshold);
