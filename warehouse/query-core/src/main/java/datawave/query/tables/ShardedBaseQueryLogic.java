@@ -2315,6 +2315,13 @@ public abstract class ShardedBaseQueryLogic<T,J extends ShardQueryConfiguration>
         config.setFiNextSeek(fiNextSeek);
     }
 
+    public void setTfFieldSeek(int tfFieldSeek){
+        config.setTfFieldSeek(tfFieldSeek);
+    }
+    public void setTfNextSeek(int tfNextSeek){
+        config.setTfNextSeek(tfNextSeek);
+    }
+
     public void setEventFieldSeek( int eventFieldSeek){
         config.setEventFieldSeek(eventFieldSeek);
     }
