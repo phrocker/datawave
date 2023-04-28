@@ -833,6 +833,12 @@ public abstract class ShardedBaseQueryLogic<T,J extends ShardQueryConfiguration>
         // Set the ReturnType for Documents coming out of the iterator stack
         config.setReturnType(DocumentSerialization.getReturnType(settings));
 
+        if (null != selectedProfile) {
+            selectedProfile.configure(this);
+            selectedProfile.configure(config);
+            selectedProfile.configure(planner);
+        }
+
         QueryLogicTransformer transformer = getTransformer(settings);
         if (transformer instanceof WritesQueryMetrics) {
             String logTimingDetailsStr = settings.findParameter(QueryOptions.LOG_TIMING_DETAILS).getParameterValue().trim();
@@ -857,11 +863,6 @@ public abstract class ShardedBaseQueryLogic<T,J extends ShardQueryConfiguration>
 
         stopwatch.stop();
 
-        if (null != selectedProfile) {
-            selectedProfile.configure(this);
-            selectedProfile.configure(config);
-            selectedProfile.configure(planner);
-        }
     }
 
     protected void configureDocumentAggregation(Query settings) {
