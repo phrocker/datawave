@@ -320,8 +320,7 @@ public class Intersection extends BaseIndexStream {
         
         nodeSet.clear();
         nodeSet.add(merged.getNode());
-        System.out.println(Thread.currentThread().getId() + " 321 " + JexlStringBuildingVisitor.buildQuery(merged.getNode()));
-        
+
         boolean childrenAdded = false;
         
         while (infos.hasNext()) {
@@ -329,7 +328,6 @@ public class Intersection extends BaseIndexStream {
             IndexInfo next = infos.next();
 
             nodeSet.add(next.getNode());
-            System.out.println(Thread.currentThread().getId() + " 321 " + JexlStringBuildingVisitor.buildQuery(next.getNode()));
             merged = merged.intersect(next, Collections.emptyList(), uidIntersector, serviceConfiguration);
             childrenAdded = true;
         }

@@ -607,7 +607,6 @@ public class IndexInfo implements Writable, UidIntersector {
         }
         nodes.addAll(delayedNodes);
         merged.myNode = TreeFlatteningRebuildingVisitor.flatten(JexlNodeFactory.createAndNode(nodes.getNodes()));
-        System.out.println("-609 " + JexlStringBuildingVisitor.buildQuery(merged.myNode));
         return merged;
     }
     

@@ -118,7 +118,6 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
         myExecutor = Executors.newSingleThreadExecutor();
         if (null != stats)
             initializeTimers();
-        System.out.println(Thread.currentThread().getId() + " " + "New RSS");
     }
 
     /**
@@ -137,12 +136,10 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
         myExecutor = Executors.newSingleThreadExecutor();
         if (null != stats)
             initializeTimers();
-        System.out.println(Thread.currentThread().getId() + " " + "New RSS2");
     }
 
     public RangeStreamScanner(ScannerSession other) {
         this(other.tableName, other.auths, other.sessionDelegator, other.maxResults, other.settings, other.options, other.ranges);
-        System.out.println(Thread.currentThread().getId() + " " + "New RSS3");
     }
 
     public void setExecutor(ExecutorService service) {
@@ -521,7 +518,6 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
     @Override
     protected void run() {
         try {
-            System.out.println(Thread.currentThread().getId() + " " + "Calling find top from run");
             findTop();
             flush();
         } catch (Exception e) {
@@ -543,7 +539,6 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
             try {
                 if (log.isTraceEnabled())
                     log.trace("Attempting to insert " + prevDay);
-                System.out.println(Thread.currentThread().getId() + " " + "Attempting to insert 539 " + prevDay);
                 if (!resultQueue.offer(prevDay, 1, TimeUnit.SECONDS)) {
                     return 0;
                 }
@@ -566,7 +561,6 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                     if (log.isTraceEnabled()) {
                         log.trace("Breaking because we've seen an unexpected key");
                     }
-                    System.out.println(Thread.currentThread().getId() + " " + "Attempting to insert 562 " + trimTrailingUnderscore(currentKeyValue));
                     resultQueue.offer(trimTrailingUnderscore(currentKeyValue));
 
                     break;
@@ -580,7 +574,6 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
 
                     currentDay = getDay(currentKeyValue.getKey());
 
-                    System.out.println(Thread.currentThread().getId() + " " + "Attempting to insert 576 " + trimTrailingUnderscore(currentKeyValue));
                     resultQueue.offer(trimTrailingUnderscore(currentKeyValue));
 
                     lastSeenKey = kvIter.next().getKey();
@@ -591,7 +584,6 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                             log.trace("adding " + currentKeyValue.getKey() + " to queue because " + nextKeysDay + " it matches" + currentDay);
                         }
 
-                        System.out.println(Thread.currentThread().getId() + " " + "Attempting to insert 587 " + trimTrailingUnderscore(currentKeyValue));
                         resultQueue.offer(trimTrailingUnderscore(currentKeyValue));
 
                         lastSeenKey = kvIter.next().getKey();
@@ -601,7 +593,6 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                     }
                 }
             }
-            System.out.println(Thread.currentThread().getId() + " " + "`breaking out`");
              retrievalCount += dequeue();
 
         } finally {
@@ -661,25 +652,18 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
 
             if (result) {
                 do {
-                    System.out.println(Thread.currentThread().getId() + " " + "Attempting to reinsert " + top);
                     result = resultQueue.offer(top);
 
                     if (!result) {
-                       // if (log.isTraceEnabled())
-//                            log.trace("Failed adding " + resultQueue.size() + " " + forceAll);
                         if (forceAll)
                             continue;
-                    }/*else{
-                        if (log.isTraceEnabled())
-                            log.trace("Added " + top + " to resultqueue");
-                    }*/
+                    }
 
                     break;
                 } while (!Thread.currentThread().isInterrupted() && !finished && forceAll);
             }
 
             if (!result && !(!finished && forceAll)) {
-                System.out.println(Thread.currentThread().getId() + " " + "Attempting to add " + top);
                 currentQueue.add(top);
             }
             count++;
@@ -694,12 +678,6 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
 
     @Override
     protected void flush() {
-        /*writeLock.lock();
-        try {
-            dequeue(false);
-        } finally {
-            writeLock.unlock();
-        }*/
     }
 
     protected boolean flushNeeded() {
