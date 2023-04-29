@@ -1212,7 +1212,8 @@ public class RangeStreamTest {
         helper.addFields(Arrays.asList("FOO", "LAUGH"));
 
         Set<Range> expectedRanges = Sets.newHashSet();
-        for (String shard : Arrays.asList("20190314_0", "20190314_1", "20190314_10", "20190314_100", "20190314_9")) {
+        // removed "20190314_10", because RangeStream no longer short circuits to day ranges as early.
+        for (String shard : Arrays.asList("20190314_0", "20190314_1",  "20190314_100", "20190314_9")) {
             expectedRanges.add(makeShardedRange(shard));
         }
 
