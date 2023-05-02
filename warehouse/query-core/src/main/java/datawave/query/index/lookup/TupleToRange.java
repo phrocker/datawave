@@ -151,9 +151,6 @@ public class TupleToRange implements Function<Tuple2<String,IndexInfo>,Iterator<
             if (null != bloom) {
                 if (!bloom.hasSeenDocOrShard(range)){
                     System.out.println("Adding range since it does not contain " + range + " " + JexlStringBuildingVisitor.buildQuery(indexMatch.getNode()));
-                    if ("C == 'all'".equals(JexlStringBuildingVisitor.buildQuery(indexMatch.getNode()))){
-                        System.out.println("Ohns'");
-                    }
                     ranges.add(new QueryPlan(indexMatches.getNode(), range));
                 }
                 else{

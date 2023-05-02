@@ -521,9 +521,13 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
             findTop();
             flush();
         } catch (Exception e) {
+            System.out.println("*** Excepiton occurred");
+            e.printStackTrace();
+
             uncaughtExceptionHandler.uncaughtException(Thread.currentThread(), e);
             Throwables.propagate(e);
         }
+        System.out.println("530 remaining " + currentQueue.size());
     }
 
     protected int scannerInvariant(final Iterator<Entry<Key,Value>> iter) {
@@ -539,6 +543,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
             try {
                 if (log.isTraceEnabled())
                     log.trace("Attempting to insert " + prevDay);
+                System.out.println(Thread.currentThread().getId() + " " + " Attempting to insert " + prevDay);
                 if (!resultQueue.offer(prevDay, 1, TimeUnit.SECONDS)) {
                     return 0;
                 }
@@ -553,6 +558,9 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
         writeLock.lock();
         try {
 
+            if (Thread.currentThread().isInterrupted()){
+                System.out.println("Thread is interrupted before we start");
+            }
             while (kvIter.hasNext() && !Thread.currentThread().isInterrupted()) {
                 Entry<Key,Value> currentKeyValue = kvIter.peek();
 
@@ -561,6 +569,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                     if (log.isTraceEnabled()) {
                         log.trace("Breaking because we've seen an unexpected key");
                     }
+                    System.out.println(Thread.currentThread().getId() + " " +" Breaking because we've seen an unexpected key");
                     resultQueue.offer(trimTrailingUnderscore(currentKeyValue));
 
                     break;
@@ -572,7 +581,8 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                         log.trace("adding " + currentKeyValue.getKey() + " to queue because currentDay is " + currentDay);
                     }
 
-                    currentDay = getDay(currentKeyValue.getKey());
+                    System.out.println(Thread.currentThread().getId() + " " +" adding " + currentKeyValue.getKey() + " to queue because currentDay is " + currentDay);
+                    currentDay = null;//getDay(currentKeyValue.getKey());
 
                     resultQueue.offer(trimTrailingUnderscore(currentKeyValue));
 
@@ -583,15 +593,22 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                         if (log.isTraceEnabled()) {
                             log.trace("adding " + currentKeyValue.getKey() + " to queue because " + nextKeysDay + " it matches" + currentDay);
                         }
+                        System.out.println("adding " + currentKeyValue.getKey() + " to queue because " + nextKeysDay + " it matches" + currentDay);
 
                         resultQueue.offer(trimTrailingUnderscore(currentKeyValue));
 
                         lastSeenKey = kvIter.next().getKey();
                     } else {
                         currentDay = null;
-
+                        System.out.println("not adding " + currentKeyValue.getKey() + " to queue because " + nextKeysDay + " it matches" + currentDay);
                     }
                 }
+            }
+            if (kvIter.hasNext()) {
+                System.out.println("missed " + kvIter.next());
+            }
+            else{
+                System.out.println("We good at 601");
             }
              retrievalCount += dequeue();
 
@@ -669,6 +686,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
             count++;
         }
 
+        System.out.println("we have " + currentQueue.size() + " " + kvIter.size());
         if (log.isTraceEnabled()) {
             log.trace("we have " + currentQueue.size() + " " + kvIter.size());
         }
@@ -742,6 +760,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
      */
     protected void findTop() throws Exception {
         if (ranges.isEmpty() && lastSeenKey == null) {
+            System.out.println(Thread.currentThread().getId() + " "  + resultQueue.size());
             if (log.isTraceEnabled()) {
                 log.trace("Finished");
             }
@@ -750,6 +769,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                 if (log.isTraceEnabled())
                     log.trace("flush needed");
                 flush();
+                System.out.println(Thread.currentThread().getId() + " " +"Flush needed, returning");
                 return;
             }
             return;
@@ -830,6 +850,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
                 if (log.isTraceEnabled()) {
                     log.trace("We've started, but we have nothing to do on " + tableName + " " + auths + " " + currentRange);
                 }
+                System.out.println(Thread.currentThread().getId() + " We've started, but we have nothing to do on " + tableName + " " + auths + " " + currentRange);
                 lastSeenKey = null;
                 return;
             }
@@ -854,7 +875,8 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
              */
             if (log.isTraceEnabled())
                 log.trace(lastSeenKey + " is lastSeenKey, previous range is " + currentRange, e);
-
+            e.printStackTrace();
+            System.out.println(Thread.currentThread().getId() + " " + lastSeenKey + " is lastSeenKey, previous range is " + currentRange);
             lastSeenKey = null;
 
         } catch (Exception e) {
@@ -922,5 +944,11 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
 
     public ServiceConfiguration getServiceConfiguration(){
         return settings.getServiceConfiguration();
+    }
+
+    @Override
+    protected void shutDown() throws Exception {
+        super.shutDown();
+        System.out.println(Thread.currentThread().getId() + " shutdown");
     }
 }

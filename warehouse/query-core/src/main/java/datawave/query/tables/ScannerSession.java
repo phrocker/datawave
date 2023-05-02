@@ -14,6 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import datawave.query.tables.AccumuloResource.ResourceFactory;
+import datawave.query.tables.listener.ScannerSessionListener;
 import datawave.query.tables.stats.ScanSessionStats;
 import datawave.query.tables.stats.StatsListener;
 import datawave.query.tables.stats.ScanSessionStats.TIMERS;
@@ -115,6 +116,9 @@ public class ScannerSession extends  BaseScannerSession<Entry<Key,Value>> {
     protected ScanSessionStats stats = null;
     
     protected ExecutorService statsListener = null;
+
+
+    protected ExecutorService scannerSessionListener = null;
     
     protected boolean accrueStats;
     
@@ -303,15 +307,18 @@ public class ScannerSession extends  BaseScannerSession<Entry<Key,Value>> {
         // isFlushNeeded is only in the case of when we are finished
         boolean isFlushNeeded = false;
         log.trace("hasNext" + isRunning());
+     //   System.out.println(Thread.currentThread().getId() + " hasNext" + isRunning());
         
         try {
             
             if (null != stats)
                 stats.getTimer(TIMERS.HASNEXT).resume();
-            
+
+          //  System.out.println(Thread.currentThread().getId() + " " + "hasNext " + isRunning() + " " + resultQueue.isEmpty());
             while (null == currentEntry && (isRunning() || !resultQueue.isEmpty() || ((isFlushNeeded = flushNeeded()) == true))) {
                 
                 log.trace("hasNext" + isRunning());
+                //System.out.println(Thread.currentThread().getId() + " " + "hasNext " + isRunning() + " " + flushNeeded());
                 
                 try {
                     /**
@@ -327,10 +334,12 @@ public class ScannerSession extends  BaseScannerSession<Entry<Key,Value>> {
                 // if we pulled no data and we are not running, and there is no data in the queue
                 // we can flush if needed and retry
                 
-                log.trace("hasNext" + isRunning() + " " + flushNeeded());
+                 log.trace("hasNext " + isRunning() + " " + flushNeeded());
+
                 if (currentEntry == null && (!isRunning() && resultQueue.isEmpty()))
                     isFlushNeeded = flushNeeded();
             }
+
         } finally {
             if (null != stats) {
                 try {
@@ -344,7 +353,8 @@ public class ScannerSession extends  BaseScannerSession<Entry<Key,Value>> {
                 throw new RuntimeException(uncaughtExceptionHandler.getThrowable());
             }
         }
-        
+
+        System.out.println(Thread.currentThread().getId() + " " + "has next returning " +  (null != currentEntry) );
         return (null != currentEntry);
     }
     
@@ -379,6 +389,7 @@ public class ScannerSession extends  BaseScannerSession<Entry<Key,Value>> {
         try {
             Entry<Key,Value> retVal = currentEntry;
             currentEntry = null;
+            System.out.println(Thread.currentThread().getId() + " " + "ScannerSession " + retVal.getKey());
             return retVal;
         } finally {
             if (uncaughtExceptionHandler.getThrowable() != null) {
@@ -584,14 +595,17 @@ public class ScannerSession extends  BaseScannerSession<Entry<Key,Value>> {
      */
     @Override
     protected void run() throws Exception {
+        scannerSessionListener = Executors.newFixedThreadPool(1);
+        addListener(new ScannerSessionListener(),scannerSessionListener);
         try {
             while (isRunning()) {
-                System.out.println("is running calling findtop");
+                System.out.println(Thread.currentThread().getId() + " " +  " is running calling findtop");
                 findTop();
             }
             
             flush();
         } catch (Exception e) {
+            e.printStackTrace();
             uncaughtExceptionHandler.uncaughtException(Thread.currentThread(), e);
             throw new RuntimeException(e);
         }
