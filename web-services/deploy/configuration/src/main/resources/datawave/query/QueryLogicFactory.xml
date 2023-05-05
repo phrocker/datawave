@@ -57,20 +57,11 @@
         <bean class="datawave.query.language.functions.jexl.Geowave.Intersects"/>
         <bean class="datawave.query.language.functions.jexl.Geowave.Overlaps"/>
         <bean class="datawave.query.language.functions.jexl.Geowave.Within"/>
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> f66a6ce3c (changes that make the spring-framework-integration test pass.)
         <bean class="datawave.query.language.functions.jexl.EvaluationOnly">
             <property name="parser" ref="LuceneToJexlQueryParser"/>
         </bean>
         <bean class="datawave.query.language.functions.jexl.ExcerptFields"/>
-<<<<<<< HEAD
         <bean class="datawave.query.language.functions.jexl.Matches"/>
-=======
->>>>>>> 6518e1cb1 (Apply changes from PR  #7 . Fix issue with JsonDeser from. Add scanner seralization micro benchmark)
-=======
->>>>>>> f66a6ce3c (changes that make the spring-framework-integration test pass.)
     </util:list>
 
     <!-- Fields we should not tokenize in a tokenized query. In non-tokenized 
