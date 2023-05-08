@@ -11,12 +11,19 @@ public class SerializedDocument implements SerializedDocumentIfc{
 
     private final Document doc;
 
-    public SerializedDocument(Document doc){
+    private Key key;
+
+    public SerializedDocument(Document doc, Key key){
         this.doc=doc;
+        this.key=key;
+    }
+
+    public SerializedDocument(Document doc){
+        this(doc,null);
     }
     @Override
     public Key computeKey() {
-        return this.doc.isMetadataSet() ? this.doc.getMetadata() : null;
+        return this.doc.isMetadataSet() ? this.doc.getMetadata() : key;
     }
 
     @Override

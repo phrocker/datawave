@@ -65,7 +65,7 @@ public class DocumentKeyConversion {
             int dataLength = JsonMetadataSerializer.getDataLength(array,offset);
 
             byte [] identifier = JsonMetadataSerializer.getIdentifier(array,offset,size,dataLength);
-            //System.out.println("Data length is " + dataLength + " identifier length is " + identifier.length + " offset is " + offset  + " docRawFields " + docRawFields);
+
             if (!docRawFields) {
                 InputStream jsonStream  = new ByteArrayInputStream(array, offset+(int)7, dataLength);
                 Reader rdr = new InputStreamReader(jsonStream);

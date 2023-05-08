@@ -1,17 +1,7 @@
 package datawave.query.tables.document.batch;
 
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import datawave.query.DocumentSerialization;
-import datawave.query.attributes.Attribute;
-import datawave.query.attributes.Document;
-import datawave.query.function.KryoCVAwareSerializableSerializer;
-import datawave.query.function.json.deser.JsonDeser;
-import datawave.query.tables.serialization.JsonDocument;
-import datawave.query.tables.serialization.SerializedDocument;
 import datawave.query.tables.serialization.SerializedDocumentIfc;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -40,7 +30,6 @@ import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.ScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -62,11 +51,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;

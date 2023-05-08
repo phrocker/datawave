@@ -157,7 +157,7 @@ public class DocumentLogic extends ShardedBaseQueryLogic<SerializedDocumentIfc, 
     }
 
     protected String getStopwatchHeader(DocumentQueryConfiguration config) {
-        return "ShardQueryLogic: " + config.getQueryString() + ", [" + config.getBeginDate() + ", " + config.getEndDate() + "]";
+        return "DocumentLogic: " + config.getQueryString() + ", [" + config.getBeginDate() + ", " + config.getEndDate() + "]";
     }
 
     @Override
