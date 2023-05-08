@@ -58,7 +58,7 @@ public class DocumentKeyConversion {
             }
 
             input.close();
-            document = new SerializedDocument(doc);
+            document = new SerializedDocument(doc,new Key(kv.key));
 
         } else if (DocumentSerialization.ReturnType.json == returnType) {
 
