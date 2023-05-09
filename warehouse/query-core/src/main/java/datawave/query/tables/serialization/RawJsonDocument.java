@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 
 public class RawJsonDocument implements SerializedDocumentIfc{
 
-    private final String doc;
+    private final String doc; 
     private final TKey key ;
     private final long size;
     private final byte [] identifier;

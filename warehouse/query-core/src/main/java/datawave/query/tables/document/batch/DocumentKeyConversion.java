@@ -26,8 +26,10 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Document Key conversion class that supports the various return types and return type that
+ */
 public class DocumentKeyConversion {
-
 
     static final transient ThreadLocal<Kryo> kryo = new ThreadLocal<Kryo>();
 

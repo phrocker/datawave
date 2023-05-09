@@ -40,7 +40,7 @@ public class DocumentScanner implements Callable<DocumentScanner> {
     /**
      * last seen key, used for moving across the sliding window of ranges.
      */
-    protected Key lastSeenKey;
+    protected SerializedDocumentIfc lastSeenKey;
 
     /**
      * Current range that we are using.
@@ -145,7 +145,11 @@ public class DocumentScanner implements Callable<DocumentScanner> {
                     log.trace("last seen " + lastSeenKey + " " + currentRange);
                 // if we have just started or we are at the end of the
                 // current range. pop the next range
-                if (lastSeenKey == null || (currentRange != null && currentRange.getEndKey() != null && lastSeenKey.compareTo(currentRange.getEndKey()) >= 0)) {
+                Key lsk = null;
+                if (null != lastSeenKey){
+                    lsk = lastSeenKey.computeKey();
+                }
+                if (lastSeenKey == null || (currentRange != null && currentRange.getEndKey() != null && lsk.compareTo(currentRange.getEndKey()) >= 0)) {
                     currentRange = myScan.getNextRange();
                     
                     // short circuit and exit
@@ -165,7 +169,7 @@ public class DocumentScanner implements Callable<DocumentScanner> {
                     if (log.isTraceEnabled())
                         log.trace("Building new range from " + lastSeenKey);
                     try {
-                        currentRange = buildNextRange(lastSeenKey, currentRange);
+                        currentRange = buildNextRange(lsk, currentRange);
                     } catch (IllegalArgumentException e) {
                         // we are beyond the start range.
                         
@@ -277,7 +281,7 @@ public class DocumentScanner implements Callable<DocumentScanner> {
                     if (caller.isShutdown())
                         break;
                     
-                    lastSeenKey = myEntry.computeKey();
+                    lastSeenKey = myEntry;
                     if (log.isTraceEnabled())
                         log.trace("last seen key is " + lastSeenKey);
                 }

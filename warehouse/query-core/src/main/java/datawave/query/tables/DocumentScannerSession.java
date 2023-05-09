@@ -34,7 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
- * This will handles running a scan against a set of ranges. The actual scan is performed in a separate thread which places the results in a result queue. The
+ * This will handle running a scan against a set of ranges. The actual scan is performed in a separate thread which places the results in a result queue. The
  * result queue is polled in the actual next() and hasNext() calls. Note that the uncaughtExceptionHandler from the Query is used to pass exceptions up which
  * will also fail the overall query if something happens. If this is not desired then a local handler should be set.
  */

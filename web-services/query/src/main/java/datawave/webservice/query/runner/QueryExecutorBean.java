@@ -2071,8 +2071,6 @@ public class QueryExecutorBean implements QueryExecutor {
     @Path("/{id}/direct/next")
     @Produces({ "application/json"})
     @GZIP
-    //@EnrichQueryMetrics(methodType = MethodType.NEXT)
-  //  @Interceptors({ResponseInterceptor.class, RequiredInterceptor.class})
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     @Timed(name = "dw.query.next", absolute = true)
     public String directNext(@Required("id") @PathParam("id") String id) {
@@ -2082,10 +2080,6 @@ public class QueryExecutorBean implements QueryExecutor {
 
     private String _directNext(RunningQuery query, String queryId, Collection<String> proxyServers) throws Exception {
         // If we're tracing this query, then continue the trace for the next call.
-//        TraceInfo traceInfo = query.getTraceInfo();
-//        if (traceInfo != null) {
-//            span = Trace.startSpan("query:next", traceInfo);
-//        }
 
         ResultsPage resultList;
         try {
@@ -2095,22 +2089,10 @@ public class QueryExecutorBean implements QueryExecutor {
             throw new PreConditionFailedQueryException(DatawaveErrorCode.QUERY_TIMEOUT_OR_SERVER_ERROR, e, MessageFormat.format("id = {0}", queryId));
         }
 
-        long pageNum = query.getLastPageNumber();
+        //@TODO: can edit and add page number to json
+        //long pageNum = query.getLastPageNumber();
 
-        String response = query.getLogic().getTransformer(query.getSettings()).createJSONResponse(resultList);
-        /*
-        if (!resultList.getResults().isEmpty()) {
-            response.setHasResults(true);
-        } else {
-            response.setHasResults(false);
-        }
-        response.setPageNumber(pageNum);
-        response.setLogicName(query.getLogic().getLogicName());
-        response.setQueryId(queryId);
-*/
-//        if (span != null && span.getSpan() != null) {
-//            span.getSpan().addKVAnnotation("pageNumber", Long.toString(pageNum));
-//        }
+        final String response = query.getLogic().getTransformer(query.getSettings()).createJSONResponse(resultList);
 
         query.getMetric().setProxyServers(proxyServers);
 
