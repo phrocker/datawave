@@ -8,16 +8,19 @@ import org.apache.accumulo.core.dataImpl.thrift.TKey;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 public class RawJsonDocument implements SerializedDocumentIfc{
 
-    private final String doc; 
+    private final String doc;
     private final TKey key ;
     private final long size;
     private final byte [] identifier;
     private DocumentJsonDeserializer deser = new DocumentJsonDeserializer();
 
     public RawJsonDocument(String doc, TKey key,byte [] identifier, long size){
+        Objects.requireNonNull(doc);
+        Objects.requireNonNull(key);
         this.doc=doc;
         this.key=key;
         this.size = size;

@@ -36,6 +36,35 @@ public class DocumentConversionTest {
         kv = Maps.immutableEntry(testKey,new Value(DocumentSerialization.writeBodyWithHeader(serializer.serialize(testDocument),0)));
     }
 
+    @Test(expected=NullPointerException.class)
+    public void testNullInputTk(){
+
+        TKeyValue kv = null;
+        DocumentKeyConversion.getDocument(DocumentSerialization.ReturnType.jsondocument,false,kv);
+    }
+
+    @Test(expected=NullPointerException.class)
+    public void testNullInputKV(){
+        Map.Entry<Key, Value> kv = Map.entry(null,null);
+        DocumentKeyConversion.getDocument(DocumentSerialization.ReturnType.jsondocument,false,kv);
+    }
+    @Test(expected=NullPointerException.class)
+    public void testNullInputKVKey(){
+        Map.Entry<Key, Value> kv = Map.entry(new Key(),null);
+        DocumentKeyConversion.getDocument(DocumentSerialization.ReturnType.jsondocument,false,kv);
+    }
+    @Test(expected=NullPointerException.class)
+    public void testNullInputKVValue(){
+        Map.Entry<Key, Value> kv = Map.entry(null,new Value());
+        DocumentKeyConversion.getDocument(DocumentSerialization.ReturnType.jsondocument,false,kv);
+    }
+    @Test(expected=NullPointerException.class)
+    public void testNullInputKVEntry(){
+        Map.Entry<Key, Value> kv = null;
+
+        DocumentKeyConversion.getDocument(DocumentSerialization.ReturnType.jsondocument,false,kv);
+    }
+
     @Test
     public void testConversion(){
         SerializedDocumentIfc doc = DocumentKeyConversion.getDocument(DocumentSerialization.ReturnType.kryo,false,kv);

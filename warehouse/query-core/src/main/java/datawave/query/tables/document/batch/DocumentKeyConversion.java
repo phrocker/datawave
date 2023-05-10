@@ -97,6 +97,9 @@ public class DocumentKeyConversion {
     }
 
     public static SerializedDocumentIfc getDocument(DocumentSerialization.ReturnType returnType, boolean docRawFields, Map.Entry<Key, Value> keyValue) {
+        Objects.requireNonNull(keyValue,"Key Value object must be non-null");
+        Objects.requireNonNull(keyValue.getKey(),"Key must be non-null");
+        Objects.requireNonNull(keyValue.getValue(),"Value must be non-null");
         return getDocument(returnType,docRawFields,new TKeyValue(keyValue.getKey().toThrift(),ByteBuffer.wrap(keyValue.getValue().get())));
     }
 

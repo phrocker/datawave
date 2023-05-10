@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 
 @RunWith(PowerMockRunner.class)
-//@PowerMockIgnore({"javax.management.*","jdk.xml.*"})
 @PowerMockIgnore({"com.sun.org.apache.xerces.*", "javax.xml.*", "org.xml.*", "javax.management.*"})
 @PrepareForTest({JsonDocumentTransformer.class, DocumentSerialization.class})
 public class JsonDocumentTransformerTest { // extends EasyMockSupport {
