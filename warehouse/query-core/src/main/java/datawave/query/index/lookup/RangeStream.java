@@ -787,7 +787,7 @@ public class RangeStream extends BaseVisitor implements CloseableIterable<QueryP
         
         while (start.compareTo(end) <= 0) {
             String day = DateHelper.format(start.getTime());
-            IndexInfo info = new IndexInfo(-1, Optional.of( config.getQuery().getServiceConfiguration() ));
+            IndexInfo info = new IndexInfo(-1);
             info.setNode(node);
             list.add(Tuples.tuple(day, info));
             start.add(Calendar.DAY_OF_YEAR, 1);
