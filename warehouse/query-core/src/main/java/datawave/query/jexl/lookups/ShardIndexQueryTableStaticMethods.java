@@ -471,65 +471,6 @@ public class ShardIndexQueryTableStaticMethods {
         return bs;
     }
 
-    public static BatchScanner configureLimitedDiscoveryV2(ShardQueryConfiguration config, ScannerFactory scannerFactory, String tableName,
-                                                           Collection<Range> ranges, Collection<String> literals, Collection<String> patterns, boolean reverseIndex, boolean limitToUniqueTerms)
-            throws Exception {
-
-        // if we have no ranges, then nothing to scan
-        if (ranges.isEmpty()) {
-            return null;
-        }
-
-
-        // if we have no ranges, then nothing to scan
-        if (ranges.isEmpty()) {
-            return null;
-        }
-
-        //ScannerSession bs = scannerFactory.newLimitedScanner(AnyFieldScanner.class, tableName, config.getAuthorizations(), config.getQuery());
-        Query qry = new QueryImpl();
-        qry.setQuery("1==1");
-        qry.setId(UUID.randomUUID());
-        qry.setQueryLogicName("logic");
-        qry.setUserDN("DN");
-        //scannerFactory.cre
-        String begin = formatter.format(config.getBeginDate());
-        String end = formatter.format(config.getEndDate());
-        BatchScanner scanner = scannerFactory.newScanner(tableName,config.getAuthorizations(),qry);
-        int i =config.getBaseIteratorPriority()+33;
-        for(String pattern : patterns) {
-            IteratorSetting iter =
-                    new IteratorSetting(++i, "aquery", RegExFilter.class);
-            String rowRegex = pattern;
-            String colfRegex = null;
-            String colqRegex = common_digits(begin, end);
-            String valueRegex = null;
-            boolean orFields = false;
-            System.out.println("creating row pattern for " + rowRegex + " and colqregex for " + colqRegex);
-            RegExFilter.setRegexs(iter, rowRegex, colfRegex,
-                    colqRegex, valueRegex, orFields);
-            scanner.addScanIterator(iter);
-
-        }
-        for(Range rng : ranges){
-            System.out.println("Adding range " + rng);
-        }
-        scanner.setRanges(ranges);
-        /*
-
-        queryId = testAndSetOption(query.getId());
-        queryLogicName = testAndSetOption(query.getQueryLogicName());
-        queryName = testAndSetOption(query.getQueryName());
-        if (null == queryStr)
-            queryString = testAndSetOption(query.getQuery());
-        else
-            queryString = testAndSetOption(queryStr);
-        queryUser = testAndSetOption(query.getOwner());
-         */
-
-
-        return scanner;
-    }
     
     public static ScannerSession configureLimitedDiscovery(ShardQueryConfiguration config, ScannerFactory scannerFactory, String tableName,
                     Collection<Range> ranges, Collection<String> literals, Collection<String> patterns, boolean reverseIndex, boolean limitToUniqueTerms)
@@ -580,27 +521,6 @@ public class ShardIndexQueryTableStaticMethods {
         cfg.addOption(Constants.END_DATE, Long.toString(dateRange.getMaximumLong()));
         return cfg;
     }
-
-
-    /*
-     *  Simple minded little function to create a simple regex to cull the
-     *  number of rows returned from shardIndex to a particular date range.
-     *  There are more comprehensive ways to do this using numeric range
-     *  regexs but for now we're following the K.I.S.S. principle.
-     */
-    static String common_digits(String a, String b) {
-        int i, len = Math.min(a.length(),b.length());
-
-        if(len == 0)
-            return null;
-
-        for(i=0; i < len; i++) {
-            if(a.charAt(i) != b.charAt(i))
-                break;
-        }
-        return "^" + a.substring(0,i) + ".*";
-    }
-
 
     public static final IteratorSetting configureDateRangeIterator(ShardQueryConfiguration config) throws IOException {
         // Setup the GlobalIndexDateRangeFilter

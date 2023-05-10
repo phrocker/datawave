@@ -2118,22 +2118,6 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
                         loadFields(cfg, config, isPreload);
                         configureSeekingOptions(cfg, config);
 
-                        /*
-                        try {
-
-
-                            addOption(cfg, QueryOptions.INDEX_ONLY_FIELDS,  QueryOptions.buildFieldSetStringFromSet(filterFields(
-                                    metadataHelper.getIndexOnlyFields(config.getDatatypeFilter()), queryFields)), true);
-                            addOption(cfg, QueryOptions.COMPOSITE_FIELDS,
-                                    QueryOptions.buildFieldSetStringFromSet(metadataHelper.getCompositeToFieldMap(config.getDatatypeFilter()).keySet()) ,
-                                    true);
-                            addOption(cfg, QueryOptions.INDEXED_FIELDS, QueryOptions.buildFieldSetStringFromSet(filterFields(
-                                    metadataHelper.getIndexedFields(config.getDatatypeFilter()), queryFields)), true);
-                        } catch (TableNotFoundException e) {
-                            QueryException qe = new QueryException(DatawaveErrorCode.INDEX_ONLY_FIELDS_RETRIEVAL_ERROR, e);
-                            throw new DatawaveQueryException(qe);
-                        }*/
-
                         try {
                             CompositeMetadata compositeMetadata = metadataHelper.getCompositeMetadata().filter(config.getQueryFieldsDatatypes().keySet());
                             if (compositeMetadata != null && !compositeMetadata.isEmpty()) {

@@ -11,7 +11,9 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 
 
-
+/**
+ * Document serialization that emphasizes converting metadata to JSON.
+ */
 public abstract class JsonMetadataSerializer extends DocumentSerializer{
 
     public JsonMetadataSerializer(boolean reducedResponse, boolean allowCompression) {
@@ -21,22 +23,12 @@ public abstract class JsonMetadataSerializer extends DocumentSerializer{
 
     @Override
     public Map.Entry<Key, Value> apply(Map.Entry<Key, Document> from) {
-//        try (TraceScope s = Trace.startSpan("Document Serialization")) {
-//            if (s.getSpan() != null) {
-//                s.getSpan().addKVAnnotation("Serialization type", this.concreteName);
-//            }
 
-        byte[] bytes = serialize(from.getValue());
+        final byte[] bytes = serialize(from.getValue());
 
-//            if (s.getSpan() != null) {
-//                s.getSpan().addKVAnnotation("Raw size", Integer.toString(bytes.length));
-//            }
-
-//            Value v = getValue(bytes, s);
-        Value v = getValue(from.getKey(),bytes);
+        final Value v = getValue(from.getKey(),bytes);
 
         return Maps.immutableEntry(from.getKey(), v);
-//        }
     }
 
     private byte[] computeIdentifier(Key key) {
@@ -102,14 +94,12 @@ public abstract class JsonMetadataSerializer extends DocumentSerializer{
         if (DocumentSerialization.NONE != this.compression && document.length > minCompressionSize) {
             header = DocumentSerialization.getHeader(compression);
             dataToWrite = DocumentSerialization.writeBody(document, this.compression);
-//            if (span.getSpan() != null) {
-//                span.getSpan().addKVAnnotation("Compressed size", Integer.toString(dataToWrite.length));
-//            }
+
         } else {
             header = DocumentSerialization.getHeader();
             dataToWrite = document;
         }
-        identifier = computeIdentifier(key);
+        identifier = computeIdentifier(key); // used for computing the size
 
         int totalSize = identifier.length  + header.length + dataToWrite.length;
         totalSize+=(int)4;

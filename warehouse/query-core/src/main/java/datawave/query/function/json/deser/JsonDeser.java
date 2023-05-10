@@ -33,6 +33,12 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
 
     private static final ConstuctorCacheMiss constructorMissFx = new ConstuctorCacheMiss();
     private static final AttributeConstructorCacheMiss attributeMissFx = new AttributeConstructorCacheMiss();
+    public static final String TYPE_METADATA = "type.metadata";
+    public static final String TYPE_TYPE = "type.type";
+    public static final String TYPE_DATA = "type.data";
+    public static final String DOC_KEY = "doc.key";
+    public static final String DATAWAVE_QUERY_ATTRIBUTES_DOCUMENT_KEY = "datawave.query.attributes.DocumentKey";
+    public static final String DATAWAVE_QUERY_ATTRIBUTES_TIMING_METADATA = "datawave.query.attributes.TimingMetadata";
     private static ConcurrentHashMap<String, Constructor> constructorCache = new ConcurrentHashMap<>();
 
     /**
@@ -45,13 +51,13 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
         if (attr instanceof TypeAttribute){
             datawave.data.type.Type t = ((TypeAttribute)attr).getType();
             if (t.getClass() != NoOpType.class)
-                jsonObject.addProperty("type.metadata",t.getClass().getCanonicalName());
+                jsonObject.addProperty(TYPE_METADATA,t.getClass().getCanonicalName());
         }else{
-            jsonObject.addProperty("type.type",attr.getClass().getCanonicalName());
+            jsonObject.addProperty(TYPE_TYPE,attr.getClass().getCanonicalName());
         }
 
 
-        jsonObject.addProperty("type.data",attr.getData().toString());
+        jsonObject.addProperty(TYPE_DATA,attr.getData().toString());
 
     }
 
@@ -65,16 +71,19 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
         if ( attr.isMetadataSet() ){
             Key metadata = attr.getMetadata();
             if (null != docKey && metadata.equals(docKey)){
-                jsonObject.add("doc.key", new JsonObject());
+                jsonObject.add(DOC_KEY, new JsonObject());
             }
             else {
                 JsonObject key = new JsonObject();
-//                key.addProperty("row", metadata.getRow().toString());
-  //              key.addProperty("cf", metadata.getColumnFamily().toString());
-    //            key.addProperty("cq", metadata.getColumnQualifier().toString());
+                /**
+                 * These parts of the key will not be included to save space
+                 key.addProperty("row", metadata.getRow().toString());
+                 key.addProperty("cf", metadata.getColumnFamily().toString());
+                 key.addProperty("cq", metadata.getColumnQualifier().toString());
+                 */
                 key.addProperty("cv", metadata.getColumnVisibility().toString());
                 key.addProperty("timestamp", metadata.getTimestamp());
-                jsonObject.add("doc.key", key);
+                jsonObject.add(DOC_KEY, key);
             }
 
         }
@@ -102,7 +111,7 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
         if (arrayAttr instanceof TypeAttribute && ((TypeAttribute)arrayAttr).getType() instanceof NumberType){
 
             JsonObject obj = new JsonObject();
-            obj.addProperty("type.data",(BigDecimal)((TypeAttribute)arrayAttr).getType().denormalize());
+            obj.addProperty(TYPE_DATA,(BigDecimal)((TypeAttribute)arrayAttr).getType().denormalize());
             addAttributeMetadata(arrayAttr,docKey, name,obj);
             jsonDocument.add(obj);
 
@@ -135,7 +144,7 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
         else if (attr instanceof TypeAttribute && ((TypeAttribute)attr).getType() instanceof NumberType){
 
             JsonObject newObj = new JsonObject();
-            newObj.addProperty("type.data",(BigDecimal)((TypeAttribute)attr).getType().denormalize());
+            newObj.addProperty(TYPE_DATA,(BigDecimal)((TypeAttribute)attr).getType().denormalize());
             addAttributeMetadata(attr,docKey, name,newObj);
             jsonDocument.add(name,newObj);
 
@@ -162,7 +171,7 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
             JsonObject newObj = new JsonObject();
             docKey = document.getMetadata();
             addAttributeMetadata(document,null,"key",newObj);
-            jsonDocument.add("doc.key",newObj);
+            jsonDocument.add(DOC_KEY,newObj);
         }
         for(Map.Entry<String, Attribute<?>> entry : document.getDictionary().entrySet()){
             Attribute<?> attr = entry.getValue();
@@ -175,11 +184,11 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
     }
 
     private static Attribute<?> constructAttribute(String attributeTypeString, JsonElement data, Key key){
-        if ("datawave.query.attributes.DocumentKey".equals(attributeTypeString)) {
+        if (DATAWAVE_QUERY_ATTRIBUTES_DOCUMENT_KEY.equals(attributeTypeString)) {
             DocumentKey docKey = new DocumentKey(key,true);
             return docKey;
         }
-        else if ("datawave.query.attributes.TimingMetadata".equals(attributeTypeString)) {
+        else if (DATAWAVE_QUERY_ATTRIBUTES_TIMING_METADATA.equals(attributeTypeString)) {
             return new TimingMetadata();
         }
         else{
@@ -211,20 +220,18 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
                 JsonObject obj = (JsonObject)element;
                 if ( obj.has("key") ){ // it has metadata
                     JsonObject jsonKey = obj.getAsJsonObject("key");
-                    // we don't need the full key.
-                    //key = new Key(jsonKey.get("row").getAsString(),jsonKey.get("cf").getAsString(),jsonKey.get("cq").getAsString(),jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
-
+                    // we don't need the full key, so we let the row, cf, and cq be empty
                     key = new Key("","","",jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
-                }else if (obj.has("doc.key")){
+                }else if (obj.has(DOC_KEY)){
                     key = docKey;
                 }
-                if (obj.has("type.metadata")){
-                    typeString = obj.get("type.metadata").getAsString();
+                if (obj.has(TYPE_METADATA)){
+                    typeString = obj.get(TYPE_METADATA).getAsString();
                 }
-                if (obj.has("type.type")){
-                    attributeTypeString = obj.get("type.type").getAsString();
+                if (obj.has(TYPE_TYPE)){
+                    attributeTypeString = obj.get(TYPE_TYPE).getAsString();
                 }
-                JsonElement data = obj.get("type.data");
+                JsonElement data = obj.get(TYPE_DATA);
                 if (data.isJsonPrimitive() && data.getAsJsonPrimitive().isNumber()){
                     NumberType primitiveType = new NumberType(data.getAsString());
                     attr = new TypeAttribute<>(primitiveType,key,true);
@@ -293,13 +300,12 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
         Key key = null;
         if (jsonElement.isJsonObject()){
             JsonObject obj = (JsonObject)jsonElement;
-            if (obj.has("doc.key")){
-                JsonObject jsonKey = obj.getAsJsonObject("doc.key").getAsJsonObject("doc.key");
+            if (obj.has(DOC_KEY)){
+                JsonObject jsonKey = obj.getAsJsonObject(DOC_KEY).getAsJsonObject(DOC_KEY);
                 // we don't need the full key
-            //    key = new Key(jsonKey.get("row").getAsString(),jsonKey.get("cf").getAsString(),jsonKey.get("cq").getAsString(),jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
                 key = new Key("","","",jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
             }
-            obj.remove("doc.key");
+            obj.remove(DOC_KEY);
         }
         final Document doc = new Document(key,true);
         if (jsonElement instanceof JsonObject){

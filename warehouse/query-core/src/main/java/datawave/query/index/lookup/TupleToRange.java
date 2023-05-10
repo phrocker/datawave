@@ -63,10 +63,7 @@ public class TupleToRange implements Function<Tuple2<String,IndexInfo>,Iterator<
         if (log.isTraceEnabled() && indexInfo.getNode() != null) {
             log.trace("Got it from tuple " + JexlStringBuildingVisitor.buildQuery(indexInfo.getNode()));
         }
-        if (indexInfo.getNode() != null) {
-            System.out.println(Thread.currentThread().getId() + " Got it from tuple " + JexlStringBuildingVisitor.buildQuery(indexInfo.getNode()));
-        }
-        System.out.println(Thread.currentThread().getId() + " " + "Got it from tuple " + tuple.first() );
+
         if (isDocumentRange(indexInfo)) {
             
             return createDocumentRanges(queryNode, shard, indexInfo, config.isTldQuery(), bloom);
@@ -145,20 +142,13 @@ public class TupleToRange implements Function<Tuple2<String,IndexInfo>,Iterator<
                 log.trace("Building " + range + " from " + (null == queryNode ? "NoQueryNode" : JexlStringBuildingVisitor.buildQuery(queryNode)) + " actually "
                                 + JexlStringBuildingVisitor.buildQuery(indexMatch.getNode()));
             }
-            System.out.println("Building " + range + " from " + (null == indexMatches.getNode() ? "NoQueryNode" : JexlStringBuildingVisitor.buildQuery(indexMatches.getNode())) + " actually "
-                    + JexlStringBuildingVisitor.buildQuery(indexMatch.getNode()));
-            System.out.println(Thread.currentThread().getId() + " " +"Creating ddoc "  + range);
+
             if (null != bloom) {
                 if (!bloom.hasSeenDocOrShard(range)){
-                    System.out.println("Adding range since it does not contain " + range + " " + JexlStringBuildingVisitor.buildQuery(indexMatch.getNode()));
                     ranges.add(new QueryPlan(indexMatches.getNode(), range));
-                }
-                else{
-                    System.out.println("Not adding range since it might contain " + range);
                 }
             }
             else {
-                System.out.println("Not adding range since no bloom " + range);
                 ranges.add(new QueryPlan(indexMatches.getNode(), range));
             }
         }
@@ -181,18 +171,13 @@ public class TupleToRange implements Function<Tuple2<String,IndexInfo>,Iterator<
             log.trace("Building shard " + range + " From " + JexlStringBuildingVisitor.buildQuery(myNode));
         }
         if (null != bloom) {
-            System.out.println(Thread.currentThread().getId() + " " + "Creating shard " + range);
             if (!bloom.hasSeenShard(range))
             {
                 return Collections.singleton(new QueryPlan(myNode, range)).iterator();
             }
-            else{
-                System.out.println("Not adding range since it might contain " + range);
-            }
             return Collections.emptyIterator();
         }
         else{
-            System.out.println("Not adding range since no bloom " + range);
             return Collections.singleton(new QueryPlan(myNode, range)).iterator();
         }
     }
@@ -200,29 +185,24 @@ public class TupleToRange implements Function<Tuple2<String,IndexInfo>,Iterator<
     public static Iterator<QueryPlan> createDayRange(JexlNode queryNode, String shard, IndexInfo indexInfo) {
         return createDayRange(queryNode,shard,indexInfo,null);
     }
-    
+
     public static Iterator<QueryPlan> createDayRange(JexlNode queryNode, String shard, IndexInfo indexInfo, RangeBloomFilters bloom) {
         JexlNode myNode = queryNode;
         if (indexInfo.getNode() != null) {
             myNode = indexInfo.getNode();
         }
-        
+
         Range range = RangeFactory.createDayRange(shard);
         if (log.isTraceEnabled())
             log.trace("Building day" + range + " from " + (null == myNode ? "NoQueryNode" : JexlStringBuildingVisitor.buildQuery(myNode)));
         if (null != bloom) {
-            System.out.println(Thread.currentThread().getId() + " " + "Creating day " + range);
             if (!bloom.hasSeenShard(range))
             {
                 return Collections.singleton(new QueryPlan(myNode, range)).iterator();
             }
-            else{
-                System.out.println("Not adding range since it might contain " + range);
-            }
             return Collections.emptyIterator();
         }
         else{
-            System.out.println("Not adding range since no bloom " + range);
             return Collections.singleton(new QueryPlan(myNode, range)).iterator();
         }
     }
@@ -251,7 +231,6 @@ public class TupleToRange implements Function<Tuple2<String,IndexInfo>,Iterator<
             if (shard_bloom.mightContain(docRange)){
                 return true;
             }
-            System.out.println("Add to shard bloom " + docRange);
             shard_bloom.put(docRange);
             return false;
         }

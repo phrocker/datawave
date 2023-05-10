@@ -6,8 +6,6 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import datawave.query.config.ShardQueryConfiguration;
-import datawave.query.jexl.visitors.JexlStringBuildingVisitor;
 import datawave.webservice.query.service.ServiceConfiguration;
 import datawave.query.jexl.JexlNodeFactory;
 import datawave.query.jexl.nodes.ExceededOrThresholdMarkerJexlNode;
@@ -55,8 +53,6 @@ public class IndexInfo implements Writable, UidIntersector {
     // In the pruned case, the count will exceed the size of the uid set
     protected ImmutableSortedSet<IndexMatch> uids;
 
-    //protected Optional<ServiceConfiguration> queryConfiguration;
-    
     public IndexInfo() {
         this(0);
     }
@@ -64,7 +60,6 @@ public class IndexInfo implements Writable, UidIntersector {
     public IndexInfo(long count) {
         this.count = count;
         this.uids = ImmutableSortedSet.of();
-    //    this.queryConfiguration=Optional.empty();
     }
     
     public IndexInfo(Iterable<?> ids) {
@@ -77,24 +72,8 @@ public class IndexInfo implements Writable, UidIntersector {
         }
         this.uids = ImmutableSortedSet.copyOf(matches);
         this.count = this.uids.size();
-       // this.queryConfiguration=Optional.empty();
     }
 
-    public IndexInfo(Optional<ServiceConfiguration> queryConfiguration) {
-        this(0);
-     //   this.queryConfiguration=queryConfiguration;
-    }
-
-    public IndexInfo(long count, Optional<ServiceConfiguration> queryConfiguration) {
-        this(count);
-     //   this.queryConfiguration=queryConfiguration;
-    }
-
-    public IndexInfo(Iterable<?> ids, Optional<ServiceConfiguration> queryConfiguration) {
-        this(ids);
-     //   this.queryConfiguration=queryConfiguration;
-    }
-    
     public boolean onlyEvents() {
         return count > 0 && count == uids.size();
     }

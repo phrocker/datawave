@@ -1,24 +1,16 @@
 package datawave.query.function.json.deser;
 
-import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import datawave.data.type.BaseType;
 import datawave.data.type.NoOpType;
 import datawave.data.type.NumberType;
-import datawave.query.attributes.Attribute;
 import datawave.query.attributes.Attributes;
 import datawave.query.attributes.Document;
 import datawave.query.attributes.TypeAttribute;
@@ -26,10 +18,10 @@ import org.apache.accumulo.core.data.Key;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
-import java.math.BigDecimal;
-import java.util.Iterator;
-import java.util.Map;
 
+/**
+ * Used in the auto conversion for the Document POJO
+ */
 public class DocumentJSONDeSerializer extends StdDeserializer<Document> {
 
 
@@ -37,7 +29,6 @@ public class DocumentJSONDeSerializer extends StdDeserializer<Document> {
         @Override
         public Constructor load(String typeString) throws Exception {
             try {
-
                 return Class.forName(typeString).asSubclass(BaseType.class).getConstructor(String.class);
             }catch(Exception e){
                 try {
@@ -48,6 +39,8 @@ public class DocumentJSONDeSerializer extends StdDeserializer<Document> {
             }
         }
     });
+    public static final String TYPE_METADATA = "type.metadata";
+    public static final String TYPE_DATA = "type.data";
 
     public DocumentJSONDeSerializer(Class<Document> t) {
         super(t);
@@ -121,10 +114,10 @@ public class DocumentJSONDeSerializer extends StdDeserializer<Document> {
                     JsonNode jsonKey = element.get("key");
                     key = new Key(jsonKey.get("row").toString(),jsonKey.get("cf").toString(),jsonKey.get("cq").toString(),jsonKey.get("cv").toString(),jsonKey.get("timestamp").longValue());
                 }
-                if (element.has("type.metadata")){
-                    typeString = element.get("type.metadata").toString();
+                if (element.has(TYPE_METADATA)){
+                    typeString = element.get(TYPE_METADATA).toString();
                 }
-                JsonNode data = element.get("type.data");
+                JsonNode data = element.get(TYPE_DATA);
                 if (data.isNumber()){
                     NumberType primitiveType = new NumberType(data.toString());
                     attr = new TypeAttribute<>(primitiveType,key,true);

@@ -108,7 +108,6 @@ public class DocumentScheduler extends Scheduler<SerializedDocumentIfc> {
             this.config = config;
             this.scannerFactory = scannerFactory;
             this.queries = config.getQueries();
-            //session = scannerFactory.newDocumentQueryScanner(config, config.getTableName(), config.getAuthorizations(), config.getQuery());
         }
         
         /*

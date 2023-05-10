@@ -14,6 +14,10 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Map;
 
+
+/**
+ * Jackson JSON Serializer for the Document POJO
+ */
 public class DocumentJSONSerializer extends StdSerializer<Document> {
 
 
