@@ -83,7 +83,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -92,9 +91,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import static com.google.common.collect.Iterators.concat;
-import static com.google.common.collect.Iterators.filter;
-import static com.google.common.collect.Iterators.transform;
+import static com.google.common.collect.Iterators.*;
 
 public class RangeStream extends BaseVisitor implements CloseableIterable<QueryPlan> {
     
@@ -198,7 +195,7 @@ public class RangeStream extends BaseVisitor implements CloseableIterable<QueryP
             this.itr = null;
         }
         if (log.isDebugEnabled()) {
-            log.debug("Query returned a stream context of " + this.context);
+            log.debug("Query returned a stream with a context of " + this.context);
             if (queryStream != null) {
                 for (String line : StringUtils.split(queryStream.getContextDebug(), '\n')) {
                     log.debug(line);
@@ -227,9 +224,6 @@ public class RangeStream extends BaseVisitor implements CloseableIterable<QueryP
                     todo.add(new ConcurrentScannerInitializer(queryStream));
                     Collection<BaseIndexStream> streams = ConcurrentScannerInitializer.initializeScannerStreams(todo, executor);
                     if (streams.size() == 1) {
-                        if (log.isTraceEnabled()) {
-                            log.trace("A single stream");
-                        }
                         queryStream = streams.iterator().next();
                     }
                 }

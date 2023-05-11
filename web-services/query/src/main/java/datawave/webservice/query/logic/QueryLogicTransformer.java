@@ -19,6 +19,11 @@ public interface QueryLogicTransformer<I,O> extends Transformer<I,O> {
      */
     BaseQueryResponse createResponse(ResultsPage resultList);
 
+    /**
+     * Return a JSON Response object that is specific to the query logic
+     * @param resultList
+     * @return
+     */
     String createJSONResponse(ResultsPage resultList);
 
     

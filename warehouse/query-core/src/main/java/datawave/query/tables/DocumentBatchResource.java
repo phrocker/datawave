@@ -62,8 +62,7 @@ public class DocumentBatchResource extends DocumentRunningResource {
         hashCode += new HashCodeBuilder().append(tableName).append(auths).append(ranges).toHashCode();
 
         baseScanner = DocumentScannerHelper.createDocumentBatchScanner(getClient(),tableName,auths,12,null,false, config.getReturnType(),config.getQueueCapacity(),config.getMaxTabletsPerRequest(),config.getMaxTabletThreshold());
-        //baseScanner = ScannerHelper.createBatchScanner(getClient(), tableName, auths, 12);
-        
+
         if (baseScanner != null) {
             ((BatchScanner) baseScanner).setRanges(currentRange);
         }

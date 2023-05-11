@@ -5,7 +5,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.*;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.Sets;
 import datawave.core.iterators.querylock.QueryLock;
 import datawave.data.type.AbstractGeometryType;
 import datawave.data.type.Type;
@@ -103,7 +108,11 @@ import datawave.query.postprocessing.tf.Function;
 import datawave.query.postprocessing.tf.TermOffsetPopulator;
 import datawave.query.tables.ScannerFactory;
 import datawave.query.tables.async.event.ReduceFields;
-import datawave.query.util.*;
+import datawave.query.util.DateIndexHelper;
+import datawave.query.util.MetadataHelper;
+import datawave.query.util.QueryStopwatch;
+import datawave.query.util.Tuple2;
+import datawave.query.util.TypeMetadata;
 import datawave.util.time.TraceStopwatch;
 import datawave.webservice.common.logging.ThreadConfigurableLogger;
 import datawave.webservice.query.Query;
@@ -133,9 +142,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.log4j.Logger;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
@@ -163,8 +170,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-
-import static datawave.query.iterator.QueryOptions.INDEX_ONLY_FIELDS;
 
 public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
     

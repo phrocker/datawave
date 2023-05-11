@@ -18,8 +18,6 @@ import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockSupport;
 import org.junit.After;
@@ -35,12 +33,28 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static datawave.query.iterator.QueryOptions.*;
+import static datawave.query.iterator.QueryOptions.ALLOW_FIELD_INDEX_EVALUATION;
+import static datawave.query.iterator.QueryOptions.ALLOW_TERM_FREQUENCY_LOOKUP;
+import static datawave.query.iterator.QueryOptions.CONTAINS_INDEX_ONLY_TERMS;
+import static datawave.query.iterator.QueryOptions.END_TIME;
+import static datawave.query.iterator.QueryOptions.FILTER_MASKED_VALUES;
+import static datawave.query.iterator.QueryOptions.FULL_TABLE_SCAN_ONLY;
+import static datawave.query.iterator.QueryOptions.HDFS_SITE_CONFIG_URLS;
+import static datawave.query.iterator.QueryOptions.HIT_LIST;
+import static datawave.query.iterator.QueryOptions.INDEXED_FIELDS;
+import static datawave.query.iterator.QueryOptions.INDEX_ONLY_FIELDS;
+import static datawave.query.iterator.QueryOptions.IVARATOR_CACHE_DIR_CONFIG;
+import static datawave.query.iterator.QueryOptions.NON_INDEXED_DATATYPES;
+import static datawave.query.iterator.QueryOptions.QUERY;
+import static datawave.query.iterator.QueryOptions.QUERY_ID;
+import static datawave.query.iterator.QueryOptions.SERIAL_EVALUATION_PIPELINE;
+import static datawave.query.iterator.QueryOptions.START_TIME;
+import static datawave.query.iterator.QueryOptions.TERM_FREQUENCIES_REQUIRED;
+import static datawave.query.iterator.QueryOptions.TERM_FREQUENCY_FIELDS;
+import static datawave.query.iterator.QueryOptions.TRACK_SIZES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -286,13 +300,12 @@ public class QueryIteratorIT extends EasyMockSupport {
     @Test
     public void indexOnly_shardRange_secondEvent_test() throws IOException {
         // build the seek range for a document specific pull\
-        //for (int i=0; i < 20000; i++) {
-            Range seekRange = getShardRange();
-            String query = "INDEX_ONLY_FIELD1 == 'apple'";
-            Map.Entry<Key, Map<String, List<String>>> secondEvent = getBaseExpectedEvent("123.345.457");
-            secondEvent.getValue().put("INDEX_ONLY_FIELD1", Arrays.asList(new String[]{"apple"}));
-            indexOnly_test(seekRange, query, false, addEvent(11, "123.345.457"), Arrays.asList(secondEvent));
-        //}
+        Range seekRange = getShardRange();
+        String query = "INDEX_ONLY_FIELD1 == 'apple'";
+        Map.Entry<Key, Map<String, List<String>>> secondEvent = getBaseExpectedEvent("123.345.457");
+        secondEvent.getValue().put("INDEX_ONLY_FIELD1", Arrays.asList(new String[]{"apple"}));
+        indexOnly_test(seekRange, query, false, addEvent(11, "123.345.457"), Arrays.asList(secondEvent));
+
     }
     
     @Test

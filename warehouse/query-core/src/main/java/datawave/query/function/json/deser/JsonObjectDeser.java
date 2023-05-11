@@ -295,7 +295,6 @@ public class JsonObjectDeser implements com.google.gson.JsonSerializer<Document>
             JsonObject obj = (JsonObject)jsonElement;
             if (obj.has(DOC_KEY)){
                 JsonObject jsonKey = obj.getAsJsonObject(DOC_KEY).getAsJsonObject(DOC_KEY);
-               // key = new Key(jsonKey.get("row").getAsString(),jsonKey.get("cf").getAsString(),jsonKey.get("cq").getAsString(),jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
                 key = new Key("","","",jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
             }
             obj.remove(DOC_KEY);

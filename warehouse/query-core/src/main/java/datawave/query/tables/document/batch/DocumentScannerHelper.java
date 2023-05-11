@@ -4,6 +4,7 @@ import datawave.accumulo.inmemory.InMemoryAccumuloClient;
 import datawave.query.DocumentSerialization;
 import datawave.query.iterator.QueryInformationIterator;
 import datawave.query.util.QueryInformation;
+import datawave.query.util.QueryScannerHelper;
 import datawave.security.iterator.ConfigurableVisibilityFilter;
 import datawave.security.util.AuthorizationsMinimizer;
 import datawave.webservice.common.connection.ScannerBaseDelegate;
@@ -36,9 +37,9 @@ public class DocumentScannerHelper {
             } catch (AccumuloSecurityException e) {
                 throw new RuntimeException(e);
             }
-            addVisibilityFilters(iter, batchScanner);
+            QueryScannerHelper.addVisibilityFilters(iter, batchScanner);
             if (null != query)
-                batchScanner.addScanIterator(getQueryInfoIterator(query, false));
+                batchScanner.addScanIterator(QueryScannerHelper.getQueryInfoIterator(query, false));
             return batchScanner;
         } else {
             throw new IllegalArgumentException("Authorizations must not be empty.");
@@ -56,37 +57,7 @@ public class DocumentScannerHelper {
     }
 
 
-    public static IteratorSetting getQueryInfoIterator(Query query, boolean reportErrors) {
-        return getQueryInfoIterator(query, reportErrors, (String)null);
-    }
 
-    public static IteratorSetting getQueryInfoIterator(Query query, boolean reportErrors, String querystring) {
-        QueryInformation info = new QueryInformation(query, querystring);
-        IteratorSetting cfg = new IteratorSetting(2147483647, QueryInformationIterator.class, info.toMap());
-        if (reportErrors) {
-            QueryInformationIterator.setErrorReporting(cfg);
-        }
-
-        return cfg;
-    }
-
-    public static IteratorSetting getQueryInfoIterator(Query query) {
-        return getQueryInfoIterator(query, false, (String)null);
-    }
-
-    protected static void addVisibilityFilters(Iterator<Authorizations> iter, ScannerBase scanner) {
-        for(int priority = 10; iter.hasNext(); ++priority) {
-            IteratorSetting cfg = new IteratorSetting(priority, ConfigurableVisibilityFilter.class);
-            cfg.setName("visibilityFilter" + priority);
-            cfg.addOption("authorizations", ((Authorizations)iter.next()).toString());
-            if (scanner instanceof ScannerBaseDelegate) {
-                ((ScannerBaseDelegate)scanner).addSystemScanIterator(cfg);
-            } else {
-                scanner.addScanIterator(cfg);
-            }
-        }
-
-    }
 
     protected static ClientContext getClientContext(AccumuloClient client) {
         if (client instanceof WrappedAccumuloClient) {

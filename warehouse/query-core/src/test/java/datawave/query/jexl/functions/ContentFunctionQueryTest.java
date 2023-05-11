@@ -2,7 +2,6 @@ package datawave.query.jexl.functions;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-
 import datawave.accumulo.inmemory.InMemoryAccumuloClient;
 import datawave.accumulo.inmemory.InMemoryInstance;
 import datawave.configuration.spring.SpringBean;
@@ -31,10 +30,10 @@ import datawave.policy.IngestPolicyEnforcer;
 import datawave.query.config.ShardQueryConfiguration;
 import datawave.query.iterator.ivarator.IvaratorCacheDirConfig;
 import datawave.query.language.parser.jexl.LuceneToJexlQueryParser;
-import datawave.query.testframework.MockStatusReporter;
 import datawave.query.planner.DefaultQueryPlanner;
 import datawave.query.tables.ShardQueryLogic;
 import datawave.query.tables.edge.DefaultEdgeEventQueryLogic;
+import datawave.query.testframework.MockStatusReporter;
 import datawave.util.TableName;
 import datawave.webservice.edgedictionary.RemoteEdgeDictionary;
 import datawave.webservice.query.Query;
@@ -58,8 +57,6 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.StatusReporter;
 import org.apache.hadoop.mapreduce.TaskAttemptID;
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -80,24 +77,11 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static datawave.query.QueryParameters.DATE_RANGE_TYPE;
-import static datawave.webservice.query.QueryParameters.QUERY_AUTHORIZATIONS;
-import static datawave.webservice.query.QueryParameters.QUERY_BEGIN;
-import static datawave.webservice.query.QueryParameters.QUERY_END;
-import static datawave.webservice.query.QueryParameters.QUERY_EXPIRATION;
-import static datawave.webservice.query.QueryParameters.QUERY_LOGIC_NAME;
-import static datawave.webservice.query.QueryParameters.QUERY_NAME;
-import static datawave.webservice.query.QueryParameters.QUERY_PERSISTENCE;
-import static datawave.webservice.query.QueryParameters.QUERY_STRING;
+import static datawave.webservice.query.QueryParameters.*;
 
 @RunWith(Arquillian.class)
 public class ContentFunctionQueryTest {
@@ -293,7 +277,6 @@ public class ContentFunctionQueryTest {
 
     @Test
     public void phraseWithSkipTestNoAnchor() throws Exception {
-        Logger.getLogger("datawave.query").setLevel(Level.TRACE);
         String query = "BODY:\"dog gap\" BODY:\"dog gap\"";
 
         final List<DefaultEvent> events = getQueryResults(query, true, null, true);

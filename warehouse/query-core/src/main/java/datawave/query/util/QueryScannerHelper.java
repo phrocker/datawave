@@ -7,11 +7,15 @@ import datawave.security.util.AuthorizationsMinimizer;
 import datawave.security.util.ScannerHelper;
 import datawave.webservice.common.connection.ScannerBaseDelegate;
 import datawave.webservice.query.Query;
-import org.apache.accumulo.core.client.*;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.security.Authorizations;
-
 import java.util.Collection;
 import java.util.Iterator;
 
@@ -79,7 +83,7 @@ public class QueryScannerHelper {
         return getQueryInfoIterator(query, false, null);
     }
 
-    protected static void addVisibilityFilters(Iterator<Authorizations> iter, ScannerBase scanner) {
+    public static void addVisibilityFilters(Iterator<Authorizations> iter, ScannerBase scanner) {
         for(int priority = 10; iter.hasNext(); ++priority) {
             IteratorSetting cfg = new IteratorSetting(priority, ConfigurableVisibilityFilter.class);
             cfg.setName("visibilityFilter" + priority);

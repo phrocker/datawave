@@ -1163,7 +1163,6 @@ public class RangeStreamTestX {
 
             }
         }
-        System.out.println("unevenstart");
         runTest(query, expectedRanges, expectedQueryStrings);
     }
     
@@ -4305,8 +4304,7 @@ public class RangeStreamTestX {
         // Run a default range stream.
         rangeStream = new RangeStream(config, new ScannerFactory(client, 1), helper);
         rangeStream.setLimitScanners(false);
-        System.out.println( runTest(rangeStream, script, expectedRanges, expectedQueries) );
-        
+
         rangeStream.close();
     }
     
@@ -4322,8 +4320,6 @@ public class RangeStreamTestX {
 
         for (QueryPlan queryPlan : queryPlans) {
 
-            System.out.println("*got " + queryPlan.getQueryString());
-            System.out.println("*got " + queryPlan.getRanges());
             // Assert proper range
             Iterator<Range> rangeIter = queryPlan.getRanges().iterator();
             Range planRange = rangeIter.next();
@@ -4331,7 +4327,6 @@ public class RangeStreamTestX {
             try {
                 expectedRange = shardIter.next();
             }catch(NoSuchElementException e){
-                System.out.println(expectedRanges.size() + " Failing at " + counter);
                 throw e;
             }
             
@@ -4350,7 +4345,6 @@ public class RangeStreamTestX {
             expectedScript = JexlASTHelper.parseJexlQuery(expectedString);
             planScript = JexlASTHelper.parseJexlQuery(plannedString);
 
-            System.out.println("Vector Check matched " + planRange.toString() + " " + plannedString);
             assertTrue("Queries did not match for counter: " + counter + " on shard: " + planRange.toString() + "\nExpected: " + expectedString
                             + "\nActual  : " + plannedString, TreeEqualityVisitor.isEqual(expectedScript, planScript));
 
