@@ -877,7 +877,7 @@ public class QueryImpl extends Query implements Serializable, Message<QueryImpl>
     public ServiceConfiguration getServiceConfiguration() {
         if (null == serviceConfiguration){
             synchronized (QueryImpl.class){
-                serviceConfiguration = ServiceConfiguration.builder().build();
+                serviceConfiguration = ServiceConfiguration.getDefaultInstance();
             }
         }
         return serviceConfiguration;
