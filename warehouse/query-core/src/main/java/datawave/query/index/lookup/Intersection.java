@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutorService;
 
+import datawave.query.config.ShardQueryConfiguration;
 import datawave.query.exceptions.DatawaveFatalQueryException;
 import datawave.query.jexl.JexlNodeFactory;
 import datawave.query.jexl.visitors.JexlStringBuildingVisitor;
@@ -25,7 +26,6 @@ import datawave.query.language.parser.jexl.JexlNodeSet;
 import datawave.query.util.Tuple2;
 import datawave.query.util.Tuples;
 import datawave.util.StringUtils;
-import datawave.webservice.query.Query;
 import datawave.webservice.query.exception.DatawaveErrorCode;
 import datawave.webservice.query.exception.QueryException;
 import datawave.webservice.query.service.ServiceConfiguration;
@@ -629,7 +629,7 @@ public class Intersection extends BaseIndexStream {
             return Lists.newArrayList(children.keySet());
         }
         
-        public Intersection build(ExecutorService service, Query query) {
+        public Intersection build(ExecutorService service, ShardQueryConfiguration queryConfiguration) {
             
             if (!todo.isEmpty()) {
                 if (log.isTraceEnabled())
@@ -641,7 +641,7 @@ public class Intersection extends BaseIndexStream {
             }
             todo.clear();
             built = true;
-            return new Intersection(children.keySet(), uidIntersector,query.getServiceConfiguration());
+            return new Intersection(children.keySet(), uidIntersector,queryConfiguration.getServiceConfiguration());
         }
         
         public void addChildren(List<ConcurrentScannerInitializer> todo) {

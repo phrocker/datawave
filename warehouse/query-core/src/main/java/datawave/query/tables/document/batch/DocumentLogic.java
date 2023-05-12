@@ -26,6 +26,7 @@ import datawave.webservice.query.configuration.GenericQueryConfiguration;
 import datawave.webservice.query.configuration.QueryData;
 import datawave.webservice.query.logic.QueryLogicTransformer;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
+import datawave.webservice.query.service.ServiceConfiguration;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -103,7 +104,7 @@ public class DocumentLogic extends ShardedBaseQueryLogic<SerializedDocumentIfc, 
 
         this.config = DocumentQueryConfiguration.create(this, settings);
         if (log.isTraceEnabled())
-            log.trace("Initializing ShardQueryLogic: " + System.identityHashCode(this) + '('
+            log.trace("Initializing DocumentLogic: " + System.identityHashCode(this) + '('
                     + (this.getSettings() == null ? "empty" : this.getSettings().getId()) + ')');
         this.config.setExpandFields(true);
         this.config.setExpandValues(true);
@@ -332,7 +333,13 @@ public class DocumentLogic extends ShardedBaseQueryLogic<SerializedDocumentIfc, 
     }
 
 
+    public ServiceConfiguration getServiceConfiguration(){
+        return getConfig().getServiceConfiguration();
+    }
 
+    public void setServiceConfiguration(ServiceConfiguration config){
+        getConfig().setServiceConfiguration(config);
+    }
 
 
 }

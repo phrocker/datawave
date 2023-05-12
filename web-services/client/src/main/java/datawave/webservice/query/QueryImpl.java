@@ -46,8 +46,6 @@ public class QueryImpl extends Query implements Serializable, Message<QueryImpl>
     public static final String PARAMETER_SEPARATOR = ";";
     public static final String PARAMETER_NAME_VALUE_SEPARATOR = ":";
 
-    private ServiceConfiguration serviceConfiguration = null;
-    
     @XmlAccessorType(XmlAccessType.FIELD)
     public static final class Parameter implements Serializable, Message<Parameter> {
         
@@ -873,13 +871,4 @@ public class QueryImpl extends Query implements Serializable, Message<QueryImpl>
         }
     }
 
-    @Override
-    public ServiceConfiguration getServiceConfiguration() {
-        if (null == serviceConfiguration){
-            synchronized (QueryImpl.class){
-                serviceConfiguration = ServiceConfiguration.getDefaultInstance();
-            }
-        }
-        return serviceConfiguration;
-    }
 }

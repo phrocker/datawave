@@ -112,5 +112,4 @@ public abstract class Query {
     
     public abstract void populateTrackingMap(Map<String,String> trackingMap);
 
-    public abstract ServiceConfiguration getServiceConfiguration();
 }

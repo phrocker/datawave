@@ -33,6 +33,7 @@ import datawave.util.UniversalSet;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl;
 import datawave.webservice.query.configuration.GenericQueryConfiguration;
+import datawave.webservice.query.service.ServiceConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -417,6 +418,9 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
      * If true, the LAZY_SET mechanism will be enabled for non-event and index-only fields.
      */
     private boolean lazySetMechanismEnabled = false;
+
+
+    private ServiceConfiguration serviceConfiguration = ServiceConfiguration.getDefaultInstance();
     
     /**
      * Default constructor
@@ -614,6 +618,7 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
         this.setVisitorFunctionMaxWeight(other.getVisitorFunctionMaxWeight());
         this.setQueryExecutionForPageTimeout(other.getQueryExecutionForPageTimeout());
         this.setLazySetMechanismEnabled(other.isLazySetMechanismEnabled());
+        this.setServiceConfiguration(other.getServiceConfiguration());
     }
     
     /**
@@ -2398,5 +2403,13 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
     
     public void setLazySetMechanismEnabled(boolean lazySetMechanismEnabled) {
         this.lazySetMechanismEnabled = lazySetMechanismEnabled;
+    }
+
+    public ServiceConfiguration getServiceConfiguration(){
+        return serviceConfiguration;
+    }
+
+    public void setServiceConfiguration(ServiceConfiguration config){
+        this.serviceConfiguration=config;
     }
 }

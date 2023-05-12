@@ -4294,7 +4294,7 @@ public class RangeStreamTestX {
         
         MockMetadataHelper helper = new MockMetadataHelper();
         helper.setIndexedFields(dataTypes.keySet());
-        config.getQuery().getServiceConfiguration().getIndexingConfiguration().setEnableIndexInfoUidToDayIntersectionBypass(enableUidsOnDayRangesBypass);
+        config.getServiceConfiguration().getIndexingConfiguration().setEnableIndexInfoUidToDayIntersectionBypass(enableUidsOnDayRangesBypass);
         
         // Run a standard limited-scanner range stream.
         RangeStream rangeStream = new RangeStream(config, new ScannerFactory(client, 1), helper);

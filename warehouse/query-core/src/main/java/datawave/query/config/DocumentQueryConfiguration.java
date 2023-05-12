@@ -4,6 +4,7 @@ import datawave.query.QueryParameters;
 import datawave.query.tables.document.batch.DocumentLogic;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl;
+import datawave.webservice.query.service.ServiceConfiguration;
 import org.apache.log4j.Logger;
 
 import java.io.Serializable;

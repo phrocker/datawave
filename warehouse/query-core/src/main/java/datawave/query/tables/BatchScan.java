@@ -96,7 +96,6 @@ public class BatchScan implements Iterator<Entry<Key,Value>> {
 
         ResultReceiver rr = printOutput ? entries -> {
             try {
-                System.out.println("Received " + entries.size() + " " + resultsQueue.size());
                 resultsQueue.put(entries);
             } catch (InterruptedException e) {
                 if (this.queryThreadPool.isShutdown())

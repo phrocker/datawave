@@ -918,10 +918,6 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
         }
     }
 
-    public ServiceConfiguration getServiceConfiguration(){
-        return settings.getServiceConfiguration();
-    }
-
     @Override
     protected void shutDown() throws Exception {
         super.shutDown();

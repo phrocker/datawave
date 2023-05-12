@@ -1992,7 +1992,6 @@ public class DocumentQueryPlanner extends QueryPlanner implements Cloneable {
                 addOption(cfg, "return_whole_doc", "true", false);
             }
             else {
-                System.out.println("Return type is " + config.getReturnType().toString());
                 addOption(cfg, Constants.RETURN_TYPE, config.getReturnType().toString(), false);
                 addOption(cfg, QueryOptions.FULL_TABLE_SCAN_ONLY, Boolean.toString(isFullTable), false);
 

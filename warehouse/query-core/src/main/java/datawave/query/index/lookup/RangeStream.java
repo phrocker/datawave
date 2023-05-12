@@ -377,7 +377,7 @@ public class RangeStream extends BaseVisitor implements CloseableIterable<QueryP
         } else if (builder.size() == 0) {
             return ScannerStream.unindexed(node);
         } else {
-            Intersection build = builder.build(executor, config.getQuery());
+            Intersection build = builder.build(executor, config);
             switch (build.context()) {
                 case ABSENT:
                     return ScannerStream.noData(build.currentNode(), build);

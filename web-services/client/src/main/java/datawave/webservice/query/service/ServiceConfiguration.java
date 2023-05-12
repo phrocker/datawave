@@ -3,7 +3,7 @@ package datawave.webservice.query.service;
 import datawave.webservice.query.service.config.IndexingConfiguration;
 
 /**
- * Provides a centralized place
+ * Provides a centralized place to support configuration to code changes
  */
 public class ServiceConfiguration {
     

@@ -369,11 +369,25 @@
     <bean id="BaseModelEventQuery" parent="BaseEventQuery" abstract="true">
         <property name="modelTableName" value="${metadata.table.name}" />
         <property name="modelName" value="DATAWAVE" />
-</bean>
+    </bean>
+
+    <bean id="IndexingConfiguration" class="datawave.webservice.query.service.config.IndexingConfiguration">
+        <property name="enableIndexInfoUidToDayIntersectionBypass" value="false" />
+    </bean>
+
+    <bean id="DocQueryServiceConfig" class="datawave.webservice.query.service.ServiceConfiguration">
+        <property name="indexingConfiguration" ref="IndexingConfiguration" />
+    </bean>
 
     <bean id="RawDocumentQuery" parent="DocumentQuery" scope="prototype" class="datawave.query.tables.document.batch.DocumentLogic" >
         <property name="docRawFields" value="true" />
         <property name="alwaysDedupeIterator" value="true" />
+    </bean>
+
+    <bean id="RawDocumentQueryNoBypass" parent="DocumentQuery" scope="prototype" class="datawave.query.tables.document.batch.DocumentLogic" >
+        <property name="docRawFields" value="true" />
+        <property name="alwaysDedupeIterator" value="true" />
+        <property name="serviceConfiguration" ref="DocQueryServiceConfig" />
     </bean>
 
 
