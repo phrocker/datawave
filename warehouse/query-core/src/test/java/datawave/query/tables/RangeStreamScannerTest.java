@@ -187,7 +187,7 @@ public class RangeStreamScannerTest {
      *            - field value, like "bar" in "FOO == 'bar'"
      * @return a configured RangeStreamScanner
      */
-    private RangeStreamScanner buildRangeStreamScanner(String fieldName, String fieldValue) throws Exception {
+    RangeStreamScanner buildRangeStreamScanner(String fieldName, String fieldValue) throws Exception {
         
         String queryString = fieldName + "=='" + fieldValue + "'";
         Range range = rangeForTerm(fieldValue, fieldName, config);
@@ -200,8 +200,7 @@ public class RangeStreamScannerTest {
         
         int priority = 50; // Iterator priority
         
-        RangeStreamScanner scanSession = scannerFactory.newRangeScanner(config.getIndexTableName(), config.getAuthorizations(), config.getQuery(),
-                        config.getShardsPerDayThreshold());
+        RangeStreamScanner scanSession = scannerFactory.newRangeScanner(config.getIndexTableName(),config);
         
         scanSession.setMaxResults(config.getMaxIndexBatchSize());
         scanSession.setExecutor(streamExecutor);
@@ -355,8 +354,8 @@ public class RangeStreamScannerTest {
             documentCount += entry.second().count();
         }
         // A single range with a count of -1 means the shard ranges were collapsed into a day range.
-        assertEquals(15, shardCount);
-        assertEquals(375, documentCount);
+        assertEquals(1, shardCount);
+        assertEquals(-1, documentCount);
         assertFalse(scannerStream.hasNext());
     }
     

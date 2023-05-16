@@ -422,6 +422,8 @@ public class RangeStreamTest {
         config = new ShardQueryConfiguration();
         config.setClient(client);
         config.setShardsPerDayThreshold(20);
+        // be explicit
+        config.getServiceConfiguration().getIndexingConfiguration().setEnableRangeScannerLimitDays(false);
     }
     
     @Test
@@ -1212,11 +1214,51 @@ public class RangeStreamTest {
         helper.addFields(Arrays.asList("FOO", "LAUGH"));
 
         Set<Range> expectedRanges = Sets.newHashSet();
+        for (String shard : Arrays.asList("20190314_0", "20190314_1","20190314_10",  "20190314_100", "20190314_9")) {
+            expectedRanges.add(makeShardedRange(shard));
+        }
+
+        RangeStream rangeStream = new RangeStream(config, new ScannerFactory(config.getClient(), 1), helper).setLimitScanners(true);
+        CloseableIterable<QueryPlan> queryPlans = rangeStream.streamPlans(script);
+        // streamPlans(script) to populate the StreamContext.
+        assertEquals(IndexStream.StreamContext.PRESENT, rangeStream.context());
+        for (QueryPlan queryPlan : queryPlans) {
+            for (Range range : queryPlan.getRanges()) {
+                assertTrue("Tried to remove unexpected range " + range.toString() + "\nfrom expected ranges: " + expectedRanges, expectedRanges.remove(range));
+            }
+        }
+        assertTrue("Expected ranges not found in query plan: " + expectedRanges, expectedRanges.isEmpty());
+    }
+
+    @Test
+    public void testDropTwoPredicatesLimitDays() throws Exception {
+        String originalQuery = "LAUGH == 'bahahaha' && ( FOO == 'boohoo' || FOO == 'idontexist' || FOO == 'neitherdoi!' )";
+        ASTJexlScript script = JexlASTHelper.parseJexlQuery(originalQuery);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+        config.setBeginDate(sdf.parse("20190314"));
+        config.setEndDate(sdf.parse("20190315"));
+        config.setShardsPerDayThreshold(3);
+
+        config.setDatatypeFilter(Sets.newHashSet("datatype1", "datatype2"));
+
+        Multimap<String,Type<?>> dataTypes = HashMultimap.create();
+        dataTypes.putAll("FOO", Sets.newHashSet(new LcNoDiacriticsType()));
+        dataTypes.putAll("LAUGH", Sets.newHashSet(new LcNoDiacriticsType()));
+
+        config.setQueryFieldsDatatypes(dataTypes);
+        config.setIndexedFields(dataTypes);
+
+        MockMetadataHelper helper = new MockMetadataHelper();
+        helper.setIndexedFields(dataTypes.keySet());
+        helper.addFields(Arrays.asList("FOO", "LAUGH"));
+
+        Set<Range> expectedRanges = Sets.newHashSet();
         // removed "20190314_10", because RangeStream no longer short circuits to day ranges as early.
         for (String shard : Arrays.asList("20190314_0", "20190314_1",  "20190314_100", "20190314_9")) {
             expectedRanges.add(makeShardedRange(shard));
         }
-
+        config.getServiceConfiguration().getIndexingConfiguration().setEnableRangeScannerLimitDays(true);
         RangeStream rangeStream = new RangeStream(config, new ScannerFactory(config.getClient(), 1), helper).setLimitScanners(true);
         CloseableIterable<QueryPlan> queryPlans = rangeStream.streamPlans(script);
         // streamPlans(script) to populate the StreamContext.
@@ -1507,7 +1549,7 @@ public class RangeStreamTest {
     
     // A && B when A term is day ranges and B term is a single shard range within the last day.
     @Test
-    public void testIntersection_ofDayRangesAndShardRange() throws Exception {
+    public void testIntersection_ofDayRangesAndShardRangeLimitDays() throws Exception {
         String originalQuery = "FOO == 'day_ranges' && FOO == 'shard_range'";
         ASTJexlScript script = JexlASTHelper.parseJexlQuery(originalQuery);
         
@@ -1538,6 +1580,7 @@ public class RangeStreamTest {
         // is OBE. Leaving it should show that without day ranges ( and only returning shard ranges ) prevents this
         // test from returning a range that needs to be tested at the doc level.
         Set<Range> expectedRanges = Sets.newHashSet();
+        config.getServiceConfiguration().getIndexingConfiguration().setEnableRangeScannerLimitDays(true);
         RangeStream rangeStream = new RangeStream(config, new ScannerFactory(client, 1), helper);
         rangeStream.setLimitScanners(true);
         CloseableIterable<QueryPlan> queryPlans = rangeStream.streamPlans(script);
@@ -1551,6 +1594,52 @@ public class RangeStreamTest {
                 System.out.println(range.toString());
                 assertTrue("Tried to remove unexpected range " + range.toString() + "\nfrom expected ranges: " + expectedRanges.toString(),
                                 expectedRanges.remove(range));
+            }
+        }
+        assertTrue("Expected ranges not found in query plan: " + expectedRanges, expectedRanges.isEmpty());
+    }
+
+    // A && B when A term is day ranges and B term is a single shard range within the last day.
+    @Test
+    public void testIntersection_ofDayRangesAndShardRange() throws Exception {
+        String originalQuery = "FOO == 'day_ranges' && FOO == 'shard_range'";
+        ASTJexlScript script = JexlASTHelper.parseJexlQuery(originalQuery);
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
+        config.setBeginDate(sdf.parse("20190310"));
+        config.setEndDate(sdf.parse("20190320"));
+
+        config.setDatatypeFilter(Sets.newHashSet("datatype1", "datatype2"));
+
+        Multimap<String,Type<?>> dataTypes = HashMultimap.create();
+        dataTypes.putAll("FOO", Sets.newHashSet(new LcNoDiacriticsType()));
+        dataTypes.putAll("LAUGH", Sets.newHashSet(new LcNoDiacriticsType()));
+
+        config.setQueryFieldsDatatypes(dataTypes);
+        config.setIndexedFields(dataTypes);
+        config.setShardsPerDayThreshold(0); // set to zero to roll up to day ranges
+
+        MockMetadataHelper helper = new MockMetadataHelper();
+        helper.setIndexedFields(dataTypes.keySet());
+
+        Range range1 = makeShardedRange("20190310_21");
+        // Fun story. It's hard to roll up to a day range when you seek most of the way through the day and don't have all the shards for the day.
+        Range range2 = makeShardedRange("20190315_51");
+        Set<Range> expectedRanges = Sets.newHashSet(range1, range2);
+
+ 
+        RangeStream rangeStream = new RangeStream(config, new ScannerFactory(client, 1), helper);
+        rangeStream.setLimitScanners(true);
+        CloseableIterable<QueryPlan> queryPlans = rangeStream.streamPlans(script);
+        /**
+         * This stream is now absent because day ranges don't exist.
+         */
+        assertEquals(IndexStream.StreamContext.PRESENT, rangeStream.context());
+        for (QueryPlan queryPlan : queryPlans) {
+            Iterable<Range> ranges = queryPlan.getRanges();
+            for (Range range : ranges) {
+                assertTrue("Tried to remove unexpected range " + range.toString() + "\nfrom expected ranges: " + expectedRanges.toString(),
+                        expectedRanges.remove(range));
             }
         }
         assertTrue("Expected ranges not found in query plan: " + expectedRanges, expectedRanges.isEmpty());

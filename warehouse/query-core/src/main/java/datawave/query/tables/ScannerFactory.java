@@ -265,14 +265,14 @@ public class ScannerFactory {
      * @throws Exception
      *             if there are issues
      */
-    public RangeStreamScanner newRangeScanner(final ShardQueryConfiguration configuration) throws Exception {
+    public RangeStreamScanner newRangeScanner(String tableName, final ShardQueryConfiguration configuration) throws Exception {
         Class<? extends RangeStreamScanner> clazz = RangeStreamScanner.class;
 
         if (configuration.getServiceConfiguration().getIndexingConfiguration().isEnableRangeScannerLimitDays()){
             clazz = RangeScannerLimitDays.class;
         }
 
-        return newLimitedScanner(clazz, config.getTableName(), config.getAuthorizations(), config.getQuery()).setShardsPerDayThreshold(config.getShardsPerDayThreshold()).setScannerFactory(this);
+        return newLimitedScanner(clazz, tableName, configuration.getAuthorizations(), configuration.getQuery()).setShardsPerDayThreshold(configuration.getShardsPerDayThreshold()).setScannerFactory(this);
     }
 
 
