@@ -7,6 +7,7 @@ import datawave.mr.bulk.MultiRfileInputformat;
 import datawave.mr.bulk.RfileScanner;
 import datawave.query.config.DocumentQueryConfiguration;
 import datawave.query.config.ShardQueryConfiguration;
+import datawave.query.tables.async.RangeScannerLimitDays;
 import datawave.query.tables.stats.ScanSessionStats;
 import datawave.query.util.QueryScannerHelper;
 import datawave.webservice.common.connection.WrappedConnector;
@@ -258,24 +259,27 @@ public class ScannerFactory {
      * Builds a new scanner session using a finalized table name and set of authorizations using the previously defined queue. Note that the number of entries
      * is hardcoded, below, to 1000, but can be changed
      *
-     * @param tableName
-     *            the table string
-     * @param auths
-     *            a set of auths
-     * @param settings
-     *            query settings
+     * @param configuration
+     *            Query configuration object.
      * @return a new scanner session
      * @throws Exception
      *             if there are issues
      */
-    public synchronized RangeStreamScanner newRangeScanner(final String tableName, final Set<Authorizations> auths, final Query settings) throws Exception {
-        return newRangeScanner(tableName, auths, settings, Integer.MAX_VALUE);
+    public RangeStreamScanner newRangeScanner(final ShardQueryConfiguration configuration) throws Exception {
+        Class<? extends RangeStreamScanner> clazz = RangeStreamScanner.class;
+
+        if (configuration.getServiceConfiguration().getIndexingConfiguration().isEnableRangeScannerLimitDays()){
+            clazz = RangeScannerLimitDays.class;
+        }
+
+        return newLimitedScanner(clazz, config.getTableName(), config.getAuthorizations(), config.getQuery()).setShardsPerDayThreshold(config.getShardsPerDayThreshold()).setScannerFactory(this);
     }
-    
+
+
     public RangeStreamScanner newRangeScanner(String tableName, Set<Authorizations> auths, Query query, int shardsPerDayThreshold) throws Exception {
         return newLimitedScanner(RangeStreamScanner.class, tableName, auths, query).setShardsPerDayThreshold(shardsPerDayThreshold).setScannerFactory(this);
     }
-    
+
     public synchronized boolean close(ScannerBase bs) {
         boolean removed = instances.remove(bs);
         if (removed) {

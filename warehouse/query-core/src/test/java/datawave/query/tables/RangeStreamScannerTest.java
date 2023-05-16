@@ -63,12 +63,12 @@ import static org.junit.Assert.assertTrue;
  * Integration test for the {@link RangeStreamScanner}
  */
 public class RangeStreamScannerTest {
+
+    protected static AccumuloClient client;
+
+    protected static ScannerFactory scannerFactory;
     
-    private static AccumuloClient client;
-    
-    private static ScannerFactory scannerFactory;
-    
-    private static ShardQueryConfiguration config;
+    protected static ShardQueryConfiguration config;
     
     // Helper method that builds an accumulo mutation for an index entry.
     // Format: bar FOO:20190314\u0000datatype1:doc1,doc2,doc3
