@@ -373,6 +373,7 @@
 
     <bean id="IndexingConfiguration" class="datawave.webservice.query.service.config.IndexingConfiguration">
         <property name="enableIndexInfoUidToDayIntersectionBypass" value="false" />
+        <property name="enableRangeScannerLimitDays" value="true" />
     </bean>
 
     <bean id="DocQueryServiceConfig" class="datawave.webservice.query.service.ServiceConfiguration">
