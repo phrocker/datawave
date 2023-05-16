@@ -26,8 +26,7 @@ import java.util.concurrent.TimeoutException;
 
 public class RangeScannerLimitDays extends RangeStreamScanner {
     private static final Logger log = Logger.getLogger(RangeStreamScanner.class);
-
-
+    
     private Future<RangeStreamScanner> currentFuture =null;
 
     public RangeScannerLimitDays(String tableName, Set<Authorizations> auths, ResourceQueue delegator, int maxResults, Query settings) {
