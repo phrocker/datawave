@@ -382,12 +382,9 @@
 
     <bean id="RawDocumentQuery" parent="DocumentQuery" scope="prototype" class="datawave.query.tables.document.batch.DocumentLogic" >
         <property name="docRawFields" value="true" />
-        <property name="alwaysDedupeIterator" value="true" />
     </bean>
 
-    <bean id="RawDocumentQueryNoBypass" parent="DocumentQuery" scope="prototype" class="datawave.query.tables.document.batch.DocumentLogic" >
-        <property name="docRawFields" value="true" />
-        <property name="alwaysDedupeIterator" value="true" />
+    <bean id="RawDocumentQueryNoBypass" parent="RawDocumentQuery" scope="prototype" class="datawave.query.tables.document.batch.DocumentLogic" >
         <property name="serviceConfiguration" ref="DocQueryServiceConfig" />
     </bean>
 
