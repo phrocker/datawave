@@ -112,6 +112,7 @@
         <property name="queryModelProviderFactory" ref="queryModelProviderFactory" />
         <property name="maxRangeWaitMillis" value="10" />
         <property name="sourceLimit" value="1000" />
+        <property name="visitorManager" ref="TimedVisitorManager"/>
         <!-- the first integer arg is to define the number of ranges per batch -->
         <constructor-arg>
             <value>2611</value>
@@ -326,21 +327,14 @@
 
     <bean id="DocumentQuery" parent="ShardedBaseQueryLogic" scope="prototype" class="datawave.query.tables.document.batch.DocumentLogic" >
         <property name="serializeQueryIterator" value="true" />
-        <property name="collapseUids" value="true" />
         <property name="queryPlanner" ref="DocumentQueryPlanner" />
         <property name="forceAllTypes" value="true" />
         <property name="allowedTypes" value="datawave.data.type.NoOpType" />
         <property name="queueCapacity" value="50000" />
         <property name="numRangesToBuffer" value="50000" />
         <property name="maxScannerBatchSize" value="50000" />
-
-        <property name="queryThreads" value="96" />
-        <property name="indexLookupThreads" value="96" />
-        <!-- @TODO should we allow query metrics for a baseline ? -->
-        <!-- <property name="collapseUidsIgnoreParsing" value="true" /> -->
         <property name="pushdownLogic" value="true" />
         <property name="convertToDocument" value="false" />
-        <!-- <property name="docRawFields" value="false" /> -->
         <property name="collectQueryMetrics" value="false" />
         <property name="trackSizes" value="false" />
         <property name="typeString" value="false" />
@@ -349,7 +343,13 @@
         <property name="maxEvaluationPipelines" value="1" />
 </bean>
 
+    <bean id="RawDocumentQuery" parent="DocumentQuery" scope="prototype" class="datawave.query.tables.document.batch.DocumentLogic" >
+        <property name="docRawFields" value="true" />
+    </bean>
 
+    <bean id="RawDocumentQuerySpecialConfig" parent="RawDocumentQuery" scope="prototype" class="datawave.query.tables.document.batch.DocumentLogic" >
+        <property name="serviceConfiguration" ref="DocQueryServiceConfig" />
+    </bean>
 
     <util:list id="IvaratorCacheDirConfigs">
         ${ivarator.cache.dir.config}
@@ -379,15 +379,6 @@
     <bean id="DocQueryServiceConfig" class="datawave.webservice.query.service.ServiceConfiguration">
         <property name="indexingConfiguration" ref="IndexingConfiguration" />
     </bean>
-
-    <bean id="RawDocumentQuery" parent="DocumentQuery" scope="prototype" class="datawave.query.tables.document.batch.DocumentLogic" >
-        <property name="docRawFields" value="true" />
-    </bean>
-
-    <bean id="RawDocumentQueryNoBypass" parent="RawDocumentQuery" scope="prototype" class="datawave.query.tables.document.batch.DocumentLogic" >
-        <property name="serviceConfiguration" ref="DocQueryServiceConfig" />
-    </bean>
-
 
     <bean id="EventQueryDataDecoratorTransformer" scope="prototype" class="datawave.query.transformer.EventQueryDataDecoratorTransformer">
         <property name="dataDecorators">

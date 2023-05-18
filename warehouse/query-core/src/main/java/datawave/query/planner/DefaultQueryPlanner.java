@@ -528,8 +528,8 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
             return null;
         }
     }
-    
-    private void configureIterator(ShardQueryConfiguration config, IteratorSetting cfg, String newQueryString, boolean isFullTable)
+
+    protected void configureIterator(ShardQueryConfiguration config, IteratorSetting cfg, String newQueryString, boolean isFullTable)
                     throws DatawaveQueryException {
         
         // Load enrichers, filters, unevaluatedExpressions, and projection
@@ -3001,7 +3001,7 @@ public class DefaultQueryPlanner extends QueryPlanner implements Cloneable {
         return Iterables.toArray(list, String.class);
     }
 
-    private static String forceTypes(String allowedTypesStr, TypeMetadata metadata){
+    public static String forceTypes(String allowedTypesStr, TypeMetadata metadata){
         String original = metadata.toString();
         HashSet<String> fieldNames = Sets.newHashSet();
         String[] entries = parse(original, ';');

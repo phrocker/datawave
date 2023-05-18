@@ -71,6 +71,7 @@ public class RangeScannerLimitDays extends RangeStreamScanner {
      *            the shard to seek to.
      * @return the shard we seek'd to.
      */
+    @Override
     public String seek(String seekShard) {
         //dequeue(true);
         if (currentEntry == null && resultQueue.isEmpty() && finished) {
