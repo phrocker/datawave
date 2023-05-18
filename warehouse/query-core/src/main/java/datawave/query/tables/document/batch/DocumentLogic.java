@@ -4,6 +4,7 @@ import datawave.marking.MarkingFunctions;
 import datawave.query.DocumentSerialization;
 import datawave.query.config.DocumentQueryConfiguration;
 import datawave.query.iterator.QueryOptions;
+import datawave.query.planner.DefaultQueryPlanner;
 import datawave.query.planner.MetadataHelperQueryModelProvider;
 import datawave.query.planner.QueryModelProvider;
 import datawave.query.planner.QueryPlanner;
@@ -150,6 +151,23 @@ public class DocumentLogic extends ShardedBaseQueryLogic<SerializedDocumentIfc, 
 
             }
         }
+        else  if (queryPlanner instanceof DefaultQueryPlanner) {
+            DefaultQueryPlanner currentQueryPlanner = (DefaultQueryPlanner) queryPlanner;
+
+            currentQueryPlanner.setMetadataHelper(metadataHelper);
+            currentQueryPlanner.setDateIndexHelper(dateIndexHelper);
+
+            QueryModelProvider queryModelProvider = currentQueryPlanner.getQueryModelProviderFactory().createQueryModelProvider();
+            if (queryModelProvider instanceof MetadataHelperQueryModelProvider) {
+                ((MetadataHelperQueryModelProvider) queryModelProvider).setMetadataHelper(metadataHelper);
+                ((MetadataHelperQueryModelProvider) queryModelProvider).setConfig(config);
+            }
+
+            if (null != queryModelProvider.getQueryModel()) {
+                queryModel = queryModelProvider.getQueryModel();
+
+            }
+        }
     }
 
     @Override
@@ -237,7 +255,7 @@ public class DocumentLogic extends ShardedBaseQueryLogic<SerializedDocumentIfc, 
     @Override
     public QueryPlanner getQueryPlanner() {
         if (null == planner) {
-            planner = new DocumentQueryPlanner();
+            planner = new DefaultQueryPlanner();
         }
 
         return planner;

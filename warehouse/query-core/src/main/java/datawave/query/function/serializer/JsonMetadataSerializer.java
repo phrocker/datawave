@@ -31,7 +31,7 @@ public abstract class JsonMetadataSerializer extends DocumentSerializer{
         return Maps.immutableEntry(from.getKey(), v);
     }
 
-    private byte[] computeIdentifier(Key key) {
+    byte[] computeIdentifier(Key key) {
         ByteSequence row = key.getRowData();
         ByteSequence cf = key.getColumnFamilyData();
 
@@ -51,12 +51,12 @@ public abstract class JsonMetadataSerializer extends DocumentSerializer{
         int offset = cf.offset() + dataTypeOffset;
         int length = cf.length() - dataTypeOffset;
 
-        int rowlen = row.length()- (int)4;
+        int rowlen = row.length()- (int)4-row.offset();
 
         byte[] bytes = new byte[rowlen + length + 1];
 
         System.arraycopy(row.getBackingArray(), row.offset()+4, bytes, 0, rowlen);
-        System.arraycopy(cf.getBackingArray(), offset, bytes, rowlen + 1, length-(rowlen));
+        System.arraycopy(cf.getBackingArray(), offset, bytes, rowlen , length);
         return bytes;
     }
 
