@@ -85,13 +85,13 @@ public class JsonObjectConversionTest {
     @Test
     public void testEmptyDocument() throws IOException {
         testDocument = new Document(testKey,true);
-        KryoDocumentSerializer serializer = new KryoDocumentSerializer();
-        kv = Maps.immutableEntry(testKey,new Value(DocumentSerialization.writeBodyWithHeader(serializer.serialize(testDocument),0)));
+        JsonDocumentSerializer serializer = new JsonDocumentSerializer(false);
+        kv = Maps.immutableEntry(testKey,new Value(DocumentSerialization.writeBodyWithHeader(serializer.serialize(testDocument),0,true)));
         SerializedDocumentIfc doc = DocumentKeyConversion.getDocument(DocumentSerialization.ReturnType.json,false,kv);
 
-        Assert.assertTrue(doc instanceof SerializedDocument);
+        Assert.assertTrue(doc instanceof JsonDocument);
 
-        Document comparison = ((SerializedDocument)doc).getAsDocument();
+        Document comparison = ((JsonDocument)doc).getAsDocument();
 
         Assert.assertEquals(testDocument, comparison);
         Assert.assertEquals(testDocument.size(), comparison.size());

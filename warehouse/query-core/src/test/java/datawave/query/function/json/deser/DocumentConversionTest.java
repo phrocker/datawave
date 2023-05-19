@@ -5,8 +5,10 @@ import datawave.data.type.NoOpType;
 import datawave.query.DocumentSerialization;
 import datawave.query.attributes.Document;
 import datawave.query.attributes.TypeAttribute;
+import datawave.query.function.serializer.JsonDocumentSerializer;
 import datawave.query.function.serializer.KryoDocumentSerializer;
 import datawave.query.tables.document.batch.DocumentKeyConversion;
+import datawave.query.tables.serialization.JsonDocument;
 import datawave.query.tables.serialization.SerializedDocument;
 import datawave.query.tables.serialization.SerializedDocumentIfc;
 import org.apache.accumulo.core.data.Key;
@@ -82,13 +84,13 @@ public class DocumentConversionTest {
     @Test
     public void testEmptyDocument() throws IOException {
         testDocument = new Document(testKey,true);
-        KryoDocumentSerializer serializer = new KryoDocumentSerializer();
-        kv = Maps.immutableEntry(testKey,new Value(DocumentSerialization.writeBodyWithHeader(serializer.serialize(testDocument),0)));
+        JsonDocumentSerializer serializer = new JsonDocumentSerializer(false);
+        kv = Maps.immutableEntry(testKey,new Value(DocumentSerialization.writeBodyWithHeader(serializer.serialize(testDocument),0,true)));
         SerializedDocumentIfc doc = DocumentKeyConversion.getDocument(DocumentSerialization.ReturnType.json,false,kv);
 
-        Assert.assertTrue(doc instanceof SerializedDocument);
+        Assert.assertTrue(doc instanceof JsonDocument);
 
-        Document comparison = ((SerializedDocument)doc).getAsDocument();
+        Document comparison = ((JsonDocument)doc).getAsDocument();
 
         Assert.assertEquals(testDocument, comparison);
         Assert.assertEquals(testDocument.size(), comparison.size());
