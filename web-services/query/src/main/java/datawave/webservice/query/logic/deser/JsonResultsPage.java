@@ -10,7 +10,7 @@ public class JsonResultsPage {
     static GsonBuilder gsonBuilder = new GsonBuilder();
     static Gson gson;
     static{
-        gsonBuilder.registerTypeAdapter(ResultsPage.class,new ResultsPageAdapter());
+        gsonBuilder.registerTypeAdapter(JsonResultsPage.class,new ResultsPageAdapter());
 
         gson= gsonBuilder.create();
     }

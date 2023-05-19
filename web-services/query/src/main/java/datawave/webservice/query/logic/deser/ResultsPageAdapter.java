@@ -15,27 +15,28 @@ public class ResultsPageAdapter extends TypeAdapter<JsonResultsPage> {
         jsonWriter.beginObject();
 
             // size
-            jsonWriter.beginObject();
+
+            //jsonWriter.beginObject();
             jsonWriter.name("page_number");
             jsonWriter.value(resultsPage.getPageNumber());
             // size end
-            jsonWriter.endObject();
+//            jsonWriter.endObject();
 
             // size
-            jsonWriter.beginObject();
+  //          jsonWriter.beginObject();
             jsonWriter.name("size");
             jsonWriter.value(resultsPage.getPage().getResults().size());
             // size end
-            jsonWriter.endObject();
+    //        jsonWriter.endObject();
 
             // events
-            jsonWriter.beginObject();
+      //      jsonWriter.beginObject();
             jsonWriter.name("events");
             jsonWriter.beginArray();
             jsonWriter.jsonValue(Joiner.on(",").join(resultsPage.getPage().getResults()));
             jsonWriter.endArray();
             // events end
-            jsonWriter.endObject();
+        //    jsonWriter.endObject();
 
         // outside object
         jsonWriter.endObject();
