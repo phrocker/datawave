@@ -67,6 +67,7 @@ import datawave.webservice.query.factory.Persister;
 import datawave.webservice.query.logic.QueryLogic;
 import datawave.webservice.query.logic.QueryLogicFactory;
 import datawave.webservice.query.logic.QueryLogicTransformer;
+import datawave.webservice.query.logic.deser.JsonResultsPage;
 import datawave.webservice.query.metric.QueryMetricsBean;
 import datawave.webservice.query.result.event.ResponseObjectFactory;
 import datawave.webservice.query.result.logic.QueryLogicDescription;
@@ -2068,7 +2069,7 @@ public class QueryExecutorBean implements QueryExecutor {
 
 
     @GET
-    @Path("/{id}/direct/next")
+    @Path("/{id}/raw/next")
     @Produces({ "application/json"})
     @GZIP
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
@@ -2088,12 +2089,6 @@ public class QueryExecutorBean implements QueryExecutor {
             // - race condition, query expired while user called next
             throw new PreConditionFailedQueryException(DatawaveErrorCode.QUERY_TIMEOUT_OR_SERVER_ERROR, e, MessageFormat.format("id = {0}", queryId));
         }
-
-        //@TODO: can edit and add page number to json
-        //long pageNum = query.getLastPageNumber();
-
-        final String response = query.getLogic().getTransformer(query.getSettings()).createJSONResponse(resultList);
-
         query.getMetric().setProxyServers(proxyServers);
 
         testForUncaughtException(query.getSettings(), resultList);
@@ -2103,6 +2098,10 @@ public class QueryExecutorBean implements QueryExecutor {
             // response.addException(qe);
             throw new NoResultsException(qe);
         } else {
+            final JsonResultsPage page = new JsonResultsPage(resultList,query.getLastPageNumber());
+
+            final String response = JsonResultsPage.serialize(page);
+
             return response;
         }
 
@@ -2162,7 +2161,7 @@ public class QueryExecutorBean implements QueryExecutor {
 
                 // Set the active call and get next
                 query.setActiveCall(true);
-//                response = _next(query, id, proxyServers, span);
+
                 response = _directNext(query, id, proxyServers);
 
                 // Conditionally swap the standard response with content

@@ -127,7 +127,6 @@ public class JsonDocumentTransformer extends JsonDocumentTransformerSupport<Seri
         if (null == documentKey || null == document)
             throw new IllegalArgumentException("Null key or value. Key:" + documentKey + ", Value: " + documentEntry);
         
-        //extractMetrics(document, documentKey);
         document.debugDocumentSize(documentKey);
         
         String row = documentKey.getRow().toString();
@@ -177,7 +176,6 @@ public class JsonDocumentTransformer extends JsonDocumentTransformerSupport<Seri
         if (null == documentKey || null == document)
             throw new IllegalArgumentException("Null key or value. Key:" + documentKey + ", Value: " + documentEntry);
 
-        //extractMetrics(document, documentKey);
         String row = documentKey.getRow().toString();
 
         String colf = documentKey.getColumnFamily().toString();
