@@ -117,11 +117,4 @@ public class RawJsonDocumentTransformer extends JsonDocumentTransformerSupport<S
         throw new UnsupportedOperationException("Not allowed");
     }
 
-    @Override
-    public String createJSONResponse(List<Object> resultList){
-        return "[" + Joiner.on(',').join(resultList) + "]";
-    }
-
-
-    
 }

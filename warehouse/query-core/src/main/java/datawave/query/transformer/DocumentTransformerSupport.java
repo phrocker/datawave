@@ -482,12 +482,6 @@ public abstract class DocumentTransformerSupport<I,O> extends EventQueryTransfor
     }
 
     @Override
-    public String createJSONResponse(List<Object> resultList){
-        // each of these reflect a string
-        return "[" + Joiner.on(',').join(resultList) + "]";
-    }
-
-    @Override
     public BaseQueryResponse createResponse(List<Object> resultList) {
         EventQueryResponseBase response = this.responseObjectFactory.getEventQueryResponse();
         List<EventBase> eventList = Lists.newArrayListWithCapacity(resultList.size());

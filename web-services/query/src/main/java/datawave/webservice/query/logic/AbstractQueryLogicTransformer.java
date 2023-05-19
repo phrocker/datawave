@@ -12,10 +12,6 @@ public abstract class AbstractQueryLogicTransformer<I,O> implements QueryLogicTr
     
     public abstract BaseQueryResponse createResponse(List<Object> resultList);
 
-    public String createJSONResponse(List<Object> resultList){
-        return "[" + Joiner.on(',').join(resultList) + "]";
-    }
-    
     protected long queryExecutionForCurrentPageStartTime;
     
     protected ResponseEnricher enricher;
@@ -46,8 +42,4 @@ public abstract class AbstractQueryLogicTransformer<I,O> implements QueryLogicTr
 
     }
 
-    @Override
-    public String createJSONResponse(ResultsPage page) {
-        return createJSONResponse(page.getResults());
-    }
 }
