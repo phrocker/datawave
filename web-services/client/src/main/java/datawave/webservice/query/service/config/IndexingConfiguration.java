@@ -1,12 +1,15 @@
 package datawave.webservice.query.service.config;
 
+/**
+ * Provides an indexing specific configuration that can be used across executions.
+ *
+ * Likely simpler with lombok.
+ */
 public class IndexingConfiguration {
     
     // options
     boolean enableIndexInfoUidToDayIntersectionBypass = true;
     boolean enableRangeScannerLimitDays = false;
-    
-    //
     
     private static IndexingConfiguration instance = new IndexingConfiguration();
     
