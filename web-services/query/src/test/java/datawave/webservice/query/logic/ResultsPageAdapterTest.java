@@ -18,7 +18,7 @@ public class ResultsPageAdapterTest {
         page.getPage().setResults(results);
 
         String res = JsonResultsPage.serialize(page);
-        Assert.assertEquals("{\"page_number\":1,\"size\":2,\"events\":[{ \"field\" : \"value\" },{ \"field\" : \"value2\" }]}",res);
+        Assert.assertEquals("{\"pageNumber\":1,\"size\":2,\"events\":[{ \"field\" : \"value\" },{ \"field\" : \"value2\" }]}",res);
     }
 
     @Test
@@ -28,6 +28,6 @@ public class ResultsPageAdapterTest {
         page.getPage().setResults(results);
 
         String res = JsonResultsPage.serialize(page);
-        Assert.assertEquals("{\"page_number\":1,\"size\":0,\"events\":[]}",res);
+        Assert.assertEquals("{\"pageNumber\":1,\"size\":0,\"events\":[]}",res);
     }
 }
