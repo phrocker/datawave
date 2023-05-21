@@ -529,7 +529,9 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
             } else if (this.getReturnType() == ReturnType.writable) {
                 // Use the Writable interface to serialize the Document
                 this.serializedDocuments = Iterators.transform(pipelineDocuments, new WritableDocumentSerializer(isReducedResponse()));
-            } else if (this.getReturnType() == ReturnType.jsondocument || this.getReturnType() == ReturnType.json) {
+           } else if ( this.getReturnType() == ReturnType.json ){
+                this.serializedDocuments = Iterators.transform(pipelineDocuments, new JsonObjectSerializer(isReducedResponse()));
+            } else if (this.getReturnType() == ReturnType.jsondocument ) {
                 // Use the Writable interface to serialize the Document
                 this.serializedDocuments = Iterators.transform(pipelineDocuments, new JsonDocumentSerializer(isReducedResponse()));
             } else if (this.getReturnType() == ReturnType.tostring) {
@@ -595,10 +597,8 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
      * Handle an exception returned from seek or next. This will silently ignore IterationInterruptedException as that happens when the underlying iterator was
      * interrupted because the client is no longer listening.
      *
-     * @param e
-     *            the exception to handle
-     * @throws IOException
-     *             for read/write issues
+     * @param e the exception to handle
+     * @throws IOException for read/write issues
      */
     private void handleException(Exception e) throws IOException {
         Throwable reason = e;
@@ -657,23 +657,15 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
     /**
      * Build the document iterator
      *
-     * @param documentRange
-     *            the document range
-     * @param seekRange
-     *            the seek range
-     * @param columnFamilies
-     *            a list of column families
-     * @param inclusive
-     *            boolean marker for if this is inclusive
+     * @param documentRange  the document range
+     * @param seekRange      the seek range
+     * @param columnFamilies a list of column families
+     * @param inclusive      boolean marker for if this is inclusive
      * @return the document iterator
-     * @throws IOException
-     *             for read/write issues
-     * @throws ConfigException
-     *             for issues with the configuration
-     * @throws InstantiationException
-     *             for issues with class instantiation
-     * @throws IllegalAccessException
-     *             for issues with access
+     * @throws IOException            for read/write issues
+     * @throws ConfigException        for issues with the configuration
+     * @throws InstantiationException for issues with class instantiation
+     * @throws IllegalAccessException for issues with access
      */
     protected NestedIterator<Key> buildDocumentIterator(Range documentRange, Range seekRange, Collection<ByteSequence> columnFamilies, boolean inclusive)
                     throws IOException, ConfigException, InstantiationException, IllegalAccessException {
@@ -813,13 +805,10 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
     /**
      * Returns the elements of {@code unfiltered} that satisfy a predicate. This is used instead of the google commons Iterators.filter to create a non-stateful
      * filtering iterator.
-     * 
-     * @param unfiltered
-     *            the unfiltered iterator
-     * @param predicate
-     *            the predicate
-     * @param <T>
-     *            type for the iterator
+     *
+     * @param unfiltered the unfiltered iterator
+     * @param predicate  the predicate
+     * @param <T>        type for the iterator
      * @return an iterator to elements that satisfy the predicate
      */
     public static <T> UnmodifiableIterator<T> statelessFilter(final Iterator<T> unfiltered, final Predicate<? super T> predicate) {
@@ -861,16 +850,11 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
      * the next hasNext() call must call the next iterator again. So for example Iterators.filter() cannot be used as it uses a google commons AbstractIterator
      * that maintains an iterator state (failed, ready, done); use statelessFilter above instead.
      *
-     * @param deepSourceCopy
-     *            the deep source copy
-     * @param documentSpecificSource
-     *            the document source
-     * @param columnFamilies
-     *            the column families
-     * @param inclusive
-     *            flag for inclusive range
-     * @param querySpanCollector
-     *            the query span collector
+     * @param deepSourceCopy         the deep source copy
+     * @param documentSpecificSource the document source
+     * @param columnFamilies         the column families
+     * @param inclusive              flag for inclusive range
+     * @param querySpanCollector     the query span collector
      * @return iterator of keys and values
      */
     public Iterator<Entry<Key,Document>> createDocumentPipeline(SortedKeyValueIterator<Key,Value> deepSourceCopy,
@@ -1124,8 +1108,7 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
      * This method exists so that extending classes can implement specific versions of the TFFunction. Specifically, so the
      * {@link datawave.query.tld.TLDQueryIterator} can set the {@link TermFrequencyConfig#setTld(boolean)} option to true
      *
-     * @param tfConfig
-     *            a TermFrequencyConfig
+     * @param tfConfig a TermFrequencyConfig
      * @return a TFFunction
      */
     protected Function<Tuple2<Key,Document>,Tuple3<Key,Document,Map<String,Object>>> buildTfFunction(TermFrequencyConfig tfConfig) {
@@ -1365,8 +1348,7 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
      *     3. ColumnFamily must contain a null byte separator
      * </pre>
      *
-     * @param r
-     *            - {@link Range} to be evaluated
+     * @param r - {@link Range} to be evaluated
      * @return - true if this is a document specific range, false if not.
      */
     public static boolean isDocumentSpecificRange(Range r) {
@@ -1404,8 +1386,7 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
     /**
      * Convert the given key's row &amp; column family to a string.
      *
-     * @param k
-     *            - a {@link Key}
+     * @param k - a {@link Key}
      * @return - a string representation of the given key's row &amp; column family.
      */
     public static String rowColFamToString(Key k) {

@@ -17,7 +17,7 @@ public class DocumentJsonDeserializer extends DocumentDeserializer{
     static GsonBuilder gsonBuilder = new GsonBuilder();
     static Gson gson;
     static{
-        gsonBuilder.registerTypeAdapter(Document.class,new JsonDeser());
+        gsonBuilder.registerTypeAdapter(Document.class,JsonDeser.getInstance());
         gson= gsonBuilder.create();
     }
 

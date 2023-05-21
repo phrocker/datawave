@@ -15,7 +15,7 @@ public class JsonObjectSerializer extends JsonMetadataSerializer {
     static GsonBuilder gsonBuilder = new GsonBuilder();
     static Gson gson;
     static{
-        gsonBuilder.registerTypeAdapter(Document.class,new JsonObjectDeser());
+        gsonBuilder.registerTypeAdapter(Document.class,JsonObjectDeser.getInstance());
         gson = gsonBuilder.create();
     }
 

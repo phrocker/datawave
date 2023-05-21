@@ -33,7 +33,7 @@ public class DocumentKeyConversion {
 
     static final transient ThreadLocal<Kryo> kryo = new ThreadLocal<Kryo>();
 
-    static final JsonDeser jsonDeser = new JsonDeser();
+    static final JsonDeser jsonDeser = JsonDeser.getInstance();
     static final JsonParser jsonParser = new JsonParser();
 
     public static SerializedDocumentIfc getDocument(DocumentSerialization.ReturnType returnType, boolean docRawFields, TKeyValue kv){
