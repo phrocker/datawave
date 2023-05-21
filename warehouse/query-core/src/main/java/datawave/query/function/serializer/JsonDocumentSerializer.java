@@ -1,6 +1,7 @@
 package datawave.query.function.serializer;
 
-import com.google.gson.*;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import datawave.query.attributes.Document;
 import datawave.query.function.json.deser.JsonDeser;
 
