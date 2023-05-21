@@ -70,14 +70,11 @@ public abstract class JsonMetadataSerializer extends DocumentSerializer{
             // if we don't have a document then we will return an empty identifier
             return new byte[0];
         }
-        //ByteBuffer buf = ByteBuffer.wrap(doc,offset + 7+dataLength,doc.length - dataLength - 7 - offset);
         int totalLen = docSize - dataLength;
         totalLen-=(int)7;
         byte [] array = new byte [ totalLen ];
 
         System.arraycopy(doc,offset+(int)7+dataLength,array,0,totalLen);
-  //      buf.get(array, 0, doc.length - dataLength - 7 - offset);
-//        buf.rewind();
         return array;
     }
 

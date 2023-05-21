@@ -31,15 +31,15 @@ import java.util.function.Function;
 public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.google.gson.JsonDeserializer<Document>{
     private static final Logger log = Logger.getLogger(JsonDeser.class);
 
-    private static final ConstuctorCacheMiss constructorMissFx = new ConstuctorCacheMiss();
-    private static final AttributeConstructorCacheMiss attributeMissFx = new AttributeConstructorCacheMiss();
+    protected static final ConstuctorCacheMiss constructorMissFx = new ConstuctorCacheMiss();
+    protected static final AttributeConstructorCacheMiss attributeMissFx = new AttributeConstructorCacheMiss();
     public static final String TYPE_METADATA = "type.metadata";
     public static final String TYPE_TYPE = "type.type";
     public static final String TYPE_DATA = "type.data";
     public static final String DOC_KEY = "doc.key";
     public static final String DATAWAVE_QUERY_ATTRIBUTES_DOCUMENT_KEY = "datawave.query.attributes.DocumentKey";
     public static final String DATAWAVE_QUERY_ATTRIBUTES_TIMING_METADATA = "datawave.query.attributes.TimingMetadata";
-    private static ConcurrentHashMap<String, Constructor> constructorCache = new ConcurrentHashMap<>();
+    protected static ConcurrentHashMap<String, Constructor> constructorCache = new ConcurrentHashMap<>();
 
     /**
      * Add the raw attribute data
@@ -47,7 +47,7 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
      * @param name name of property to add
      * @param jsonObject json object
      */
-    private static void addAttributeData(Attribute<?> attr,String name, JsonObject jsonObject) {
+    protected static void addAttributeData(Attribute<?> attr,String name, JsonObject jsonObject) {
         if (attr instanceof TypeAttribute){
             datawave.data.type.Type t = ((TypeAttribute)attr).getType();
             if (t.getClass() != NoOpType.class)
@@ -67,7 +67,7 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
      * @param name name of property to add
      * @param jsonObject json object
      */
-    private static void addAttributeMetadata(Attribute<?> attr,Key docKey, String name, JsonObject jsonObject){
+    static void addAttributeMetadata(Attribute<?> attr, Key docKey, String name, JsonObject jsonObject){
         if ( attr.isMetadataSet() ){
             Key metadata = attr.getMetadata();
             if (null != docKey && metadata.equals(docKey)){
@@ -95,7 +95,7 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
      * @param name name of property to add
      * @param jsonObject json object
      */
-    private static void addAttribute(Attribute<?> attr,Key docKey,String name, JsonObject jsonObject) {
+    static void addAttribute(Attribute<?> attr, Key docKey, String name, JsonObject jsonObject) {
         addAttributeData(attr,name,jsonObject);
         addAttributeMetadata(attr,docKey,name,jsonObject);
     }
@@ -107,7 +107,7 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
      * @param name name of the Attributes collection
      * @param jsonDocument json document in which we emplace the new JsonArray.
      */
-    private static void addJsonObject(Attribute<?> arrayAttr,Key docKey,String name, JsonArray jsonDocument){
+    static void addJsonObject(Attribute<?> arrayAttr,Key docKey,String name, JsonArray jsonDocument){
         if (arrayAttr instanceof TypeAttribute && ((TypeAttribute)arrayAttr).getType() instanceof NumberType){
 
             JsonObject obj = new JsonObject();
@@ -206,7 +206,7 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
      * Converts the provided element to an attribute with the document
      * @param element json element we are populating into the Document
      */
-    private static Attribute<?> elementToAttribute(JsonElement element, Key docKey) {
+    static Attribute<?> elementToAttribute(JsonElement element, Key docKey) {
         Key key = new Key();
         Attribute<?> attr = null;
         if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()){
@@ -220,6 +220,7 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
                 JsonObject obj = (JsonObject)element;
                 if ( obj.has("key") ){ // it has metadata
                     JsonObject jsonKey = obj.getAsJsonObject("key");
+                    //key = new Key(jsonKey.get("row").getAsString(),jsonKey.get("cf").getAsString(),jsonKey.get("cq").getAsString(),jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
                     // we don't need the full key, so we let the row, cf, and cq be empty
                     key = new Key("","","",jsonKey.get("cv").getAsString(),jsonKey.get("timestamp").getAsLong());
                 }else if (obj.has(DOC_KEY)){
@@ -277,7 +278,7 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
      * @param doc document to emplace the JsonElement attribute.
      * @param docKey
      */
-    private static void populateAttribute(JsonElement element, String name, Document doc, Key docKey){
+    static void populateAttribute(JsonElement element, String name, Document doc, Key docKey){
         doc.put(Maps.immutableEntry(name,elementToAttribute(element,docKey)),true);
     }
 
@@ -288,7 +289,7 @@ public class JsonDeser implements com.google.gson.JsonSerializer<Document>,com.g
      * @param doc document to emplace the attributes.
      * @param docKey
      */
-    private static void populateAttributes(JsonArray array, String name, Document doc, Key docKey){
+    static void populateAttributes(JsonArray array, String name, Document doc, Key docKey){
         final Attributes attrs = new Attributes(true);
         array.iterator().forEachRemaining( x -> {
             attrs.add(elementToAttribute(x,docKey));

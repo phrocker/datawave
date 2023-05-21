@@ -49,14 +49,7 @@ public class QueryScannerHelper {
                     Query query, boolean reportErrors, boolean customScanner) throws TableNotFoundException {
         BatchScanner batchScanner = null;
         if (authorizations != null && !authorizations.isEmpty()) {
-            Iterator<Authorizations> iter = AuthorizationsMinimizer.minimize(authorizations).iterator();
-            if (customScanner) {
-                batchScanner = new BatchScannerImpl((ClientContext) client, TableId.of(((ClientContext) client).tableOperations().tableIdMap().get(tableName)), tableName, (Authorizations) iter.next(), numQueryThreads);
-                addVisibilityFilters(iter, batchScanner);
-            }
-            else{
                 batchScanner =ScannerHelper.createBatchScanner(client, tableName, authorizations, numQueryThreads);
-            }
         } else {
             throw new IllegalArgumentException("Authorizations must not be empty.");
         }

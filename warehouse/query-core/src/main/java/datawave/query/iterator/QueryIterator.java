@@ -529,10 +529,7 @@ public class QueryIterator extends QueryOptions implements YieldingKeyValueItera
             } else if (this.getReturnType() == ReturnType.writable) {
                 // Use the Writable interface to serialize the Document
                 this.serializedDocuments = Iterators.transform(pipelineDocuments, new WritableDocumentSerializer(isReducedResponse()));
-            } else if (this.getReturnType() == ReturnType.json) {
-                // Use the Writable interface to serialize the Document
-                this.serializedDocuments = Iterators.transform(pipelineDocuments, new JsonObjectSerializer(isReducedResponse()));
-            } else if (this.getReturnType() == ReturnType.jsondocument) {
+            } else if (this.getReturnType() == ReturnType.jsondocument || this.getReturnType() == ReturnType.json) {
                 // Use the Writable interface to serialize the Document
                 this.serializedDocuments = Iterators.transform(pipelineDocuments, new JsonDocumentSerializer(isReducedResponse()));
             } else if (this.getReturnType() == ReturnType.tostring) {

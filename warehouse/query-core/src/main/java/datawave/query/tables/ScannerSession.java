@@ -388,9 +388,6 @@ public class ScannerSession extends  BaseScannerSession<Entry<Key,Value>> {
         try {
             Entry<Key,Value> retVal = currentEntry;
             currentEntry = null;
-            if (retVal.getKey().getRow().toString().equals("usa")){
-                new Exception().printStackTrace();
-            }
             return retVal;
         } finally {
             if (uncaughtExceptionHandler.getThrowable() != null) {

@@ -19,8 +19,12 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.log4j.Logger;
-
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Properties;
+import java.util.Set;
 
 public class ScannerFactory {
     
@@ -106,21 +110,6 @@ public class ScannerFactory {
                     throws TableNotFoundException {
         if (open) {
             BatchScanner bs = QueryScannerHelper.createBatchScanner(cxn, tableName, auths, threads, query, reportErrors, false);
-            log.debug("Created scanner " + System.identityHashCode(bs));
-            if (log.isTraceEnabled()) {
-                log.trace("Adding instance " + bs.hashCode());
-            }
-            instances.add(bs);
-            return bs;
-        } else {
-            throw new IllegalStateException("Factory has been locked. No new scanners can be created.");
-        }
-    }
-
-    public synchronized BatchScanner newScanner(String tableName, Set<Authorizations> auths, int threads, Query query, boolean reportErrors, boolean customScanner)
-            throws TableNotFoundException {
-        if (open) {
-            BatchScanner bs = QueryScannerHelper.createBatchScanner(cxn, tableName, auths, threads, query, reportErrors, customScanner);
             log.debug("Created scanner " + System.identityHashCode(bs));
             if (log.isTraceEnabled()) {
                 log.trace("Adding instance " + bs.hashCode());
