@@ -1,63 +1,37 @@
 package datawave.query.tables;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import datawave.query.tables.AccumuloResource.ResourceFactory;
-import datawave.query.tables.serialization.SerializedDocumentIfc;
-import datawave.query.tables.stats.ScanSessionStats;
-import datawave.query.tables.stats.StatsListener;
 import datawave.query.tables.stats.ScanSessionStats.TIMERS;
 import datawave.webservice.query.Query;
-
-import datawave.webservice.query.util.QueryUncaughtExceptionHandler;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.log4j.Logger;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Queues;
-import com.google.common.util.concurrent.MoreExecutors;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This will handles running a scan against a set of ranges. The actual scan is performed in a separate thread which places the results in a result queue. The
  * result queue is polled in the actual next() and hasNext() calls. Note that the uncaughtExceptionHandler from the Query is used to pass exceptions up which
  * will also fail the overall query if something happens. If this is not desired then a local handler should be set.
  */
-public class ScannerSession extends  BaseScannerSession<Key,Entry<Key,Value>> {
+public class ScannerSession extends  BaseScannerSession<Entry<Key,Value>> {
 
-    /**
-     * Delegates scanners to us, blocking if none are available or used by other sources.
-     */
-    protected ResourceQueue sessionDelegator;
-
-
-    
-    protected Class<? extends AccumuloResource> delegatedResourceInitializer;
-
-    
     private static final Logger log = Logger.getLogger(ScannerSession.class);
 
 
-
-    
-    protected AccumuloResource delegatedResource = null;
+    protected Key lastSeenKey;
 
     
     /**
@@ -80,72 +54,16 @@ public class ScannerSession extends  BaseScannerSession<Key,Entry<Key,Value>> {
     
     public ScannerSession(String tableName, Set<Authorizations> auths, ResourceQueue delegator, int maxResults, Query settings, SessionOptions options,
                     Collection<Range> ranges) {
-        
-        Preconditions.checkNotNull(options);
-        Preconditions.checkNotNull(delegator);
-        
-        this.options = options;
-        
-        // build a stack of ranges
-        this.ranges = new ConcurrentLinkedQueue<>();
-        
-        this.tableName = tableName;
-        this.auths = auths;
-        
-        if (null != ranges && !ranges.isEmpty()) {
-            List<Range> rangeList = Lists.newArrayList(ranges);
-            Collections.sort(rangeList);
-            
-            this.ranges.addAll(ranges);
-            lastRange = Iterables.getLast(rangeList);
-            
-        }
-        
-        resultQueue = Queues.newArrayBlockingQueue(maxResults);
-        
-        sessionDelegator = delegator;
-        
-        currentEntry = null;
-        
-        this.maxResults = maxResults;
-        
-        this.settings = settings;
-        
-        if (this.settings != null) {
-            this.uncaughtExceptionHandler = this.settings.getUncaughtExceptionHandler();
-        }
-        
-        // ensure we have an exception handler
-        if (this.uncaughtExceptionHandler == null) {
-            this.uncaughtExceptionHandler = new QueryUncaughtExceptionHandler();
-        }
-        
-        delegatedResourceInitializer = RunningResource.class;
-        
+
+        super(tableName,auths,delegator,maxResults,settings,options,ranges);
     }
 
-    
-    /**
-     * Sets the ranges for the given scannersession.
-     * 
-     * @param ranges
-     *            the ranges
-     * @return the current scannersession
-     */
-    public ScannerSession setRanges(Collection<Range> ranges) {
-        Preconditions.checkNotNull(ranges);
-        // ensure that we are not already running
-        Preconditions.checkArgument(!isRunning());
-        List<Range> rangeList = Lists.newArrayList(ranges);
-        Collections.sort(rangeList);
-        this.ranges.clear();
-        this.ranges.addAll(rangeList);
-        lastRange = Iterables.getLast(rangeList);
-        return this;
-        
+    @Override
+    protected Class<? extends Resource<Entry<Key, Value>>> getRunningResourceClass() {
+        return RunningResource.class;
     }
 
-    
+
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof ScannerSession) {
@@ -255,24 +173,6 @@ public class ScannerSession extends  BaseScannerSession<Key,Entry<Key,Value>> {
         return (null != currentEntry);
     }
     
-    protected long getPollTime() {
-        return 1;
-    }
-    
-    /**
-     * Place all timers in a suspended state.
-     */
-    protected void initializeTimers() {
-        stats.getTimer(TIMERS.HASNEXT).start();
-        stats.getTimer(TIMERS.HASNEXT).suspend();
-        
-        stats.getTimer(TIMERS.SCANNER_ITERATE).start();
-        stats.getTimer(TIMERS.SCANNER_ITERATE).suspend();
-        
-        stats.getTimer(TIMERS.SCANNER_START).start();
-        stats.getTimer(TIMERS.SCANNER_START).suspend();
-        
-    }
 
 
     /**
@@ -286,12 +186,12 @@ public class ScannerSession extends  BaseScannerSession<Key,Entry<Key,Value>> {
     }
     
     /**
-     * FindTop -- Follows the logic outlined in the comments, below. Effectively, we continue
-     * 
+     *
      * @throws Exception
      *             if there are issues
      * 
      */
+    @Override
     protected void findTop() throws Exception {
         if (ranges.isEmpty() && lastSeenKey == null) {
             
@@ -340,7 +240,7 @@ public class ScannerSession extends  BaseScannerSession<Key,Entry<Key,Value>> {
                 log.trace(lastSeenKey + ", using current range of " + currentRange);
             }
             
-            delegatedResource = ResourceFactory.initializeResource(delegatedResourceInitializer, delegatedResource, tableName, auths, currentRange).setOptions(
+            delegatedResource = ResourceFactory.initializeResource(delegatedResourceInitializer, (AccumuloResource) delegatedResource, tableName, auths, currentRange).setOptions(
                             options);
             
             Iterator<Entry<Key,Value>> iter = delegatedResource.iterator();
@@ -439,23 +339,16 @@ public class ScannerSession extends  BaseScannerSession<Key,Entry<Key,Value>> {
         return retrievalCount;
     }
 
-    
+    @Override
+    protected Key getLastKey() {
+        return lastSeenKey;
+    }
 
 
     public void setDelegatedInitializer(Class<? extends AccumuloResource> delegatedResourceInitializer) {
         this.delegatedResourceInitializer = delegatedResourceInitializer;
     }
-    
-    public ScannerSession applyStats(ScanSessionStats stats) {
-        if (null != stats) {
-            Preconditions.checkArgument(this.stats == null);
-            this.stats = stats;
-            statsListener = Executors.newFixedThreadPool(1);
-            addListener(new StatsListener(stats, statsListener), statsListener);
-        }
-        
-        return this;
-    }
+
 
     @Override
     public void close() {
@@ -472,15 +365,6 @@ public class ScannerSession extends  BaseScannerSession<Key,Entry<Key,Value>> {
             }
         }
     }
-    
-    public void setFairness(boolean fairness) {
-        isFair = fairness;
-        
-    }
-    
-    public void setMaxResults(int maxResults) {
-        this.maxResults = maxResults;
-        
-    }
+
     
 }

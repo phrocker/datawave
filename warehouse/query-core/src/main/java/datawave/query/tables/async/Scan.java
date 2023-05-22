@@ -37,7 +37,7 @@ public class Scan extends BaseScan<Scan> {
 
     private AccumuloResource delegatedResource = null;
 
-    private ResourceQueue delegatorReference;
+    private ResourceQueue<AccumuloResource> delegatorReference;
 
     private Class<? extends AccumuloResource> delegatedResourceInitializer;
 
@@ -176,7 +176,7 @@ public class Scan extends BaseScan<Scan> {
                     log.trace("Using " + initializer);
                 }
 
-                delegatedResource = ResourceFactory.initializeResource(initializer, delegatedResource, localTableName, localAuths, currentRange).setOptions(
+                delegatedResource = (AccumuloResource) ResourceFactory.initializeResource(initializer, delegatedResource, localTableName, localAuths, currentRange).setOptions(
                         myScan.getOptions());
 
                 Iterator<Entry<Key,Value>> iter = delegatedResource.iterator();

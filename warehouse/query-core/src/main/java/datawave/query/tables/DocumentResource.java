@@ -8,6 +8,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.commons.pool.PoolableObjectFactory;
 import org.apache.log4j.Logger;
 
 import java.io.Closeable;
@@ -29,62 +30,17 @@ import java.util.Set;
  * this isn't entirely necessary, it does allow us to better inject test code.
  * 
  */
-public class DocumentResource implements Closeable, Iterable<SerializedDocumentIfc> {
+public class DocumentResource extends Resource<SerializedDocumentIfc> {
     private static final Logger log = Logger.getLogger(DocumentResource.class);
-    /**
-     * Our connector.
-     */
-    private AccumuloClient client;
-    
+
     public DocumentResource(final AccumuloClient client) {
-        Preconditions.checkNotNull(client);
-        
-        this.client = client;
+        super(client);
     }
-    
-    public DocumentResource(final DocumentResource other) {
-        // deep copy
-    }
-    
-    protected AccumuloClient getClient() {
-        return client;
-    }
-    
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.io.Closeable#close()
-     */
-    @Override
-    public void close() throws IOException {
-        // nothing to close.
-    }
-    
-    protected void init(final DocumentQueryConfiguration config, final String tableName, final Set<Authorizations> auths, Collection<Range> currentRange) throws TableNotFoundException {
+
+    protected void init(DocumentQueryConfiguration config,  String tableName, final Set<Authorizations> auths, Collection<Range> currentRange) throws TableNotFoundException {
         // do nothing.
     }
-    
-    /**
-     * Sets the option on this currently running resource.
-     * 
-     * @param options
-     * @return
-     */
-    public DocumentResource setOptions(SessionOptions options) {
-        
-        return this;
-    }
-    
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.lang.Iterable#iterator()
-     */
-    @Override
-    public Iterator<SerializedDocumentIfc> iterator() {
-        return Collections.emptyIterator();
-    }
-    
+
     public static final class ResourceFactory {
         
         /**
@@ -119,5 +75,44 @@ public class DocumentResource implements Closeable, Iterable<SerializedDocumentI
         }
         
     }
-    
+
+    public static final class DocumentResourceFactory implements PoolableObjectFactory<DocumentResource> {
+
+        private final AccumuloClient client;
+
+        DocumentResourceFactory(AccumuloClient client) {
+            this.client = client;
+        }
+
+        @Override
+        public void activateObject(DocumentResource object) {
+            /* no-op */
+        }
+
+        @Override
+        public void destroyObject(DocumentResource object) {
+            if (log.isTraceEnabled())
+                log.trace("Removing " + object.hashCode());
+        }
+
+        @Override
+        public DocumentResource makeObject() {
+            DocumentResource scannerResource = new DocumentResource(client);
+            if (log.isTraceEnabled())
+                log.trace("Returning " + scannerResource.hashCode());
+            return scannerResource;
+        }
+
+        @Override
+        public void passivateObject(DocumentResource object) throws Exception {
+            destroyObject(object);
+        }
+
+        @Override
+        public boolean validateObject(DocumentResource object) {
+            return true;
+        }
+    }
+
+
 }

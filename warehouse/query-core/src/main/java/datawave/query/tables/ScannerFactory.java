@@ -35,8 +35,8 @@ public class ScannerFactory {
     protected boolean open = true;
     protected boolean accrueStats = false;
     protected Query settings;
-    protected ResourceQueue scanQueue = null;
-    protected DocumentResourceQueue documentScanQueue = null;
+    protected ResourceQueue<AccumuloResource> scanQueue = null;
+    protected ResourceQueue<DocumentResource> documentScanQueue = null;
     ShardQueryConfiguration config = null;
     
     private static final Logger log = Logger.getLogger(ScannerFactory.class);
@@ -56,8 +56,8 @@ public class ScannerFactory {
             maxQueue = ((ShardQueryConfiguration) queryConfiguration).getMaxScannerBatchSize();
             this.settings = ((ShardQueryConfiguration) queryConfiguration).getQuery();
             try {
-                scanQueue = new ResourceQueue(((ShardQueryConfiguration) queryConfiguration).getNumQueryThreads(), this.cxn);
-                documentScanQueue = new DocumentResourceQueue(((ShardQueryConfiguration) queryConfiguration).getNumQueryThreads(), this.cxn);
+                scanQueue = new ResourceQueue(((ShardQueryConfiguration) queryConfiguration).getNumQueryThreads(), this.cxn, new AccumuloResource.AccumuloResourceFactory(this.cxn));
+                documentScanQueue = new ResourceQueue(((ShardQueryConfiguration) queryConfiguration).getNumQueryThreads(), this.cxn, new DocumentResource.DocumentResourceFactory(this.cxn));
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -72,7 +72,7 @@ public class ScannerFactory {
     public ScannerFactory(AccumuloClient client, int queueSize) {
         try {
             this.cxn = client;
-            scanQueue = new ResourceQueue(queueSize, client);
+            scanQueue = new ResourceQueue(queueSize, client,new AccumuloResource.AccumuloResourceFactory(client));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

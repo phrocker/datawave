@@ -57,7 +57,7 @@ public class DocumentBatchScannerSession extends DocumentScannerSession implemen
     /**
      * Delegates scanners to us, blocking if none are available or used by other sources.
      */
-    private DocumentResourceQueue delegatorReference;
+    private ResourceQueue<DocumentResource> delegatorReference;
 
     /**
      * Table to which this scanner will connect.
@@ -142,7 +142,7 @@ public class DocumentBatchScannerSession extends DocumentScannerSession implemen
      *            scanner queue
      * @param maxResults
      */
-    public DocumentBatchScannerSession(DocumentQueryConfiguration config, String tableName, Set<Authorizations> auths, DocumentResourceQueue delegator, int maxResults, Query settings, ScannerOptions options,
+    public DocumentBatchScannerSession(DocumentQueryConfiguration config, String tableName, Set<Authorizations> auths, ResourceQueue delegator, int maxResults, Query settings, ScannerOptions options,
                                        Collection<Range> ranges) {
         
         super(config, tableName, auths, delegator, maxResults, settings);
@@ -364,7 +364,7 @@ public class DocumentBatchScannerSession extends DocumentScannerSession implemen
                 
                 chunk.setQueryId(settings.getId().toString());
                 
-                scan = new SpeculativeDocumentScan(config, localTableName, localAuths, chunk, delegatorReference, delegatedResourceInitializer, resultQueue, listenerService);
+                scan = new SpeculativeDocumentScan(config, localTableName, localAuths, chunk, delegatorReference, (Class<? extends DocumentResource> )delegatedResourceInitializer, resultQueue, listenerService);
                 
                 scan.setVisitors(visitorFunctions);
 
@@ -375,7 +375,7 @@ public class DocumentBatchScannerSession extends DocumentScannerSession implemen
                 
                 ((SpeculativeDocumentScan) scan).addScan(childScan);
                 
-                childScan = new DocumentScanner(config, localTableName, localAuths, new ScannerChunk(chunk), delegatorReference, delegatedResourceInitializer,
+                childScan = new DocumentScanner(config, localTableName, localAuths, new ScannerChunk(chunk), delegatorReference,  (Class<? extends DocumentResource> )delegatedResourceInitializer,
                                 ((SpeculativeDocumentScan) scan).getQueue(), listenerService);
                 
                 childScan.setVisitors(visitorFunctions);
@@ -383,7 +383,7 @@ public class DocumentBatchScannerSession extends DocumentScannerSession implemen
                 ((SpeculativeDocumentScan) scan).addScan(childScan);
                 
             } else {
-                scan = new DocumentScanner(config, localTableName, localAuths, chunk, delegatorReference, delegatedResourceInitializer, resultQueue, listenerService);
+                scan = new DocumentScanner(config, localTableName, localAuths, chunk, delegatorReference,  (Class<? extends DocumentResource> )delegatedResourceInitializer, resultQueue, listenerService);
             }
             
             if (backoffEnabled) {
@@ -424,16 +424,16 @@ public class DocumentBatchScannerSession extends DocumentScannerSession implemen
                 if (log.isTraceEnabled()) {
                     log.trace("Using speculative execution");
                 }
-                scan = new SpeculativeDocumentScan(config, localTableName, localAuths, chunk, delegatorReference, delegatedResourceInitializer, resultQueue, listenerService);
+                scan = new SpeculativeDocumentScan(config, localTableName, localAuths, chunk, delegatorReference,  (Class<? extends DocumentResource> )delegatedResourceInitializer, resultQueue, listenerService);
                 
                 ((SpeculativeDocumentScan) scan).addScan(new DocumentScanner(config, localTableName, localAuths, new ScannerChunk(chunk), delegatorReference, DocumentBatchResource.class,
                                 ((SpeculativeDocumentScan) scan).getQueue(), listenerService));
                 
                 ((SpeculativeDocumentScan) scan).addScan(new DocumentScanner(config, localTableName, localAuths, new ScannerChunk(chunk), delegatorReference,
-                                delegatedResourceInitializer, ((SpeculativeDocumentScan) scan).getQueue(), listenerService));
+                        (Class<? extends DocumentResource> )delegatedResourceInitializer, ((SpeculativeDocumentScan) scan).getQueue(), listenerService));
                 
             } else {
-                scan = new DocumentScanner(config, localTableName, localAuths, chunk, delegatorReference, delegatedResourceInitializer, resultQueue, listenerService);
+                scan = new DocumentScanner(config, localTableName, localAuths, chunk, delegatorReference,  (Class<? extends DocumentResource> )delegatedResourceInitializer, resultQueue, listenerService);
             }
             
             if (backoffEnabled) {

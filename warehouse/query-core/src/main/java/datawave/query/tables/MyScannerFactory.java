@@ -34,7 +34,7 @@ public class MyScannerFactory extends ScannerFactory{
             maxQueue = ((ShardQueryConfiguration) queryConfiguration).getMaxScannerBatchSize();
             this.settings = ((ShardQueryConfiguration) queryConfiguration).getQuery();
             try {
-                scanQueue = new ResourceQueue(((ShardQueryConfiguration) queryConfiguration).getNumQueryThreads(), this.cxn);
+                scanQueue = new ResourceQueue(((ShardQueryConfiguration) queryConfiguration).getNumQueryThreads(), this.cxn, new AccumuloResource.AccumuloResourceFactory(this.cxn));
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

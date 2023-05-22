@@ -5,7 +5,7 @@ import datawave.query.config.DocumentQueryConfiguration;
 import datawave.query.tables.DocumentBatchResource;
 import datawave.query.tables.DocumentResource;
 import datawave.query.tables.DocumentResource.ResourceFactory;
-import datawave.query.tables.DocumentResourceQueue;
+import datawave.query.tables.ResourceQueue;
 import datawave.query.tables.serialization.SerializedDocumentIfc;
 import datawave.query.tables.stats.ScanSessionStats.TIMERS;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -31,7 +31,7 @@ public class DocumentScanner extends BaseScan<DocumentScanner> {
      */
     protected SerializedDocumentIfc lastSeenKey;
 
-    private DocumentResourceQueue delegatorReference;
+    private ResourceQueue<DocumentResource> delegatorReference;
 
     protected BlockingQueue<SerializedDocumentIfc> results;
 
@@ -39,7 +39,7 @@ public class DocumentScanner extends BaseScan<DocumentScanner> {
 
     private DocumentResource delegatedResource = null;
 
-    public DocumentScanner(DocumentQueryConfiguration config, String localTableName, Set<Authorizations> localAuths, ScannerChunk chunk, DocumentResourceQueue delegatorReference,
+    public DocumentScanner(DocumentQueryConfiguration config, String localTableName, Set<Authorizations> localAuths, ScannerChunk chunk, ResourceQueue<DocumentResource> delegatorReference,
                            Class<? extends DocumentResource> delegatedResourceInitializer, BlockingQueue<SerializedDocumentIfc> results, ExecutorService callingService) {
         super(localTableName,localAuths,chunk,callingService);
 
@@ -183,7 +183,7 @@ public class DocumentScanner extends BaseScan<DocumentScanner> {
                     log.trace("Using " + initializer);
                 }
                 
-                delegatedResource = ResourceFactory.initializeResource(initializer, delegatedResource, config, localTableName, localAuths, currentRange).setOptions(
+                delegatedResource = (DocumentResource) ResourceFactory.initializeResource(initializer, delegatedResource, config, localTableName, localAuths, currentRange).setOptions(
                                 myScan.getOptions());
                 
                 Iterator<SerializedDocumentIfc> iter = delegatedResource.iterator();

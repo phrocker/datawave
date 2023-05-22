@@ -128,7 +128,6 @@ public class DocumentRunningResource extends DocumentResource {
 
 
         baseScanner = DocumentScannerHelper.createDocumentBatchScanner(getClient(),tableName,auths,config.getNumQueryThreads(),null,false, config.getReturnType(),config.getQueueCapacity(),config.getMaxTabletsPerRequest(),config.getMaxTabletThreshold());
-        //int numQueryThreads, Query query, boolean docRawFields, DocumentSerialization.ReturnType returnType, int queueCapacity, int maxTabletsPerRequest, int maxTabletThreshold
         if (baseScanner != null) {
             if (baseScanner instanceof Scanner) {
                 ((Scanner) baseScanner).setRange(currentRange.iterator().next());

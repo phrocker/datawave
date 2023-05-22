@@ -3,10 +3,13 @@ package datawave.query.tables;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Queues;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.MoreExecutors;
+import datawave.query.config.DocumentQueryConfiguration;
 import datawave.query.tables.serialization.SerializedDocumentIfc;
 import datawave.query.tables.stats.ScanSessionStats;
+import datawave.query.tables.stats.StatsListener;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.util.QueryUncaughtExceptionHandler;
 import org.apache.accumulo.core.data.Key;
@@ -26,6 +29,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -33,7 +37,7 @@ import java.util.concurrent.TimeUnit;
  * result queue is polled in the actual next() and hasNext() calls. Note that the uncaughtExceptionHandler from the Query is used to pass exceptions up which
  * will also fail the overall query if something happens. If this is not desired then a local handler should be set.
  */
-public abstract class BaseScannerSession<K,T> extends AbstractExecutionThreadService implements Iterator<T> {
+public abstract class BaseScannerSession<T> extends AbstractExecutionThreadService implements Iterator<T> {
 
 
     private static final Logger log = Logger.getLogger(BaseScannerSession.class);
@@ -88,11 +92,6 @@ public abstract class BaseScannerSession<K,T> extends AbstractExecutionThreadSer
 
     protected boolean isFair = true;
 
-    /**
-     * last seen key, used for moving across the sliding window of ranges.
-     */
-    protected K lastSeenKey;
-
 
     /**
      * Result queue, providing us objects
@@ -104,6 +103,63 @@ public abstract class BaseScannerSession<K,T> extends AbstractExecutionThreadSer
      */
     protected T currentEntry;
 
+    protected Class<? extends Resource<T>> delegatedResourceInitializer;
+
+    protected Resource<T> delegatedResource = null;
+
+
+    /**
+     * Delegates scanners to us, blocking if none are available or used by other sources.
+     */
+    protected ResourceQueue sessionDelegator;
+
+
+    public BaseScannerSession(String tableName, Set<Authorizations> auths, ResourceQueue delegator, int maxResults, Query settings, SessionOptions options,
+                                  Collection<Range> ranges) {
+
+        Preconditions.checkNotNull(options);
+        Preconditions.checkNotNull(delegator);
+
+        this.options = options;
+        // build a stack of ranges
+        this.ranges = new ConcurrentLinkedQueue<>();
+
+        this.tableName = tableName;
+        this.auths = auths;
+
+        if (null != ranges && !ranges.isEmpty()) {
+            List<Range> rangeList = Lists.newArrayList(ranges);
+            Collections.sort(rangeList);
+
+            this.ranges.addAll(ranges);
+            lastRange = Iterables.getLast(rangeList);
+
+        }
+
+        resultQueue = Queues.newArrayBlockingQueue(maxResults);
+
+        sessionDelegator = delegator;
+
+        currentEntry = null;
+
+        this.maxResults = maxResults;
+
+        this.settings = settings;
+
+        if (this.settings != null) {
+            this.uncaughtExceptionHandler = this.settings.getUncaughtExceptionHandler();
+        }
+
+        // ensure we have an exception handler
+        if (this.uncaughtExceptionHandler == null) {
+            this.uncaughtExceptionHandler = new QueryUncaughtExceptionHandler();
+        }
+
+        delegatedResourceInitializer = getRunningResourceClass(); 
+
+    }
+
+    protected abstract Class<? extends Resource<T>> getRunningResourceClass();
 
     /*
      * (non-Javadoc)
@@ -128,6 +184,25 @@ public abstract class BaseScannerSession<K,T> extends AbstractExecutionThreadSer
      */
     public Range buildNextRange(final Key lastKey, final Range previousRange) {
         return new Range(lastKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL_COLVIS_TIME), true, previousRange.getEndKey(), previousRange.isEndKeyInclusive());
+    }
+
+    protected long getPollTime() {
+        return 1;
+    }
+
+    /**
+     * Place all timers in a suspended state.
+     */
+    protected void initializeTimers() {
+        stats.getTimer(ScanSessionStats.TIMERS.HASNEXT).start();
+        stats.getTimer(ScanSessionStats.TIMERS.HASNEXT).suspend();
+
+        stats.getTimer(ScanSessionStats.TIMERS.SCANNER_ITERATE).start();
+        stats.getTimer(ScanSessionStats.TIMERS.SCANNER_ITERATE).suspend();
+
+        stats.getTimer(ScanSessionStats.TIMERS.SCANNER_START).start();
+        stats.getTimer(ScanSessionStats.TIMERS.SCANNER_START).suspend();
+
     }
 
 
@@ -245,13 +320,7 @@ public abstract class BaseScannerSession<K,T> extends AbstractExecutionThreadSer
      *
      * @return last key
      */
-    protected K getLastKey() {
-        return lastSeenKey;
-    }
-
-    public ScanSessionStats getStatistics() {
-        return stats;
-    }
+    protected abstract Key getLastKey();
 
 
     protected abstract void findTop() throws Exception;
@@ -272,12 +341,37 @@ public abstract class BaseScannerSession<K,T> extends AbstractExecutionThreadSer
 
             flush();
         } catch (Exception e) {
-            e.printStackTrace();
             uncaughtExceptionHandler.uncaughtException(Thread.currentThread(), e);
             throw new RuntimeException(e);
         }
     }
 
+    public ScanSessionStats getStatistics() {
+        return stats;
+    }
+
+    public BaseScannerSession<T> applyStats(ScanSessionStats stats) {
+        if (null != stats) {
+            Preconditions.checkArgument(this.stats == null);
+            this.stats = stats;
+            statsListener = Executors.newFixedThreadPool(1);
+            addListener(new StatsListener(stats, statsListener), statsListener);
+        }
+        return this;
+    }
+
 
     public abstract void close();
+
+
+    public void setFairness(boolean fairness) {
+        isFair = fairness;
+
+    }
+
+    public void setMaxResults(int maxResults) {
+        this.maxResults = maxResults;
+
+    }
+
 }

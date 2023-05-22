@@ -6,10 +6,9 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import datawave.query.attributes.Document;
 import datawave.query.config.DocumentQueryConfiguration;
 import datawave.query.tables.DocumentResource;
-import datawave.query.tables.DocumentResourceQueue;
+import datawave.query.tables.ResourceQueue;
 import datawave.query.tables.serialization.SerializedDocumentIfc;
 import datawave.query.tables.stats.ScanSessionStats;
 import org.apache.accumulo.core.data.Key;
@@ -80,7 +79,7 @@ public class SpeculativeDocumentScan extends DocumentScanner implements FutureCa
 
     }
 
-    public SpeculativeDocumentScan(DocumentQueryConfiguration config, String localTableName, Set<Authorizations> localAuths, ScannerChunk chunk, DocumentResourceQueue delegatorReference,
+    public SpeculativeDocumentScan(DocumentQueryConfiguration config, String localTableName, Set<Authorizations> localAuths, ScannerChunk chunk, ResourceQueue<DocumentResource> delegatorReference,
                                    Class<? extends DocumentResource> delegatedResourceInitializer, ArrayBlockingQueue< SerializedDocumentIfc> results, ExecutorService callingService) {
         super(config, localTableName, localAuths, chunk, delegatorReference, delegatedResourceInitializer, results, callingService);
         scans = Lists.newArrayList();
