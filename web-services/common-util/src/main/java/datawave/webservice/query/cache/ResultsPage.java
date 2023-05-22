@@ -1,5 +1,7 @@
 package datawave.webservice.query.cache;
 
+import com.google.gson.annotations.JsonAdapter;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -7,6 +9,7 @@ import java.util.List;
  * 
  */
 public class ResultsPage {
+
     public enum Status {
         NONE, PARTIAL, COMPLETE
     };

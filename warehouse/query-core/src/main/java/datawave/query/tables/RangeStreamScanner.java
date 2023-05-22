@@ -85,9 +85,9 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
     protected Lock readLock;
     protected Lock writeLock;
     
-    volatile boolean finished = false;
+    protected volatile boolean finished = false;
     
-    ExecutorService myExecutor;
+    protected ExecutorService myExecutor;
     
     // If this flag is true, we build the next range using the seekShard.
     public boolean seeking = false;
@@ -403,7 +403,7 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
         return (null != currentEntry);
     }
     
-    private void submitTask() {
+    protected void submitTask() {
         // wait on results. submit the task if we can
         Future future = myExecutor.submit(this);
         try {
@@ -592,11 +592,11 @@ public class RangeStreamScanner extends ScannerSession implements Callable<Range
         }
     }
     
-    private int dequeue() {
+    protected int dequeue() {
         return dequeue(false);
     }
     
-    private int dequeue(boolean forceAll) {
+    protected int dequeue(boolean forceAll) {
         int count = 0;
         
         Queue<Entry<Key,Value>> kvIter = Queues.newArrayDeque(currentQueue);

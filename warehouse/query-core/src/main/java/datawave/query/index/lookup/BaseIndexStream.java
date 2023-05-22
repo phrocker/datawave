@@ -6,6 +6,7 @@ import datawave.query.jexl.visitors.JexlStringBuildingVisitor;
 import datawave.query.tables.RangeStreamScanner;
 import datawave.query.util.Tuple2;
 import org.apache.commons.jexl2.parser.JexlNode;
+import org.apache.log4j.Logger;
 
 import java.util.Iterator;
 
@@ -18,7 +19,6 @@ import java.util.Iterator;
  * implementation.
  */
 public abstract class BaseIndexStream implements IndexStream {
-    
     protected RangeStreamScanner rangeStreamScanner;
     
     protected EntryParser entryParser;

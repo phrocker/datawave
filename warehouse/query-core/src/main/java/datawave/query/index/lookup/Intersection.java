@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.concurrent.ExecutorService;
 
+import datawave.query.config.ShardQueryConfiguration;
 import datawave.query.exceptions.DatawaveFatalQueryException;
 import datawave.query.jexl.JexlNodeFactory;
 import datawave.query.jexl.visitors.JexlStringBuildingVisitor;
@@ -93,6 +94,7 @@ public class Intersection extends BaseIndexStream {
     protected UidIntersector uidIntersector;
     private static final IndexStreamComparator streamComparator = new IndexStreamComparator();
     
+
     private static final Logger log = Logger.getLogger(Intersection.class);
     
     public Intersection(Collection<? extends IndexStream> streams, UidIntersector uidIntersector) {
@@ -614,11 +616,12 @@ public class Intersection extends BaseIndexStream {
             }
         }
         
+        
         public ArrayList<BaseIndexStream> children() {
             return Lists.newArrayList(children.keySet());
         }
         
-        public Intersection build(ExecutorService service) {
+        public Intersection build(ExecutorService service, ShardQueryConfiguration queryConfiguration) {
             
             if (!todo.isEmpty()) {
                 if (log.isTraceEnabled())

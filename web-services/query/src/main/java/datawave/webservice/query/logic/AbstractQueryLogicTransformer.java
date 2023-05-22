@@ -1,5 +1,6 @@
 package datawave.webservice.query.logic;
 
+import com.google.common.base.Joiner;
 import datawave.webservice.query.cache.ResultsPage;
 import datawave.webservice.result.BaseQueryResponse;
 
@@ -38,5 +39,7 @@ public abstract class AbstractQueryLogicTransformer<I,O> implements QueryLogicTr
     @Override
     public void setQueryExecutionForPageStartTime(long queryExecutionForCurrentPageStartTime) {
         this.queryExecutionForCurrentPageStartTime = queryExecutionForCurrentPageStartTime;
+
     }
+
 }

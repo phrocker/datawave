@@ -31,13 +31,11 @@ public class TFFactory {
         Multimap<String,Class<? extends Type<?>>> fieldMappings = LinkedListMultimap.create();
         for (Entry<String,String> dataType : config.getTypeMetadata().fold().entries()) {
             String dataTypeName = dataType.getValue();
-            
             try {
                 fieldMappings.put(dataType.getKey(), (Class<? extends Type<?>>) Class.forName(dataTypeName).asSubclass(Type.class));
             } catch (ClassNotFoundException e) {
                 log.warn("Skipping instantiating a " + dataTypeName + " for " + dataType.getKey() + " because the class was not found.", e);
             }
-            
         }
         
         return getFunction(config, fieldMappings);

@@ -280,6 +280,7 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
     // Used to filter out masked values when the unmasked value is available
     private boolean filterMaskedValues = true;
     private boolean reducedResponse = false;
+
     /**
      * By default enable shortcut evaluation
      */
@@ -363,6 +364,7 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
      */
     private boolean trackSizes = true;
     
+
     private List<String> contentFieldNames = Collections.emptyList();
     
     /**
@@ -409,6 +411,8 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
      */
     private long visitorFunctionMaxWeight = 5000000L;
     
+    private String transformedQuery="";
+
     /**
      * If true, the LAZY_SET mechanism will be enabled for non-event and index-only fields.
      */
@@ -672,6 +676,7 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
         return config;
     }
     
+
     /**
      * Factory method that creates a ShardQueryConfiguration from a ShardQueryLogic and a Query
      *
@@ -686,6 +691,7 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
         config.setQuery(query);
         return config;
     }
+    
     
     /**
      * A convenience method that determines whether we can handle when we have exceeded the value threshold on some node. We can handle this if the Ivarators
@@ -1847,6 +1853,10 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
         return timers;
     }
     
+    public void clearTimers(){
+        timers = new QueryStopwatch();
+    }
+    
     public Query getQuery() {
         return query;
     }
@@ -1878,6 +1888,15 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
         return super.getQueryString();
     }
     
+
+    public String getTransformedQuery() {
+        return transformedQuery;
+    }
+
+    public void setTransformedQuery(String transformedQuery) {
+        this.transformedQuery = transformedQuery;
+    }
+
     public boolean isCompressServerSideResults() {
         return compressServerSideResults;
     }
@@ -2380,4 +2399,5 @@ public class ShardQueryConfiguration extends GenericQueryConfiguration implement
     public void setLazySetMechanismEnabled(boolean lazySetMechanismEnabled) {
         this.lazySetMechanismEnabled = lazySetMechanismEnabled;
     }
+
 }

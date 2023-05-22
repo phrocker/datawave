@@ -1,5 +1,6 @@
 package datawave.query.transformer;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import datawave.marking.MarkingFunctions;
@@ -21,6 +22,7 @@ import datawave.util.StringUtils;
 import datawave.util.time.DateHelper;
 import datawave.webservice.query.Query;
 import datawave.webservice.query.QueryImpl.Parameter;
+import datawave.webservice.query.cache.ResultsPage;
 import datawave.webservice.query.exception.EmptyObjectException;
 import datawave.webservice.query.logic.BaseQueryLogic;
 import datawave.webservice.query.logic.WritesQueryMetrics;

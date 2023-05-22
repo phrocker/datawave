@@ -73,6 +73,7 @@ public class JexlFunctionNamespaceRegistry {
             if (className != null) {
                 try {
                     JexlFunctionNamespaceRegistry base = (JexlFunctionNamespaceRegistry) Class.forName(className).newInstance();
+                    context = null;
                     return base.getRegisteredFunctions();
                     
                 } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
@@ -84,8 +85,10 @@ public class JexlFunctionNamespaceRegistry {
                 throw new RuntimeException("Could not create Jexl Function Registry object");
             }
         } finally {
+            if (context != null) {
             context.close();
         }
+    }
     }
     
     public Map<String,Object> getRegisteredFunctions() {
