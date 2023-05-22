@@ -1,8 +1,6 @@
 package datawave.query.tables.document.batch;
 
-import datawave.core.iterators.DatawaveFieldIndexCachingIteratorJexl;
 import datawave.query.DocumentSerialization;
-import datawave.query.tables.CleanerUtil;
 import datawave.query.tables.serialization.SerializedDocumentIfc;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -18,15 +16,11 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.ref.Cleaner;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Preconditions.checkArgument;
 

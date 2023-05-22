@@ -10,7 +10,6 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import datawave.query.attributes.Document;
 import datawave.query.config.DocumentQueryConfiguration;
 import datawave.query.tables.async.DocumentScanner;
 import datawave.query.tables.async.ScannerChunk;
@@ -331,7 +330,7 @@ public class DocumentBatchScannerSession extends DocumentScannerSession implemen
             Throwables.propagate(e);
         }
     }
-    
+
     @Override
     protected long getPollTime() {
         return 5;

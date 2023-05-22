@@ -38,91 +38,24 @@ import java.util.concurrent.TimeUnit;
  * result queue is polled in the actual next() and hasNext() calls. Note that the uncaughtExceptionHandler from the Query is used to pass exceptions up which
  * will also fail the overall query if something happens. If this is not desired then a local handler should be set.
  */
-public class DocumentScannerSession extends  BaseScannerSession<SerializedDocumentIfc> {
+public class DocumentScannerSession extends  BaseScannerSession<SerializedDocumentIfc,SerializedDocumentIfc> {
 
     protected final DocumentQueryConfiguration config;
-    /**
-     * last seen key, used for moving across the sliding window of ranges.
-     */
-    protected SerializedDocumentIfc lastSeenKey;
 
-    /**
-     * Stack of ranges for us to progress through within this scanner queue.
-     */
-    protected ConcurrentLinkedQueue<Range> ranges;
-
-    /**
-     * Result queue, providing us objects
-     */
-    protected ArrayBlockingQueue<SerializedDocumentIfc> resultQueue;
-
-    /**
-     * Current entry to return. this will be popped from the result queue.
-     */
-    protected SerializedDocumentIfc currentEntry;
 
     /**
      * Delegates scanners to us, blocking if none are available or used by other sources.
      */
     protected DocumentResourceQueue sessionDelegator;
 
-    /**
-     * Last range in our sorted list of ranges.
-     */
-    protected Range lastRange;
-
-    /**
-     * Current range that we are using.
-     */
-    protected Range currentRange;
-
-    protected volatile boolean forceClose = false;
-
-    /**
-     *
-     *
-     * Scanner specific configuration items.
-     *
-     *
-     */
-
-    /**
-     * Table to which this scanner will connect.
-     */
-    protected String tableName;
-
-    /**
-     * Authorization set
-     */
-    protected Set<Authorizations> auths;
-
-    /**
-     * Max results to return at any given time.
-     */
-    protected int maxResults;
 
     protected Class<? extends DocumentResource> delegatedResourceInitializer;
 
-    /**
-     * Scanner options.
-     */
-    protected SessionOptions options = null;
-
-    protected Query settings;
 
     private static final Logger log = Logger.getLogger(DocumentScannerSession.class);
 
-    protected ScanSessionStats stats = null;
-
-    protected ExecutorService statsListener = null;
-
-    protected boolean accrueStats;
-
     protected DocumentResource delegatedResource = null;
 
-    protected boolean isFair = true;
-
-    protected QueryUncaughtExceptionHandler uncaughtExceptionHandler = null;
 
     /**
      * Constructor
@@ -145,8 +78,9 @@ public class DocumentScannerSession extends  BaseScannerSession<SerializedDocume
         Preconditions.checkNotNull(options);
         Preconditions.checkNotNull(delegator);
 
-        this.options = options;
+
         this.config=config;
+        this.options = options;
         // build a stack of ranges
         this.ranges = new ConcurrentLinkedQueue<>();
         
@@ -182,64 +116,6 @@ public class DocumentScannerSession extends  BaseScannerSession<SerializedDocume
         }
         
         delegatedResourceInitializer = DocumentRunningResource.class;
-        
-    }
-    
-    /**
-     * overridden in order to set the UncaughtExceptionHandler on the Thread that is created to run the ScannerSession
-     */
-    @Override
-    protected Executor executor() {
-        return command -> {
-            String name = serviceName();
-            Preconditions.checkNotNull(name);
-            Preconditions.checkNotNull(command);
-            Thread result = MoreExecutors.platformThreadFactory().newThread(command);
-            try {
-                result.setName(name);
-                result.setUncaughtExceptionHandler(uncaughtExceptionHandler);
-            } catch (SecurityException e) {
-                // OK if we can't set the name in this environment.
-            }
-            result.start();
-        };
-    }
-    
-    /**
-     * Sets the ranges for the given scannersession.
-     * 
-     * @param ranges
-     * @return
-     */
-    public DocumentScannerSession setRanges(Collection<Range> ranges) {
-        Preconditions.checkNotNull(ranges);
-        // ensure that we are not already running
-        Preconditions.checkArgument(!isRunning());
-        List<Range> rangeList = Lists.newArrayList(ranges);
-        Collections.sort(rangeList);
-        this.ranges.clear();
-        this.ranges.addAll(rangeList);
-        lastRange = Iterables.getLast(rangeList);
-        return this;
-        
-    }
-    
-    /**
-     * Sets the ranges for the given scannersession.
-     * 
-     * @param ranges
-     * @return
-     */
-    public DocumentScannerSession setRanges(Iterable<Range> ranges) {
-        Preconditions.checkNotNull(ranges);
-        // ensure that we are not already running
-        Preconditions.checkArgument(!isRunning());
-        List<Range> rangeList = Lists.newArrayList(ranges);
-        Collections.sort(rangeList);
-        this.ranges.clear();
-        this.ranges.addAll(rangeList);
-        lastRange = Iterables.getLast(rangeList);
-        return this;
         
     }
     
@@ -362,30 +238,11 @@ public class DocumentScannerSession extends  BaseScannerSession<SerializedDocume
         
     }
     
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.util.Iterator#next()
-     * 
-     * Note that this method needs to check the uncaught exception handler and propogate any set throwables.
-     */
-    @Override
-    public SerializedDocumentIfc next() {
-        try {
-            SerializedDocumentIfc retVal = currentEntry;
-            currentEntry = null;
-            return retVal;
-        } finally {
-            if (uncaughtExceptionHandler.getThrowable() != null) {
-                log.error("Exception discovered on next call", uncaughtExceptionHandler.getThrowable());
-                throw new RuntimeException(uncaughtExceptionHandler.getThrowable());
-            }
-        }
-    }
-    
+
+
     /**
      * Override this for your specific implementation.
-     * 
+     *
      * @param lastKey
      * @param previousRange
      */
@@ -401,13 +258,14 @@ public class DocumentScannerSession extends  BaseScannerSession<SerializedDocume
     public void setResourceClass(Class<? extends DocumentResource> clazz) {
         delegatedResourceInitializer = clazz;
     }
-    
+
     /**
      * FindTop -- Follows the logic outlined in the comments, below. Effectively, we continue
      * 
      * @throws Exception
      * 
      */
+    @Override
     protected void findTop() throws Exception {
         if (ranges.isEmpty() && lastSeenKey == null) {
             
@@ -654,8 +512,9 @@ public class DocumentScannerSession extends  BaseScannerSession<SerializedDocume
      * 
      * @return
      */
-    protected Key getLastKey() {
-        return lastSeenKey.computeKey();
+    @Override
+    protected SerializedDocumentIfc getLastKey() {
+        return lastSeenKey;
     }
     
     public ScanSessionStats getStatistics() {

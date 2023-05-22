@@ -24,6 +24,14 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+/**
+ * Purpose: Limit days within the range stream scanner
+ *
+ * Justification: The consideration is that day computation takes additional effort and synchronization. With the
+ * hypothesis that we don't need day ranges, can we eliminate this code for a speedup?
+ *
+ * Design: Extends RangeStreamScanner to override the scanner invariant method.
+ */
 public class RangeScannerLimitDays extends RangeStreamScanner {
     private static final Logger log = Logger.getLogger(RangeStreamScanner.class);
     
