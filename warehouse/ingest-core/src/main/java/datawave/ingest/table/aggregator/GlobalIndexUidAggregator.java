@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 public class GlobalIndexUidAggregator extends PropogatingCombiner {
     private static final Logger log = LoggerFactory.getLogger(GlobalIndexUidAggregator.class);
     private static final String TIMESTAMPS_IGNORED = "timestampsIgnored";
+    private static final String MAX_UID_COUNT = "maxUidCount";
     
     /**
      * Using a set instead of a list so that duplicate UIDs are filtered out of the list. This might happen in the case of rows with masked fields that share a
@@ -330,6 +331,9 @@ public class GlobalIndexUidAggregator extends PropogatingCombiner {
             if (options.containsKey(TIMESTAMPS_IGNORED)) {
                 timestampsIgnored = Boolean.parseBoolean(options.get(TIMESTAMPS_IGNORED));
             }
+            if (options.containsKey(MAX_UID_COUNT)) {
+                maxUids = Integer.valueOf(options.get(MAX_UID_COUNT));
+            }
         }
         return valid;
     }
@@ -338,6 +342,7 @@ public class GlobalIndexUidAggregator extends PropogatingCombiner {
     public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
         GlobalIndexUidAggregator copy = (GlobalIndexUidAggregator) super.deepCopy(env);
         copy.timestampsIgnored = timestampsIgnored;
+        copy.maxUids = maxUids;
         copy.propogate = propogate;
         // Not copying other fields that are all cleared in the reset() method.
         return copy;
@@ -348,6 +353,9 @@ public class GlobalIndexUidAggregator extends PropogatingCombiner {
         super.init(source, options, env);
         if (options.containsKey(TIMESTAMPS_IGNORED)) {
             timestampsIgnored = Boolean.parseBoolean(options.get(TIMESTAMPS_IGNORED));
+        }
+        if (options.containsKey(MAX_UID_COUNT)) {
+            maxUids = Integer.valueOf(options.get(MAX_UID_COUNT));
         }
     }
     
