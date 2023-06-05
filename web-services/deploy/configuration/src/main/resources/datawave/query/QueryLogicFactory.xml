@@ -548,6 +548,11 @@
         <property name="rangeBufferPollMillis" value="25" />
     </bean>
 
+    <bean id="DocIdEventQuery" scope="prototype"  parent="EventQueryV0.1" >
+        <property name="collapseUids" value="false"/>
+        <property name="indexTableName" value="datawave.barnIndex" />
+    </bean>
+
     <bean id="CountQuery" scope="prototype"  parent="BaseEventQuery" class="datawave.query.tables.CountingShardQueryLogic">
         <property name="logicDescription" value="Retrieve event/document counts based on your search criteria"/>
     </bean>
